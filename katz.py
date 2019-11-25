@@ -19,8 +19,6 @@ import zipfile
 
 # todo -- in version 2, add support for other formats including tar and gzip
 
-# todo -- in large archives with many folders, it is easy to get lost; consider modifying the way archives are listed in list_files() so that subfolders are somehow segregated to they can be easily identified [ see https://realpython.com/working-with-files-in-python/]
-
 
 def create_new():
     """
