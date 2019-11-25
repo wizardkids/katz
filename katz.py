@@ -19,12 +19,7 @@ import zipfile
 
 # todo -- in version 2, add support for other formats including tar and gzip
 
-# todo -- in large archives with many folders, it is easy to get lost; consider modifying the way archives are listed in list_files() so that subfolders are somehow segregated to they can be easily identified
-
-# todo -- in remove_file(), before deleting the original archive, test the new archive and make sure it's a valid and usable archive before deleting the original archive
-
-
-# todo -- add compression to file storage in the archive
+# todo -- in large archives with many folders, it is easy to get lost; consider modifying the way archives are listed in list_files() so that subfolders are somehow segregated to they can be easily identified [ see https://realpython.com/working-with-files-in-python/]
 
 
 def create_new():
@@ -122,8 +117,17 @@ def list_files(file_name):
     """
     with zipfile.ZipFile(file_name, 'r') as f:
         zip_files = f.namelist()
+        # get and print the root directory
+        current_directory = os.path.dirname(zip_files[0])
+        print(current_directory)
         for ndx, file in enumerate(zip_files):
-            print(ndx+1, '. ', file, sep='')
+            # when the directory changes, print it (left-justified)
+            if current_directory != os.path.dirname(file):
+                current_directory = os.path.dirname(file)
+                print(current_directory)
+            # print files indented 5 spaces
+            this_directory, this_file = os.path.split(file)
+            print(' '*5, ndx+1, '. ', this_file, sep='')
 
     return file_name
 
@@ -215,7 +219,7 @@ def extract_file(file_name):
 
         # let user choose which files to extract
         print(
-            '\nEnter the number of the file to extract,\na comma-separated list of numbers,\nor enter "all" to extract all files.\n')
+            '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to extract\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to extract all files\n')
         choice = input("File number(s) to extract: ")
 
         # if no choice is made, return to menu
@@ -227,16 +231,26 @@ def extract_file(file_name):
         if choice.strip().upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(zip_info)+1)]
         else:
-            which_files = choice.split(',')
-
-        # confirm that numbers user entered are valid
-        for i in which_files:
-            if i.strip() not in num_files:
-                print('\nPlease use integers within the range: 1-',
-                      num_files[-2], sep='')
-                print()
-                continue
-
+            # extract all the file numbers from the user's list:
+            selected_files = choice.split(',')
+            which_files = []
+            for i in selected_files:
+                if '-' in i:
+                    r = i.split('-')
+                    try:
+                        n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
+                        for x in n:
+                            which_files.append(x)
+                    except:
+                        print(
+                            '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                else:
+                    try:
+                        n = int(i)
+                        which_files.append(str(n))
+                    except:
+                        print(
+                            '\nInvalid number(s) excluded. Did you comma-separate values?')
         break
 
     # convert which_files from a list of strings to a list of integers
@@ -246,10 +260,11 @@ def extract_file(file_name):
     with zipfile.ZipFile(file_name, 'r') as f:
 
         zip_files = f.namelist()
-
+        print('\nExtracting...')
         for ndx, file in enumerate(zip_files):
             if ndx+1 in which_files:
                 this_file = zip_files[ndx]
+                print(this_file)
                 f.extract(this_file, path=file_name[:-4])
 
     return file_name
