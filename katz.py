@@ -5,17 +5,17 @@ Richard E. Rawson
 2019-11-21
 
 Program Description:
-zip archiving program
+command-line zip archiving utility
+    1. list all files, and files in subfolders within the archive
+    2. add one, many or all files, optionally including subfolders
+    3. extract one, many, or all files from the archive
+    4. remove one file at a time from the archive
+    5. test the integrity of the archive
 """
 
 import os
 import shutil
 import zipfile
-from pprint import pprint
-
-# todo -- need a better way to add files to an archive rather than naming them one by one
-# ! -- have an "add all" option, and it must include sub-directories
-# ! -- generate a list of files in the directory where the zip file lives
 
 
 def create_new():
@@ -24,7 +24,7 @@ def create_new():
     """
 
     # get a valid filename from the user
-    file_name = get_filename()
+    file_name, full_path = get_filename()
 
     # if not file name was entered, return to the menu
     if not file_name:
@@ -46,31 +46,24 @@ def create_new():
         # create a new zip file
         with zipfile.ZipFile(file_name, 'w') as f:
             print('\n', file_name, 'created as new archive.\n')
-    return file_name
+    return file_name, full_path
 
 
 def open_archive():
     """
-    Open an archive and list the files in the archive
-    List all the files in a zip archive:
-        1. pomodoro_I.py
-        2. pomodoro_II.py
-        3. Windows Notify.wav
-    """
-    """
-    modes:
-        'x' -- to exclusively create and write a new "file". If "file" already exists, a FileExistsError will be raised.
-        'r' -- read an existing "file"
-        'a' -- if "file" refers to an existing ZIP file, then additional files are added to it. If "file" does not refer to a ZIP file, then a new ZIP archive is appended to the file.
+    Open an archive and list the files in the archive.
     """
     # get a valid file name from user
-    file_name = get_filename()
+    file_name, full_path = get_filename()
 
     # open the archive and list all the files in it
-    with zipfile.ZipFile(file_name, 'r') as f:
-        zip_files = f.namelist()
-        for ndx, file in enumerate(zip_files):
-            print(ndx+1, '. ', file, sep='')
+    try:
+        with zipfile.ZipFile(file_name, 'r') as f:
+            zip_files = f.namelist()
+            for ndx, file in enumerate(zip_files):
+                print(ndx+1, '. ', file, sep='')
+    except:
+        print('File not found.')
 
     return file_name
 
@@ -81,22 +74,23 @@ def get_filename():
     """
     while True:
         # get a file name from the user
-        file_name = input("\nName of archive: ").strip()
+        full_path = input("\nName of archive: ").strip()
+        file_name = os.path.basename(full_path)
 
         # if no file name was entered, return to menu
-        if not file_name.strip():
-            return file_name
+        if not full_path.strip():
+            return file_name, full_path
 
         # "escape" any backslashes
-        file_name = file_name.replace('\\', '\\\\')
+        # full_path = full_path.replace('\\', '\\\\')
 
         # check filename for bad characters and bad extension
         prohibited = ['<', '>', '\"', '?', '|', '*']
-        if file_name[-4:] != '.zip':
+        if full_path[-4:] != '.zip':
             print('\nFile name is not a zip file.\n')
             continue
         bad_file = False
-        for i in file_name:
+        for i in full_path:
             if i in prohibited:
                 print("\nBad file name: '", i, "' not allowed.", sep='')
                 bad_file = True
@@ -106,12 +100,11 @@ def get_filename():
         break
 
     # to make thing easier, change the cwd() to the path for this file
-    _working_directory_ = os.path.dirname(file_name)
+    _working_directory_ = os.path.dirname(full_path)
     if _working_directory_:
         os.chdir(_working_directory_)
-    file_name = os.path.basename(file_name)
 
-    return file_name
+    return file_name, full_path
 
 
 def list_files(file_name):
@@ -128,35 +121,71 @@ def list_files(file_name):
 
 def add_file(file_name):
     """
-    Add a file to an existing archive.
+    Add one, many, or all files to an existing archive.
     """
+    # generate a list of files in the current directory
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    print('\n--------------------------------\n',
+          'FILES IN THE CURRENT DIRECTORY\n',
+          '--------------------------------', sep='')
+    for ndx, file in enumerate(files):
+        print(file, sep='')
+
     while True:
         # get a file name to add
+        print('\nUse "all" to add all files to the archive.')
         file_to_add = input('\nFile name to add to archive: ').strip()
 
         # if no file name was entered, return to menu
         if not file_to_add:
+            return
+        else:
             break
 
-        # make sure file exists
+    if file_to_add.upper() == 'ALL':
+        choice = input('Include subdirectories? Y/N ').strip().upper()
+        if choice == 'Y':
+            # except for the zip file, add all files including subfolders
+            tree = os.walk('.')
+            for dirpath, dirnames, filenames in tree:
+                for file in filenames:
+                    if file != file_name:
+                        this_file = os.path.relpath(
+                            os.path.join(dirpath, file), ".")
+                        write_one_file(this_file, file_name)
+        else:
+            # add all files in top level directory except the zip itself
+            for file in files:
+                if file != file_name:
+                    write_one_file(file, file_name)
+    else:
+        # adding a single file; make sure file exists
         if not os.path.isfile(file_to_add):
             print('\nFile name is incorrect\nor file does not exist.\n')
-            continue
-
-        # determine if the file already exists in the archive;
-        # an archive cannot have duplicate files
-        with zipfile.ZipFile(file_name) as f:
-            zip_files = f.namelist()
-
-        if file_to_add in zip_files:
-            print(
-                '\nFile already exists in archive.\nRemove this file before adding a new version.')
-            break
+        # add one specific file to archive, unless it's the zip itself
+        if file != file_name:
+            write_one_file(file, file_name)
         else:
-            with zipfile.ZipFile(file_name, 'a') as f:
-                f.write(file_to_add)
+            print('\nCannot add the archive to itself.')
 
     return file_name
+
+
+def write_one_file(file_to_add, file_name):
+    # determine if the file already exists in the archive;
+    # an archive cannot have duplicate files
+    with zipfile.ZipFile(file_name) as f:
+        zip_files = f.namelist()
+
+    if file_to_add in zip_files:
+        # print message if file already resides in archive
+        print(
+            '\n', file_to_add, ' already exists in archive.\nRemove this file before adding a new version.', sep='')
+    else:
+        # add the file to the archive
+        with zipfile.ZipFile(file_name, 'a') as f:
+            f.write(file_to_add)
+    return
 
 
 def extract_file(file_name):
@@ -335,6 +364,7 @@ def main_menu():
 
     # generate the main menu
     while True:
+        file_name, full_path = '', ''
         while True:
             choice = input(
                 '\n<O>pen file    <N>ew file\nQ>uit\n\nChoice: ').upper()
@@ -355,8 +385,8 @@ def main_menu():
         elif choice == 'Q':
             break
 
-    # change back to original user directory
-    os.chdir(_user_directory_)
+        # change back to original user directory
+        os.chdir(_user_directory_)
 
 
 def sub_menu(open_file, new_file):
@@ -364,17 +394,26 @@ def sub_menu(open_file, new_file):
     Menu of actions on the file that the user has opened or created.
     """
     if open_file:
-        file_name = get_filename()
+        file_name, full_path = get_filename()
+        # if the file does not exist upon <open>, render warning and return
+        if not os.path.isfile(full_path):
+            print('\nFile not found.')
+            return
     else:
-        file_name = create_new()
+        file_name, full_path = create_new()
 
     # go back to the main menu if no file name is entered
     if not file_name:
         return
 
     # use the following to delimit output from sequential commands
+    if len(full_path) >= 49:
+        fp = '...' + full_path[-49:]
+    else:
+        fp = full_path
+
     sp1 = '\n====================================================\n' \
-        + os.getcwd() + '\\' + file_name + '\n' \
+        + fp + '\n' \
         + '===================================================='
     print(sp1)
 
