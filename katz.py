@@ -17,6 +17,10 @@ import os
 import shutil
 import zipfile
 
+# todo -- in remove_file(), before deleting the original archive, test the new archive and make sure it's a valid and usable archive before deleting the original archive
+
+# todo -- add compression to file storage in the archive
+
 
 def create_new():
     """
@@ -352,6 +356,19 @@ def test_archive(file_name):
     return file_name
 
 
+def about():
+    dsh, slsh = '=', '/'
+    print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+
+    about1 = '"katz" is named after Phil Katz, the originator of'
+    about2 = 'PKWARE, the company that originated the ZIP file'
+    about3 = 'format in 1989 that is still in popular use today.'
+
+    print(about1, '\n', about2, '\n', about3, '\n', sep='')
+
+    return
+
+
 def main_menu():
     """
     Menu for opening a file or creating a new file, which the user can then manipulate via the sub-menu.
@@ -367,11 +384,11 @@ def main_menu():
         file_name, full_path = '', ''
         while True:
             choice = input(
-                '\n<O>pen file    <N>ew file\nQ>uit\n\nChoice: ').upper()
-            if choice in 'ONQ':
+                '\n<O>pen file    <N>ew file    <A>bout\nQ>uit\n\nChoice: ').upper()
+            if choice in 'ONAQ':
                 break
             else:
-                print('\nEnter only "O", "N", or "Q".')
+                print('\nEnter only "O", "N", "A", or "Q".')
                 continue
 
         if choice == 'O':
@@ -381,6 +398,9 @@ def main_menu():
         elif choice == 'N':
             open_file, new_file = False, True
             sub_menu(open_file, new_file)
+
+        elif choice == 'A':
+            about()
 
         elif choice == 'Q':
             break
@@ -412,10 +432,8 @@ def sub_menu(open_file, new_file):
     else:
         fp = full_path
 
-    sp1 = '\n====================================================\n' \
-        + fp + '\n' \
-        + '===================================================='
-    print(sp1)
+    dsh, slsh = '=', '/'
+    print('\n', dsh*52, '\n', fp, '\n', dsh*52, sep='')
 
     file_name = list_files(file_name)
 
@@ -428,7 +446,7 @@ def sub_menu(open_file, new_file):
             print('\n"', user_choice, '" ', 'is an invalid action.', sep='')
             continue
 
-        print(sp1)
+        print('\n', dsh*52, '\n', fp, '\n', dsh*52, sep='')
 
         # actions to take on choosing a menu item
         if user_choice == 'L':
