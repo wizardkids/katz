@@ -6,9 +6,9 @@ Richard E. Rawson
 
 Program Description:
 command-line zip archiving utility
-    1. list all files, and files in subfolders within the archive
-    2. add one, many or all files, optionally including subfolders
-    3. extract one, many, or all files from the archive
+    1. list all files, including files in subfolders, within the archive
+    2. add one, many, or all files, optionally including subfolders
+    3. extract one, many, or all files from the archive, including subfolders
     4. remove one file at a time from the archive
     5. test the integrity of the archive
 """
@@ -17,7 +17,12 @@ import os
 import shutil
 import zipfile
 
+# todo -- in version 2, add support for other formats including tar and gzip
+
+# todo -- in large archives with many folders, it is easy to get lost; consider modifying the way archives are listed in list_files() so that subfolders are somehow segregated to they can be easily identified
+
 # todo -- in remove_file(), before deleting the original archive, test the new archive and make sure it's a valid and usable archive before deleting the original archive
+
 
 # todo -- add compression to file storage in the archive
 
@@ -40,7 +45,7 @@ def create_new():
             msg = '\n' + file_name + ' already exists. Overwrite? '
             overwrite = input(msg).upper()
             if overwrite == 'Y':
-                with zipfile.ZipFile(file_name, 'w') as f:
+                with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
             else:
                 print(file_name, 'not created.\n')
@@ -48,7 +53,7 @@ def create_new():
     # if file_name was not found, then we can create it!
     except FileNotFoundError:
         # create a new zip file
-        with zipfile.ZipFile(file_name, 'w') as f:
+        with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             print('\n', file_name, 'created as new archive.\n')
     return file_name, full_path
 
@@ -186,8 +191,8 @@ def write_one_file(file_to_add, file_name):
         print(
             '\n', file_to_add, ' already exists in archive.\nRemove this file before adding a new version.', sep='')
     else:
-        # add the file to the archive
-        with zipfile.ZipFile(file_name, 'a') as f:
+        # add the compressed file to the archive
+        with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
             f.write(file_to_add)
     return
 
@@ -289,7 +294,7 @@ def remove_file(file_name):
                   num_files, '.\n', sep='')
             continue
 
-    # get confirmation from the user about the chosen file
+    # get confirmation from the user about the file to be removed
     with zipfile.ZipFile(file_name, 'r') as f:
         print()
         for ndx, file in enumerate(zip_files):
@@ -310,7 +315,7 @@ def remove_file(file_name):
         rel_dir = os.path.relpath(current_directory, '')
 
         # add all the extracted files to _temp_zipfile_.zip
-        with zipfile.ZipFile('_temp_zipfile_.zip', 'w') as f:
+        with zipfile.ZipFile('_temp_zipfile_.zip', 'w', compression=zipfile.ZIP_DEFLATED) as f:
             os.chdir(this_path)
             # Iterate over all the files in directory
             for folderName, subfolders, filenames in os.walk(rel_dir):
@@ -323,8 +328,19 @@ def remove_file(file_name):
         # change back to the directory holding file_name
         os.chdir(current_directory)
 
+        # test the temporary archive before deleting the original one
+        if not zipfile.is_zipfile('_temp_zipfile_.zip'):
+            print('\nUnknown error. Aborting removal of file.')
+        # open the archive and test it using testzip()
         try:
-            # delete file_name
+            with zipfile.ZipFile('_temp_zipfile_.zip', 'r') as f:
+                if f.testzip():
+                    print('\nUnknown error. Aborting removal of file.')
+        except:
+            print('\nUnknown error. Aborting removal of file.')
+
+        # delete file_name
+        try:
             os.remove(file_name)
         except:
             print('\nCannot complete file removal.')
@@ -342,6 +358,11 @@ def test_archive(file_name):
     """
     Test the integrity of the archive.
     """
+    # first, test if it is a valid zip file
+    if not zipfile.is_zipfile(file_name):
+        print('\nNot a valid zip file.')
+        return file_name
+
     # open the archive and test it using testzip()
     with zipfile.ZipFile(file_name, 'r') as f:
         tested_files = f.testzip()
