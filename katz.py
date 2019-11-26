@@ -16,6 +16,7 @@ command-line zip archiving utility
 import os
 import shutil
 import zipfile
+from pathlib import Path
 
 # todo -- in version 2, add support for other formats including tar and gzip
 
@@ -60,10 +61,7 @@ def open_archive():
 
     # open the archive and list all the files in it
     try:
-        with zipfile.ZipFile(file_name, 'r') as f:
-            zip_files = f.namelist()
-            for ndx, file in enumerate(zip_files):
-                print(ndx+1, '. ', file, sep='')
+        file_name = list_files(file_name)
     except:
         print('File not found.')
 
@@ -77,14 +75,11 @@ def get_filename():
     while True:
         # get a file name from the user
         full_path = input("\nName of archive: ").strip()
-        file_name = os.path.basename(full_path)
+        file_name = Path(full_path).name
 
         # if no file name was entered, return to menu
         if not full_path.strip():
             return file_name, full_path
-
-        # "escape" any backslashes
-        # full_path = full_path.replace('\\', '\\\\')
 
         # check filename for bad characters and bad extension
         prohibited = ['<', '>', '\"', '?', '|', '*']
@@ -134,11 +129,12 @@ def add_file(file_name):
     """
     Add one, many, or all files to an existing archive.
     """
-    # generate a list of files in the current directory
+    dsh, slsh = '=', '/'
+    msg = 'FILES IN THE CURRENT DIRECTORY'
+    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+
+    # print a list of all files in the current working directory
     files = [f for f in os.listdir('.') if os.path.isfile(f)]
-    print('\n--------------------------------\n',
-          'FILES IN THE CURRENT DIRECTORY\n',
-          '--------------------------------', sep='')
     for ndx, file in enumerate(files):
         print(file, sep='')
 
@@ -153,8 +149,12 @@ def add_file(file_name):
         else:
             break
 
+    # either add one file or add 'all' files, optionally including subfolders
     if file_to_add.upper() == 'ALL':
+
         choice = input('Include subdirectories? Y/N ').strip().upper()
+
+        # add current directory AND subfolders
         if choice == 'Y':
             # except for the zip file, add all files including subfolders
             tree = os.walk('.')
@@ -164,13 +164,14 @@ def add_file(file_name):
                         this_file = os.path.relpath(
                             os.path.join(dirpath, file), ".")
                         write_one_file(this_file, file_name)
+        # add all files in top level directory except the zip itself
         else:
-            # add all files in top level directory except the zip itself
             for file in files:
                 if file != file_name:
                     write_one_file(file, file_name)
+    # add a single file, only
     else:
-        # adding a single file; make sure file exists
+        # make sure file exists
         if not os.path.isfile(file_to_add):
             print('\nFile name is incorrect\nor file does not exist.\n')
         # add one specific file to archive, unless it's the zip itself
@@ -188,14 +189,16 @@ def write_one_file(file_to_add, file_name):
     with zipfile.ZipFile(file_name) as f:
         zip_files = f.namelist()
 
-    if file_to_add in zip_files:
-        # print message if file already resides in archive
-        print(
-            '\n', file_to_add, ' already exists in archive.\nRemove this file before adding a new version.', sep='')
-    else:
-        # add the compressed file to the archive
+    # add the compressed file if it does not exist in archive already
+    if file_to_add not in zip_files:
         with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
             f.write(file_to_add)
+
+    # print message if file already resides in archive
+    else:
+        print('\n', file_to_add,
+              ' already exists in archive.\nRemove this file before adding a new version.', sep='')
+
     return
 
 
@@ -203,19 +206,18 @@ def extract_file(file_name):
     """
     Extract one or more files from an archive.
     """
-    # get a list files in the archive
+    # get a list files in the archive and number them
     with zipfile.ZipFile(file_name, 'r') as f:
         zip_info = f.infolist()
-
-    # num_files is a list of numbers (type:string), one for each file
-    num_files = [str(x) for x in range(1, len(zip_info)+1)]
-    num_files.append(' ')
+        num_files = [str(x) for x in range(1, len(zip_info)+1)]
+        num_files.append(' ')
 
     while True:
-        # generate a list of files in the archive
+        # print a list of files in the archive
         file_name = list_files(file_name)
 
-        # let user choose which files to extract
+        # let user choose which file(s) to extract
+        # example user input: 1, 3-5, 28, 52-68, 70
         print(
             '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to extract\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to extract all files\n')
         choice = input("File number(s) to extract: ")
@@ -225,14 +227,16 @@ def extract_file(file_name):
             return file_name
 
         # which_files is a list of digits user entered (type:string)
-        # if choice="ALL", then generate a list of all file numbers
+        # else if choice="ALL", then generate a list of all file numbers
         if choice.strip().upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(zip_info)+1)]
+
         else:
             # extract all the file numbers from the user's list:
             selected_files = choice.split(',')
             which_files = []
             for i in selected_files:
+                # treating ranges, i.e., 2-8
                 if '-' in i:
                     r = i.split('-')
                     try:
@@ -242,6 +246,7 @@ def extract_file(file_name):
                     except:
                         print(
                             '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                # treating all other single digits
                 else:
                     try:
                         n = int(i)
@@ -256,9 +261,9 @@ def extract_file(file_name):
 
     # extract the files the user has chosen to path=file_name
     with zipfile.ZipFile(file_name, 'r') as f:
-
         zip_files = f.namelist()
         print('\nExtracting...')
+        # extract designated files and print the files on screen
         for ndx, file in enumerate(zip_files):
             if ndx+1 in which_files:
                 this_file = zip_files[ndx]
@@ -324,18 +329,21 @@ def remove_file(file_name):
                     this_file = zip_files[ndx]
                     f.extract(this_file, path=this_path)
 
+        # preserve absolute and relative paths to current directory
         current_directory = os.getcwd()
         rel_dir = os.path.relpath(current_directory, '')
 
         # add all the extracted files to _temp_zipfile_.zip
         with zipfile.ZipFile('_temp_zipfile_.zip', 'w', compression=zipfile.ZIP_DEFLATED) as f:
+            # change directory to the temporary directory which will be
+            # the location of our temporary zip file
             os.chdir(this_path)
-            # Iterate over all the files in directory
+            # Iterate over all the files in the root directory
             for folderName, subfolders, filenames in os.walk(rel_dir):
                 for filename in filenames:
                     # create complete filepath of file in directory
                     filePath = os.path.join(folderName, filename)
-                    # Add file to zip
+                    # add file to zip
                     f.write(filePath)
 
         # change back to the directory holding file_name
