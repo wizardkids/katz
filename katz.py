@@ -18,7 +18,12 @@ import shutil
 import zipfile
 from pathlib import Path
 
-# todo -- in version 2, add support for other formats including tar and gzip
+# todo -- version 2, add support for other archiving formats, including tar and gzip
+
+# todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
+
+# declare global variables
+dsh, slsh = '=', '/'
 
 
 def create_new():
@@ -29,7 +34,7 @@ def create_new():
     # get a valid filename from the user
     file_name, full_path = get_filename()
 
-    # if not file name was entered, return to the menu
+    # if no file name was entered, return to the menu
     if not file_name:
         return
 
@@ -61,7 +66,7 @@ def open_archive():
 
     # open the archive and list all the files in it
     try:
-        file_name = list_files(file_name)
+        full_path, file_name = list_files(full_path, file_name)
     except:
         print('File not found.')
 
@@ -86,6 +91,8 @@ def get_filename():
         if full_path[-4:] != '.zip':
             print('\nFile name is not a zip file.\n')
             continue
+
+        # check if path user entered is valid OS path
         bad_file = False
         for i in full_path:
             if i in prohibited:
@@ -104,32 +111,38 @@ def get_filename():
     return file_name, full_path
 
 
-def list_files(file_name):
+def list_files(full_path, file_name):
     """
     Generate a numbered list of all the files in the archive.
     """
     with zipfile.ZipFile(file_name, 'r') as f:
         zip_files = f.namelist()
+
         # get and print the root directory
-        current_directory = os.path.dirname(zip_files[0])
+        current_directory = os.path.dirname(full_path)
         print(current_directory)
+
         for ndx, file in enumerate(zip_files):
+
             # when the directory changes, print it (left-justified)
             if current_directory != os.path.dirname(file):
                 current_directory = os.path.dirname(file)
-                print(current_directory)
+                if current_directory:
+                    print(current_directory)
+                else:
+                    print('root/')
+
             # print files indented 5 spaces
             this_directory, this_file = os.path.split(file)
             print(' '*5, ndx+1, '. ', this_file, sep='')
 
-    return file_name
+    return full_path, file_name
 
 
-def add_file(file_name):
+def add_file(full_path, file_name):
     """
     Add one, many, or all files to an existing archive.
     """
-    dsh, slsh = '=', '/'
     msg = 'FILES IN THE CURRENT DIRECTORY'
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
@@ -180,7 +193,7 @@ def add_file(file_name):
         else:
             print('\nCannot add the archive to itself.')
 
-    return file_name
+    return full_path, file_name
 
 
 def write_one_file(file_to_add, file_name):
@@ -202,7 +215,7 @@ def write_one_file(file_to_add, file_name):
     return
 
 
-def extract_file(file_name):
+def extract_file(full_path, file_name):
     """
     Extract one or more files from an archive.
     """
@@ -214,7 +227,7 @@ def extract_file(file_name):
 
     while True:
         # print a list of files in the archive
-        file_name = list_files(file_name)
+        full_path, file_name = list_files(full_path, file_name)
 
         # let user choose which file(s) to extract
         # example user input: 1, 3-5, 28, 52-68, 70
@@ -270,10 +283,10 @@ def extract_file(file_name):
                 print(this_file)
                 f.extract(this_file, path=file_name[:-4])
 
-    return file_name
+    return full_path, file_name
 
 
-def remove_file(file_name):
+def remove_file(full_path, file_name):
     """
     To remove a file, create a new archive with the removed file missing. This utility removes only one file at a time.
 
@@ -293,7 +306,7 @@ def remove_file(file_name):
 
     while True:
         # for the user, print a list of files in the archive
-        file_name = list_files(file_name)
+        full_path, file_name = list_files(full_path, file_name)
 
         # get from the user the file that should be removed
         choice = input("\nEnter the number of file to remove: ")
@@ -372,10 +385,10 @@ def remove_file(file_name):
         # delete the "temporary" directory
         shutil.rmtree(this_path)
 
-    return file_name
+    return full_path, file_name
 
 
-def test_archive(file_name):
+def test_archive(full_path, file_name):
     """
     Test the integrity of the archive.
     """
@@ -395,17 +408,18 @@ def test_archive(file_name):
         print('\nTested ', num_files, ' files.  ',
               num_files, ' OK.  0 failed.', sep='')
 
-    return file_name
+    return full_path, file_name
 
 
 def about():
-    dsh, slsh = '=', '/'
-    print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-
+    """
+    Provide a very little history behing the name "katz".
+    """
     about1 = '"katz" is named after Phil Katz, the originator of'
     about2 = 'PKWARE, the company that originated the ZIP file'
     about3 = 'format in 1989 that is still in popular use today.'
 
+    print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
     print(about1, '\n', about2, '\n', about3, '\n', sep='')
 
     return
@@ -421,12 +435,14 @@ def main_menu():
     # store the user's current working directory
     _user_directory_ = os.getcwd()
 
-    # generate the main menu
+    # generate the main menu until the user presses "Q"
     while True:
+        # reset user-entered file names/paths
         file_name, full_path = '', ''
+
         while True:
             choice = input(
-                '\n<O>pen file    <N>ew file    <A>bout\nQ>uit\n\nChoice: ').upper()
+                '\n<O>pen file    <N>ew file    <A>bout\nQ>uit\n\nChoice: ').strip().upper()
             if choice in 'ONAQ':
                 break
             else:
@@ -455,9 +471,10 @@ def sub_menu(open_file, new_file):
     """
     Menu of actions on the file that the user has opened or created.
     """
+    # either open the file and list its contents, or create a new file
     if open_file:
         file_name, full_path = get_filename()
-        # if the file does not exist upon <open>, render warning and return
+        # if the file does not exist upon <open>, render warning and return to the main menu
         if not os.path.isfile(full_path):
             print('\nFile not found.')
             return
@@ -468,16 +485,25 @@ def sub_menu(open_file, new_file):
     if not file_name:
         return
 
+    # check that <open>ed file_name is a valid zip file
+    try:
+        with zipfile.ZipFile(file_name, 'r') as f:
+            if f.testzip() and open_file:
+                print('\nFile is not a zip file or is corrupted.')
+                return
+    except zipfile.BadZipFile as err:
+        print('\n', err)
+        return
+
     # use the following to delimit output from sequential commands
     if len(full_path) >= 49:
-        fp = '...' + full_path[-49:]
+        msg = '...' + full_path[-49:]
     else:
-        fp = full_path
+        msg = full_path
+    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
-    dsh, slsh = '=', '/'
-    print('\n', dsh*52, '\n', fp, '\n', dsh*52, sep='')
-
-    file_name = list_files(file_name)
+    # print a list of all the files in the archive
+    full_path, file_name = list_files(full_path, file_name)
 
     while True:
         # generate the sub-menu
@@ -488,23 +514,23 @@ def sub_menu(open_file, new_file):
             print('\n"', user_choice, '" ', 'is an invalid action.', sep='')
             continue
 
-        print('\n', dsh*52, '\n', fp, '\n', dsh*52, sep='')
+        print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
         # actions to take on choosing a menu item
         if user_choice == 'L':
-            file_name = list_files(file_name)
+            full_path, file_name = list_files(full_path, file_name)
 
         elif user_choice == 'A':
-            file_name = add_file(file_name)
+            file_name = add_file(full_path, file_name)
 
         elif user_choice == 'E':
-            file_name = extract_file(file_name)
+            file_name = extract_file(full_path, file_name)
 
         elif user_choice == 'R':
-            file_name = remove_file(file_name)
+            file_name = remove_file(full_path, file_name)
 
         elif user_choice == 'T':
-            file_name = test_archive(file_name)
+            file_name = test_archive(full_path, file_name)
 
         else:
             return
