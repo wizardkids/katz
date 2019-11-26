@@ -16,6 +16,7 @@ command-line zip archiving utility
 import os
 import shutil
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
@@ -118,9 +119,8 @@ def list_files(full_path, file_name):
     with zipfile.ZipFile(file_name, 'r') as f:
         zip_files = f.namelist()
 
-        # get and print the root directory
+        # make root directory the starting value for current_directory
         current_directory = os.path.dirname(full_path)
-        print(current_directory)
 
         for ndx, file in enumerate(zip_files):
 
@@ -415,14 +415,25 @@ def about():
     """
     Provide a very little history behing the name "katz".
     """
-    about1 = '"katz" is named after Phil Katz, the originator of'
-    about2 = 'PKWARE, the company that originated the ZIP file'
-    about3 = 'format in 1989 that is still in popular use today.'
+    about1 = '"katz" is named after Phil Katz, the founder of'
+    about2 = 'PKWARE in 1989, the company that originated the'
+    about3 = 'ZIP file format that is still in popular use today.'
 
     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
     print(about1, '\n', about2, '\n', about3, '\n', sep='')
 
     return
+
+
+def get_revision_number():
+    """
+    Returns the revision number, which is the number of days since the initial coding of "ida" began on November 12, 2019.
+    """
+    start_date = datetime(2019, 11, 12)
+    tday = datetime.today()
+    revision_delta = datetime.today() - start_date
+
+    return revision_delta.days
 
 
 def main_menu():
@@ -437,6 +448,11 @@ def main_menu():
 
     # generate the main menu until the user presses "Q"
     while True:
+        version_num = "1.0"
+        revision_number = 14
+        print("\nkatz ", version_num,
+              " - a command-line archiving utility", sep='')
+
         # reset user-entered file names/paths
         file_name, full_path = '', ''
 
@@ -521,16 +537,16 @@ def sub_menu(open_file, new_file):
             full_path, file_name = list_files(full_path, file_name)
 
         elif user_choice == 'A':
-            file_name = add_file(full_path, file_name)
+            full_path, file_name = add_file(full_path, file_name)
 
         elif user_choice == 'E':
-            file_name = extract_file(full_path, file_name)
+            full_path, file_name = extract_file(full_path, file_name)
 
         elif user_choice == 'R':
-            file_name = remove_file(full_path, file_name)
+            full_path, file_name = remove_file(full_path, file_name)
 
         elif user_choice == 'T':
-            file_name = test_archive(full_path, file_name)
+            full_path, file_name = test_archive(full_path, file_name)
 
         else:
             return
@@ -540,3 +556,8 @@ def sub_menu(open_file, new_file):
 
 if __name__ == '__main__':
     main_menu()
+
+    # ====================================
+    # utility functions for developer only
+    # ====================================
+    # print(get_revision_number())
