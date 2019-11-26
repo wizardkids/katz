@@ -441,13 +441,15 @@ def main_menu():
     Menu for opening a file or creating a new file, which the user can then manipulate via the sub-menu.
 
     Variables:
-        open_file, new_file: whether or not we are opening an existing file or creating a new one
+        open_file, new_file: whether or not we are opening an existing file or creating a new one; passed to sub_menu()
     """
     # store the user's current working directory
     _user_directory_ = os.getcwd()
 
     # generate the main menu until the user presses "Q"
     while True:
+
+        # print the program header
         version_num = "1.0"
         revision_number = 14
         print("\nkatz ", version_num,
