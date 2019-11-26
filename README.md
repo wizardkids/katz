@@ -15,6 +15,7 @@ Files are compressed by default.
 
 ## **Usage**
 - The program is menu driven, with only essential capabilities as noted under *Features*. There are no options or preferences.
+- python 3 must be in the PATH environment variable.
 
 ## **Recommended setup**
 If you want to run "katz" from your desktop, here is what you need to do:

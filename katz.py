@@ -121,6 +121,10 @@ def list_files(full_path, file_name):
 
         # make root directory the starting value for current_directory
         current_directory = os.path.dirname(full_path)
+        if current_directory:
+            print(current_directory)
+        else:
+            print('root/')
 
         for ndx, file in enumerate(zip_files):
 
