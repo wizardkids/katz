@@ -19,6 +19,8 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
+# todo -- add ability to add files from another directory, including a subdirectory of the current directory
+
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
@@ -48,6 +50,7 @@ def create_new():
                 with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
             else:
+                file_name, full_path = '', ''
                 print(file_name, 'not created.\n')
 
     # if file_name was not found, then we can create it!
@@ -119,13 +122,16 @@ def list_files(full_path, file_name):
     with zipfile.ZipFile(file_name, 'r') as f:
         zip_files = f.namelist()
 
-        # make root directory the starting value for current_directory
-        current_directory = os.path.dirname(full_path)
-        if current_directory:
-            print(current_directory)
+        # if the first item in namelist() is a directory, get the name
+        # else... use root/ as the starting directory
+        if '/' in zip_files[0]:
+            slash_location = zip_files[0].find('/')
+            current_directory = zip_files[0][:slash_location]
         else:
-            print('root/')
+            current_directory = 'root/'
+        print(current_directory)
 
+        # print a list of files in the archive
         for ndx, file in enumerate(zip_files):
 
             # when the directory changes, print it (left-justified)
@@ -192,8 +198,8 @@ def add_file(full_path, file_name):
         if not os.path.isfile(file_to_add):
             print('\nFile name is incorrect\nor file does not exist.\n')
         # add one specific file to archive, unless it's the zip itself
-        if file != file_name:
-            write_one_file(file, file_name)
+        if file_to_add != file_name:
+            write_one_file(file_to_add, file_name)
         else:
             print('\nCannot add the archive to itself.')
 
@@ -409,7 +415,7 @@ def test_archive(full_path, file_name):
     if tested_files:
         print('Bad file found:', tested_files)
     else:
-        print('\nTested ', num_files, ' files.  ',
+        print('\nTested ', num_files, ' files:  ',
               num_files, ' OK.  0 failed.', sep='')
 
     return full_path, file_name
@@ -433,7 +439,7 @@ def get_revision_number():
     """
     Returns the revision number, which is the number of days since the initial coding of "ida" began on November 12, 2019.
     """
-    start_date = datetime(2019, 11, 12)
+    start_date = datetime(2019, 11, 21)
     tday = datetime.today()
     revision_delta = datetime.today() - start_date
 
@@ -455,7 +461,7 @@ def main_menu():
 
         # print the program header
         version_num = "1.0"
-        revision_number = 14
+        revision_number = 5
         print("\nkatz ", version_num,
               " - a command-line archiving utility", sep='')
 
@@ -489,17 +495,26 @@ def main_menu():
         os.chdir(_user_directory_)
 
 
+def check_file(full_path, file_name, open_file):
+    """
+    Check a zip file to make sure the file is readable and that its contents are ok.
+    """
+    # can we read the file and are the files in the archive ok?
+    with zipfile.ZipFile(file_name, 'r') as f:
+        if f.testzip():
+            print(f.testzip())
+            return False
+        else:
+            return True
+
+
 def sub_menu(open_file, new_file):
     """
     Menu of actions on the file that the user has opened or created.
     """
-    # either open the file and list its contents, or create a new file
+    # either open the file or create a new file
     if open_file:
         file_name, full_path = get_filename()
-        # if the file does not exist upon <open>, render warning and return to the main menu
-        if not os.path.isfile(full_path):
-            print('\nFile not found.')
-            return
     else:
         file_name, full_path = create_new()
 
@@ -507,15 +522,14 @@ def sub_menu(open_file, new_file):
     if not file_name:
         return
 
-    # check that <open>ed file_name is a valid zip file
-    try:
-        with zipfile.ZipFile(file_name, 'r') as f:
-            if f.testzip() and open_file:
-                print('\nFile is not a zip file or is corrupted.')
-                return
-    except zipfile.BadZipFile as err:
-        print('\n', err)
+    # if the file does not exist upon <open>, render warning and return to the main menu
+    if not os.path.isfile(full_path):
+        print('\nFile not found.')
         return
+
+    # check the file that it's readable and contents are ok
+    if not check_file(full_path, file_name, open_file):
+        print('\nFile is not a zip file or is corrupted.')
 
     # use the following to delimit output from sequential commands
     if len(full_path) >= 49:
