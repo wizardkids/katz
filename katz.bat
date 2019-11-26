@@ -1,0 +1,5 @@
+echo off
+cls
+cd "REPLACE THIS TEXT WITH THE FULL PATH TO THE DIRECTORY WHERE katz IS INSTALLED"
+
+call python katz.py
