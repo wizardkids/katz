@@ -19,7 +19,9 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# todo -- add ability to add files from another directory, including a subdirectory of the current directory
+# todo -- add_files() -- right now you can add files from any directory you name but:
+    # ! -- 1. option to get subfolders of that directory
+    # ! -- 2. make it the default to get files (and subfolders) in the directory that holds file_name
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -124,11 +126,15 @@ def list_files(full_path, file_name):
 
         # if the first item in namelist() is a directory, get the name
         # else... use root/ as the starting directory
-        if '/' in zip_files[0]:
-            slash_location = zip_files[0].find('/')
-            current_directory = zip_files[0][:slash_location]
-        else:
+        try:
+            if '/' in zip_files[0]:
+                slash_location = zip_files[0].find('/')
+                current_directory = zip_files[0][:slash_location]
+            else:
+                current_directory = 'root/'
+        except:
             current_directory = 'root/'
+
         print(current_directory)
 
         # print a list of files in the archive
@@ -156,52 +162,70 @@ def add_file(full_path, file_name):
     msg = 'FILES IN THE CURRENT DIRECTORY'
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
-    # print a list of all files in the current working directory
-    files = [f for f in os.listdir('.') if os.path.isfile(f)]
-    for ndx, file in enumerate(files):
-        print(file, sep='')
-
     while True:
-        # get a file name to add
-        print('\nUse "all" to add all files to the archive.')
-        file_to_add = input('\nFile name to add to archive: ').strip()
-
-        # if no file name was entered, return to menu
-        if not file_to_add:
-            return
+        # get directory containing files
+        dir = input("Directory containing files to add: ").strip()
+        if not os.path.exists(dir):
+            print('\nDirectory does not exist.')
+            continue
         else:
             break
 
-    # either add one file or add 'all' files, optionally including subfolders
-    if file_to_add.upper() == 'ALL':
+    # print a list of all files in the chosen directory
+    files = [f for f in os.listdir(
+        dir) if os.path.isfile(os.path.join(dir, f))]
+    for ndx, file in enumerate(files):
+        print(ndx+1, '. ', file, sep='')
 
-        choice = input('Include subdirectories? Y/N ').strip().upper()
+    while True:
+        # let user choose which file(s) to add
+        # example user input: 1, 3-5, 28, 52-68, 70
+        print(
+            '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to add\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to add all files\n')
+        choice = input("File number(s) to add: ")
 
-        # add current directory AND subfolders
-        if choice == 'Y':
-            # except for the zip file, add all files including subfolders
-            tree = os.walk('.')
-            for dirpath, dirnames, filenames in tree:
-                for file in filenames:
-                    if file != file_name:
-                        this_file = os.path.relpath(
-                            os.path.join(dirpath, file), ".")
-                        write_one_file(this_file, file_name)
-        # add all files in top level directory except the zip itself
+        # if no choice is made, return to menu
+        if not choice.strip():
+            return file_name
+
+        # which_files is a list of digits user entered (type:string)
+        # else if choice="ALL", then generate a list of all file numbers
+        if choice.strip().upper() == 'ALL':
+            which_files = [str(x) for x in range(1, len(files)+1)]
+
         else:
-            for file in files:
-                if file != file_name:
-                    write_one_file(file, file_name)
-    # add a single file, only
-    else:
-        # make sure file exists
-        if not os.path.isfile(file_to_add):
-            print('\nFile name is incorrect\nor file does not exist.\n')
-        # add one specific file to archive, unless it's the zip itself
-        if file_to_add != file_name:
-            write_one_file(file_to_add, file_name)
-        else:
-            print('\nCannot add the archive to itself.')
+            # extract all the file numbers from the user's list:
+            selected_files = choice.split(',')
+            which_files = []
+            for i in selected_files:
+                # treating ranges, i.e., 2-8
+                if '-' in i:
+                    r = i.split('-')
+                    try:
+                        n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
+                        for x in n:
+                            which_files.append(x)
+                    except:
+                        print(
+                            '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                # treating all other single digits
+                else:
+                    try:
+                        n = int(i)
+                        which_files.append(str(n))
+                    except:
+                        print(
+                            '\nInvalid number(s) excluded. Did you comma-separate values?')
+        break
+
+    which_files = [int(x) for x in which_files]
+
+    # which_files now contains the numbers for files to be added
+    for ndx, file in enumerate(files):
+        if file != file_name and ndx+1 in which_files:
+            file = os.path.relpath(os.path.join(dir, file), ".")
+            print(file)
+            write_one_file(file, file_name)
 
     return full_path, file_name
 
