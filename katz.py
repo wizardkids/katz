@@ -157,45 +157,73 @@ def list_files(full_path, file_name):
 
 def add_file(full_path, file_name):
     """
-    Add one, many, or all files to an existing archive.
+    Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder.
     """
     msg = 'FILES IN THE CURRENT DIRECTORY'
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
+    # get directory containing files that you want to add
     while True:
-        # get directory containing files
         dir = input("Directory containing files to add: ").strip()
+
+        # if user enters nothing, return to the menu
+        if not dir:
+            return full_path, file_name
+
         if not os.path.exists(dir):
             print('\nDirectory does not exist.')
             continue
         else:
+            subs = input('Include subdirectories (Y/N): ').strip().upper()
+            subs = True if subs=='Y' else False
             break
 
-    # print a list of all files in the chosen directory
-    files = [f for f in os.listdir(
-        dir) if os.path.isfile(os.path.join(dir, f))]
-    for ndx, file in enumerate(files):
-        print(ndx+1, '. ', file, sep='')
+    # preserve absolute and relative paths to current directory
+    current_directory = os.getcwd()
+    rel_dir = os.path.relpath(current_directory, '')
+
+    # print a list of eligible files in the chosen directory and subdirectories
+    if subs:
+        # Iterate over all the files in the root directory
+        file_list, file_cnt = [], 1
+        for folderName, subfolders, filenames in os.walk(rel_dir):
+            for filename in filenames:
+                # create complete filepath of file in directory
+                filePath = os.path.relpath(os.path.join(folderName, filename))
+                if file_name[0] != '.':
+                    file_list.append(filePath)
+                    print(file_cnt, '. ', filePath, sep='')
+                file_cnt += 1
+
+    # print a list of all files in just the chosen directory
+    else:
+        file_list = [f for f in os.listdir(
+            dir) if os.path.isfile(os.path.join(dir, f))]
+        for ndx, file in enumerate(file_list):
+            print(ndx+1, '. ', file, sep='')
 
     while True:
         # let user choose which file(s) to add
         # example user input: 1, 3-5, 28, 52-68, 70
         print(
             '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to add\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to add all files\n')
-        choice = input("File number(s) to add: ")
+        choice = input("File number(s) to add: ").strip()
 
-        # if no choice is made, return to menu
-        if not choice.strip():
+        # if nothing is entered, return to menu
+        if not choice:
             return file_name
 
         # which_files is a list of digits user entered (type:string)
         # else if choice="ALL", then generate a list of all file numbers
-        if choice.strip().upper() == 'ALL':
+        if choice.upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(files)+1)]
 
+        # extract all the file numbers from the user's list:
         else:
-            # extract all the file numbers from the user's list:
+            # split user's entry at commas
+            # list now contains integers &/or ranges
             selected_files = choice.split(',')
+
             which_files = []
             for i in selected_files:
                 # treating ranges, i.e., 2-8
@@ -218,12 +246,12 @@ def add_file(full_path, file_name):
                             '\nInvalid number(s) excluded. Did you comma-separate values?')
         break
 
+    # which_files contains all of the integers for the selected files
     which_files = [int(x) for x in which_files]
 
-    # which_files now contains the numbers for files to be added
-    for ndx, file in enumerate(files):
+    # for each integer in which_files, add the corresponding file to archive
+    for ndx, file in enumerate(file_list):
         if file != file_name and ndx+1 in which_files:
-            file = os.path.relpath(os.path.join(dir, file), ".")
             print(file)
             write_one_file(file, file_name)
 
