@@ -16,6 +16,7 @@ command-line zip archiving utility
 import glob
 import os
 import shutil
+import textwrap
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -210,7 +211,7 @@ def add_file(full_path, file_name):
         # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
         print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*/?) to designate files')
 
-        choice = input("File number(s) to add: ").strip()
+        choice = input("File(s) to add: ").strip()
 
         # if nothing is entered, return to menu
         if not choice:
@@ -523,6 +524,56 @@ def get_revision_number():
     return revision_delta.days
 
 
+def fold(txt):
+    """
+    Textwraps 'txt'; used by help_fxn(), help(), basics(), and advances().
+    """
+    return textwrap.fill(txt, width=45)
+
+
+def help():
+    """
+    A help function.
+    """
+    dsh, slsh = '=', '/'
+    print('\n', dsh*45, sep='')
+    print(slsh*20, ' HELP ', slsh*20, sep='')
+    print(dsh*45, sep='')
+
+    txt = """
+Main menu:
+    Options are self-explanatory. If you open a file or create a new file with a path (e.g., c:\\data\\blah.zip), the path to that zip file will be considered the root file. This is important for <A>dd and <E>xtract.
+
+Sub-menu:
+    <L>ist
+        -- List all the files in the archive
+
+    <A>dd
+        -- Add files to the archive.
+        -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
+        -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file.
+        -- For speed, multiple methods are provided for identifying files. Don't mix methods, though!
+
+    <E>xtract
+        -- You can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
+            -- 1, 2, 8, 4  [order does not matter]
+            -- 3-8, 11, 14 [mix a range and individual numbers]
+            -- all  [extracts all files]
+        -- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.
+
+    <R>emove
+        -- Removes a file from the archive. This operation is not undoable!
+
+    <T>est
+        -- Test the integrity of the archive. If you archive a corrupted file, testing will not identify the fact that it is corrupted!
+"""
+    print("\n".join([fold(txt) for txt in txt.splitlines()]))
+    print(dsh*45)
+
+    return
+
+
+
 def main_menu():
     """
     Menu for opening a file or creating a new file, which the user can then manipulate via the sub-menu.
@@ -547,11 +598,11 @@ def main_menu():
 
         while True:
             choice = input(
-                '\n<O>pen file    <N>ew file    <A>bout\nQ>uit\n\nChoice: ').strip().upper()
-            if choice in 'ONAQ':
+                '\n<O>pen file    <N>ew file    <A>bout\n<H>elp     Q>uit\n\nChoice: ').strip().upper()
+            if choice in 'ONAHQ':
                 break
             else:
-                print('\nEnter only "O", "N", "A", or "Q".')
+                print('\nEnter only "O", "N", "A", "H", or "Q".')
                 continue
 
         if choice == 'O':
@@ -564,6 +615,9 @@ def main_menu():
 
         elif choice == 'A':
             about()
+
+        elif choice == 'H':
+            help()
 
         elif choice == 'Q':
             break
