@@ -19,9 +19,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# todo -- add_files() -- right now you can add files from any directory you name but:
-    # ! -- 1. option to get subfolders of that directory
-    # ! -- 2. make it the default to get files (and subfolders) in the directory that holds file_name
+# todo -- add ability to use wildcard characters when adding files
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -159,16 +157,21 @@ def add_file(full_path, file_name):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder.
     """
-    msg = 'FILES IN THE CURRENT DIRECTORY'
-    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+    # preserve absolute and relative paths to current directory
+    current_directory = os.getcwd()
+    rel_dir = os.path.relpath(current_directory, '')
 
     # get directory containing files that you want to add
     while True:
+        print('Enter "." to use current directory.')
         dir = input("Directory containing files to add: ").strip()
 
         # if user enters nothing, return to the menu
         if not dir:
             return full_path, file_name
+
+        if dir == '.':
+            dir = current_directory
 
         if not os.path.exists(dir):
             print('\nDirectory does not exist.')
@@ -178,9 +181,8 @@ def add_file(full_path, file_name):
             subs = True if subs=='Y' else False
             break
 
-    # preserve absolute and relative paths to current directory
-    current_directory = os.getcwd()
-    rel_dir = os.path.relpath(current_directory, '')
+    msg = 'FILES IN THE CURRENT DIRECTORY'
+    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     # print a list of eligible files in the chosen directory and subdirectories
     if subs:
