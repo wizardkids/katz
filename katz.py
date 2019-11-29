@@ -13,13 +13,12 @@ command-line zip archiving utility
     5. test the integrity of the archive
 """
 
+import glob
 import os
 import shutil
 import zipfile
 from datetime import datetime
 from pathlib import Path
-
-# todo -- add ability to use wildcard characters when adding files
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -157,6 +156,8 @@ def add_file(full_path, file_name):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder.
     """
+    glob_it = False
+
     # preserve absolute and relative paths to current directory
     current_directory = os.getcwd()
     rel_dir = os.path.relpath(current_directory, '')
@@ -206,19 +207,35 @@ def add_file(full_path, file_name):
 
     while True:
         # let user choose which file(s) to add
-        # example user input: 1, 3-5, 28, 52-68, 70
-        print(
-            '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to add\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to add all files\n')
+        # example user input: 1, 3-5, 28, 52-68, 70 or *.txt
+        print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*/?) to designate files')
+
         choice = input("File number(s) to add: ").strip()
 
         # if nothing is entered, return to menu
         if not choice:
-            return file_name
+            return full_path, file_name
 
         # which_files is a list of digits user entered (type:string)
         # else if choice="ALL", then generate a list of all file numbers
         if choice.upper() == 'ALL':
-            which_files = [str(x) for x in range(1, len(files)+1)]
+            which_files = [str(x) for x in range(1, len(file_list)+1)]
+
+        # see https://pymotw.com/2/glob/
+        elif '*' in choice or '?' in choice:
+            # print('\nWildcards not functional at present.')
+            glob_it, which_files = True, []
+            rel_dir = os.path.relpath('.', '')
+            if subs:
+                for folderName, subfolders, filenames in os.walk(rel_dir):
+                    f = os.path.join(folderName, choice)
+                    for name in glob.glob(f):
+                        which_files.append(name)
+                        print(name)
+            else:
+                for name in glob.glob(choice):
+                    which_files.append(name)
+                    print(name)
 
         # extract all the file numbers from the user's list:
         else:
@@ -248,13 +265,17 @@ def add_file(full_path, file_name):
                             '\nInvalid number(s) excluded. Did you comma-separate values?')
         break
 
-    # which_files contains all of the integers for the selected files
-    which_files = [int(x) for x in which_files]
+    if not glob_it:
+        # which_files contains all of the integers for the selected files
+        which_files = [int(x) for x in which_files]
 
-    # for each integer in which_files, add the corresponding file to archive
-    for ndx, file in enumerate(file_list):
-        if file != file_name and ndx+1 in which_files:
-            print(file)
+        # for each integer in which_files, add the corresponding file to archive
+        for ndx, file in enumerate(file_list):
+            if file != file_name and ndx+1 in which_files:
+                print(file)
+                write_one_file(file, file_name)
+    else:
+        for file in which_files:
             write_one_file(file, file_name)
 
     return full_path, file_name
