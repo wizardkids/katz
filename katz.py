@@ -535,14 +535,13 @@ def help():
     """
     A help function.
     """
-    dsh, slsh = '=', '/'
     print('\n', dsh*45, sep='')
     print(slsh*20, ' HELP ', slsh*20, sep='')
     print(dsh*45, sep='')
 
     txt = """
 Main menu:
-    Options are self-explanatory. If you open a file or create a new file with a path (e.g., c:\\data\\blah.zip), the path to that zip file will be considered the root file. This is important for <A>dd and <E>xtract.
+    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you open a zip file or create a new zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
 
 Sub-menu:
     <L>ist
@@ -552,7 +551,7 @@ Sub-menu:
         -- Add files to the archive.
         -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
         -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file.
-        -- For speed, multiple methods are provided for identifying files. Don't mix methods, though!
+        -- For speed, three methods are provided for identifying files that you want to add. Don't mix methods! You can mix numbers and ranges, though. See the first item under <E>tract, below.
 
     <E>xtract
         -- You can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
@@ -571,7 +570,6 @@ Sub-menu:
     print(dsh*45)
 
     return
-
 
 
 def main_menu():
