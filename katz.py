@@ -154,9 +154,10 @@ def list_files(full_path, file_name):
 
 def add_file(full_path, file_name):
     """
-    Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder.
+    Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
     glob_it = False
+    msg = 'FILES IN THE CURRENT DIRECTORY'
 
     # preserve absolute and relative paths to current directory
     current_directory = os.getcwd()
@@ -164,7 +165,7 @@ def add_file(full_path, file_name):
 
     # get directory containing files that you want to add
     while True:
-        print('Enter "." to use current directory.')
+        print('\nEnter "." to use current directory.')
         dir = input("Directory containing files to add: ").strip()
 
         # if user enters nothing, return to the menu
@@ -175,14 +176,13 @@ def add_file(full_path, file_name):
             dir = current_directory
 
         if not os.path.exists(dir):
-            print('\nDirectory does not exist.')
+            print('\nDirectory does not exist. Re-enter.')
             continue
         else:
             subs = input('Include subdirectories (Y/N): ').strip().upper()
             subs = True if subs=='Y' else False
             break
 
-    msg = 'FILES IN THE CURRENT DIRECTORY'
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     # print a list of eligible files in the chosen directory and subdirectories
@@ -207,7 +207,7 @@ def add_file(full_path, file_name):
 
     while True:
         # let user choose which file(s) to add
-        # example user input: 1, 3-5, 28, 52-68, 70 or *.txt
+        # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
         print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*/?) to designate files')
 
         choice = input("File number(s) to add: ").strip()
@@ -230,12 +230,14 @@ def add_file(full_path, file_name):
                 for folderName, subfolders, filenames in os.walk(rel_dir):
                     f = os.path.join(folderName, choice)
                     for name in glob.glob(f):
-                        which_files.append(name)
-                        print(name)
+                        if name != os.path.join(folderName, file_name):
+                            which_files.append(name)
+                            print(name)
             else:
                 for name in glob.glob(choice):
-                    which_files.append(name)
-                    print(name)
+                    if name != os.path.join(folderName, file_name):
+                        which_files.append(name)
+                        print(name)
 
         # extract all the file numbers from the user's list:
         else:
