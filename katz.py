@@ -35,7 +35,7 @@ def create_new():
     """
 
     # get a valid filename from the user
-    file_name, full_path = get_filename()
+    full_path, file_name = get_filename()
 
     # if no file name was entered, return to the menu
     if not file_name:
@@ -50,7 +50,7 @@ def create_new():
                 with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
             else:
-                file_name, full_path = '', ''
+                full_path, file_name = '', ''
                 print(file_name, 'not created.\n')
 
     # if file_name was not found, then we can create it!
@@ -66,7 +66,7 @@ def open_archive():
     Open an archive and list the files in the archive.
     """
     # get a valid file name from user
-    file_name, full_path = get_filename()
+    full_path, file_name = get_filename()
 
     # open the archive and list all the files in it
     try:
@@ -74,7 +74,7 @@ def open_archive():
     except:
         print('File not found.')
 
-    return file_name
+    return full_path, file_name
 
 
 def get_filename():
@@ -88,7 +88,7 @@ def get_filename():
 
         # if no file name was entered, return to menu
         if not full_path.strip():
-            return file_name, full_path
+            return full_path, file_name
 
         # check filename for bad characters and bad extension
         prohibited = ['<', '>', '\"', '?', '|', '*']
@@ -112,7 +112,7 @@ def get_filename():
     if _working_directory_:
         os.chdir(_working_directory_)
 
-    return file_name, full_path
+    return full_path, file_name
 
 
 def list_files(full_path, file_name):
@@ -299,7 +299,6 @@ def write_one_file(file_to_add, file_name):
     else:
         print('\n', file_to_add,
               ' already exists in archive.\nRemove this file before adding a new version.', sep='')
-
     return
 
 
@@ -325,7 +324,7 @@ def extract_file(full_path, file_name):
 
         # if no choice is made, return to menu
         if not choice.strip():
-            return file_name
+            return full_path, file_name
 
         # which_files is a list of digits user entered (type:string)
         # else if choice="ALL", then generate a list of all file numbers
@@ -385,7 +384,7 @@ def remove_file(full_path, file_name):
     if os.path.isdir(this_path):
         print('\nCannot remove files from archive, since ',
               this_path, ' directory exists.', sep='')
-        return file_name
+        return full_path, file_name
 
     # get a list of files in the archive and their total number
     with zipfile.ZipFile(file_name, 'r') as f:
@@ -401,7 +400,7 @@ def remove_file(full_path, file_name):
 
         # if no file name is entered, return to menu
         if not choice.strip():
-            return file_name
+            return full_path, file_name
 
         # make sure user entered a valid integer
         try:
@@ -483,7 +482,7 @@ def test_archive(full_path, file_name):
     # first, test if it is a valid zip file
     if not zipfile.is_zipfile(file_name):
         print('\nNot a valid zip file.')
-        return file_name
+        return full_path, file_name
 
     # open the archive and test it using testzip()
     with zipfile.ZipFile(file_name, 'r') as f:
@@ -511,17 +510,6 @@ def about():
     print(about1, '\n', about2, '\n', about3, '\n', sep='')
 
     return
-
-
-def get_revision_number():
-    """
-    Returns the revision number, which is the number of days since the initial coding of "ida" began on November 12, 2019.
-    """
-    start_date = datetime(2019, 11, 21)
-    tday = datetime.today()
-    revision_delta = datetime.today() - start_date
-
-    return revision_delta.days
 
 
 def fold(txt):
@@ -570,6 +558,17 @@ Sub-menu:
     print(dsh*45)
 
     return
+
+
+def get_revision_number():
+    """
+    Returns the revision number, which is the number of days since the initial coding of "ida" began on November 12, 2019.
+    """
+    start_date = datetime(2019, 11, 21)
+    tday = datetime.today()
+    revision_delta = datetime.today() - start_date
+
+    return revision_delta.days
 
 
 def main_menu():
@@ -709,4 +708,4 @@ if __name__ == '__main__':
     # ====================================
     # utility functions for developer only
     # ====================================
-    # print(get_revision_number())
+    print(get_revision_number())
