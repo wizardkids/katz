@@ -21,6 +21,8 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
+# todo -- need to fix error trapping when opening or creating a file
+
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
@@ -33,46 +35,61 @@ def create_new():
     """
     Create a new zip file.
     """
-
     # get a valid filename from the user
     full_path, file_name = get_filename()
 
     # if no file name was entered, return to the menu
     if not file_name:
-        return
+        return '', ''
 
+    # if file already exists, issue "overwrite" warning
     try:
-        # if file already exists, issue warning
         with zipfile.ZipFile(file_name, 'r') as f:
             msg = '\n' + file_name + ' already exists. Overwrite? '
             overwrite = input(msg).upper()
             if overwrite == 'Y':
                 with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
+                return full_path, file_name
             else:
-                full_path, file_name = '', ''
                 print(file_name, 'not created.\n')
+                return '', ''
 
     # if file_name was not found, then we can create it!
     except FileNotFoundError:
-        # create a new zip file
         with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             print('\n', file_name, 'created as new archive.\n')
-    return file_name, full_path
+        return full_path, file_name
 
 
 def open_archive():
     """
     Open an archive and list the files in the archive.
     """
-    # get a valid file name from user
+    # get a file name from user
     full_path, file_name = get_filename()
 
-    # open the archive and list all the files in it
+    if not file_name:
+        return '', ''
+
+    # sort out errors in the filename
     try:
-        full_path, file_name = list_files(full_path, file_name)
+        with zipfile.ZipFile(file_name, 'r') as f:
+            pass
+    except FileNotFoundError:
+        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+        print('\nFile not found.')
+        return '', ''
+    except OSError:
+        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+        print('\nInvalid file name.')
+        return '', ''
+    except zipfile.BadZipFile:
+        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+        print('\nFile is not a zip file.')
+        return '', ''
     except:
-        print('File not found.')
+        print('Encountered an error that was infinitely unpredictable.)')
 
     return full_path, file_name
 
@@ -88,29 +105,18 @@ def get_filename():
 
         # if no file name was entered, return to menu
         if not full_path.strip():
-            return full_path, file_name
-
-        # check filename for bad characters and bad extension
-        prohibited = ['<', '>', '\"', '?', '|', '*']
-        if full_path[-4:] != '.zip':
-            print('\nFile name is not a zip file.\n')
-            continue
-
-        # check if path user entered is valid OS path
-        bad_file = False
-        for i in full_path:
-            if i in prohibited:
-                print("\nBad file name: '", i, "' not allowed.", sep='')
-                bad_file = True
-        if bad_file:
-            continue
+            return '', ''
 
         break
 
-    # to make thing easier, change the cwd() to the path for this file
-    _working_directory_ = os.path.dirname(full_path)
-    if _working_directory_:
-        os.chdir(_working_directory_)
+    # change the cwd() to the path for this file
+    try:
+        _working_directory_ = os.path.dirname(full_path)
+        if _working_directory_:
+            os.chdir(_working_directory_)
+    except:
+        print('\nPath or filename is invalid.')
+        return '', ''
 
     return full_path, file_name
 
@@ -157,12 +163,16 @@ def add_file(full_path, file_name):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
-    glob_it = False
+    glob_it = False  # flag needed because which_files is treated differently
     msg = 'FILES IN THE CURRENT DIRECTORY'
 
     # preserve absolute and relative paths to current directory
     current_directory = os.getcwd()
     rel_dir = os.path.relpath(current_directory, '')
+
+    # ==================================================
+    # GENERATE A LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
+    # ==================================================
 
     # get directory containing files that you want to add
     while True:
@@ -181,7 +191,7 @@ def add_file(full_path, file_name):
             continue
         else:
             subs = input('Include subdirectories (Y/N): ').strip().upper()
-            subs = True if subs=='Y' else False
+            subs = True if subs == 'Y' else False
             break
 
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
@@ -205,6 +215,10 @@ def add_file(full_path, file_name):
             dir) if os.path.isfile(os.path.join(dir, f))]
         for ndx, file in enumerate(file_list):
             print(ndx+1, '. ', file, sep='')
+
+    # ==================================================
+    # GET A LIST OF THE FILES THAT THE USER WANTS TO ADD
+    # ==================================================
 
     while True:
         # let user choose which file(s) to add
@@ -267,6 +281,10 @@ def add_file(full_path, file_name):
                         print(
                             '\nInvalid number(s) excluded. Did you comma-separate values?')
         break
+
+    # ==================================================
+    # WRITE THE SELECTED FILES INTO THE ARCHIVE
+    # ==================================================
 
     if not glob_it:
         # which_files contains all of the integers for the selected files
@@ -375,9 +393,9 @@ def extract_file(full_path, file_name):
 
 def remove_file(full_path, file_name):
     """
-    To remove a file, create a new archive with the removed file missing. This utility removes only one file at a time.
+    This utility removes only one file at a time.
 
-    To remove a file, create a new archive that holds all the original files except the one targeted for removal. This necessitates creating a new, but "temporary" archive, then renaming it.
+    Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
     # unlikely, but check if "temporary" directory already exists
     this_path = '_temp_' + file_name[:-4] + '_'
@@ -591,7 +609,7 @@ def main_menu():
               " - a command-line archiving utility", sep='')
 
         # reset user-entered file names/paths
-        file_name, full_path = '', ''
+        full_path, file_name = '', ''
 
         while True:
             choice = input(
@@ -623,41 +641,23 @@ def main_menu():
         os.chdir(_user_directory_)
 
 
-def check_file(full_path, file_name, open_file):
-    """
-    Check a zip file to make sure the file is readable and that its contents are ok.
-    """
-    # can we read the file and are the files in the archive ok?
-    with zipfile.ZipFile(file_name, 'r') as f:
-        if f.testzip():
-            print(f.testzip())
-            return False
-        else:
-            return True
-
-
 def sub_menu(open_file, new_file):
     """
     Menu of actions on the file that the user has opened or created.
     """
     # either open the file or create a new file
     if open_file:
-        file_name, full_path = get_filename()
+        full_path, file_name = open_archive()
     else:
-        file_name, full_path = create_new()
+        full_path, file_name = create_new()
 
     # go back to the main menu if no file name is entered
     if not file_name:
         return
 
-    # if the file does not exist upon <open>, render warning and return to the main menu
-    if not os.path.isfile(full_path):
-        print('\nFile not found.')
-        return
-
-    # check the file that it's readable and contents are ok
-    if not check_file(full_path, file_name, open_file):
-        print('\nFile is not a zip file or is corrupted.')
+    # if we are opening a zip file, show its contents
+    if open_file:
+        full_path, file_name = list_files(full_path, file_name)
 
     # use the following to delimit output from sequential commands
     if len(full_path) >= 49:
@@ -666,8 +666,8 @@ def sub_menu(open_file, new_file):
         msg = full_path
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
-    # print a list of all the files in the archive
-    full_path, file_name = list_files(full_path, file_name)
+    # # print a list of all the files in the archive
+    # full_path, file_name = list_files(full_path, file_name)
 
     while True:
         # generate the sub-menu
@@ -708,4 +708,4 @@ if __name__ == '__main__':
     # ====================================
     # utility functions for developer only
     # ====================================
-    print(get_revision_number())
+    # print('Revision number:', get_revision_number())
