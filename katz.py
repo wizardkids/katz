@@ -47,10 +47,12 @@ def create_new():
         with zipfile.ZipFile(file_name, 'r') as f:
             msg = '\n' + file_name + ' already exists. Overwrite? '
             overwrite = input(msg).upper()
+
             if overwrite == 'Y':
                 with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
                 return full_path, file_name
+
             else:
                 print(file_name, 'not created.\n')
                 return '', ''
@@ -106,6 +108,11 @@ def get_filename():
         # if no file name was entered, return to menu
         if not full_path.strip():
             return '', ''
+
+        # zip files don't require a .zip extension, but it's a bad idea
+        if file_name[-4:] != '.zip':
+            print('\nMust enter a ".zip" extension.')
+            continue
 
         break
 
