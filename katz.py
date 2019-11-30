@@ -507,7 +507,7 @@ def remove_file(full_path, file_name):
 
 def test_archive(full_path, file_name):
     """
-    Test the integrity of the archive.
+    Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
     """
     # first, test if it is a valid zip file
     if not zipfile.is_zipfile(file_name):
@@ -544,7 +544,7 @@ def about():
 
 def fold(txt):
     """
-    Textwraps 'txt'; used by help_fxn(), help(), basics(), and advances().
+    Textwraps 'txt'; used by help() to wrap help text at column 45.
     """
     return textwrap.fill(txt, width=45)
 
@@ -717,7 +717,8 @@ def sub_menu(open_file, new_file):
 if __name__ == '__main__':
     main_menu()
 
-    # ====================================
+    # =================================================
     # utility functions for developer only
-    # ====================================
+    # =================================================
     # print('Revision number:', get_revision_number())
+    # 2019-11-30: rev 9
