@@ -21,8 +21,6 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# todo -- need to fix error trapping when opening or creating a file
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
@@ -71,10 +69,11 @@ def open_archive():
     # get a file name from user
     full_path, file_name = get_filename()
 
+    # if no file_name was entered, return to menu
     if not file_name:
         return '', ''
 
-    # sort out errors in the filename
+    # sort out possible errors in file_name
     try:
         with zipfile.ZipFile(file_name, 'r') as f:
             pass
@@ -91,7 +90,8 @@ def open_archive():
         print('\nFile is not a zip file.')
         return '', ''
     except:
-        print('Encountered an error that was infinitely unpredictable.)')
+        print('\nEncountered an unpredicable error.')
+        return '', ''
 
     return full_path, file_name
 
