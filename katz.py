@@ -23,8 +23,6 @@ from pathlib import Path
 
 # todo -- if <E>xtract will overwrite an existing file, provide user with a warning and a choice of what to do
 
-# todo -- if you remove the last file in the archive, the program exits unexpectedly (or generates an error)
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
@@ -414,9 +412,6 @@ def remove_file(full_path, file_name):
         print('\nCannot remove files from archive, since ',
               this_path, ' directory exists.', sep='')
         return full_path, file_name
-    # since it doesn't exist, create this_path
-    else:
-        os.mkdir(this_path)
 
     # get a list of files in the archive and their total number
     with zipfile.ZipFile(file_name, 'r') as f:
@@ -453,6 +448,9 @@ def remove_file(full_path, file_name):
 
     confirmed = input('\nRemove file? (Y/N) ').strip().upper()
     if confirmed == 'Y':
+        # create the directory that will hold files temporarily
+        os.mkdir(this_path)
+
         # extract all the files to "this_path" except
         # the file user has chosen
         with zipfile.ZipFile(file_name, 'r') as f:
