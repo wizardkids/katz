@@ -4,7 +4,6 @@ katz.py
 Richard E. Rawson
 2019-11-21
 
-Program Description:
 command-line zip archiving utility
     1. list all files, including files in subfolders, within the archive
     2. add one, many, or all files, optionally including subfolders
