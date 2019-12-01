@@ -37,6 +37,12 @@ If you want to run "katz" from your desktop, here is what you need to do:
 4. In the properties dialog for the shortcut
    - change "TARGET" to the full path, including the filename, for katz.bat.
    - change "START IN" to the path for the directory that holds katz.bat
-   
-## **Required python modules:**
 
+## **Required python modules:**
+- datetime
+- glob
+- os
+- pathlib
+- shutil
+- textwrap
+- zipfile
