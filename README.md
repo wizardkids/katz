@@ -14,7 +14,8 @@ Most GUI archiving utilities have many wonderful features that I never use and a
 Files are compressed by default.
 
 ## **Usage**
-- The program is menu driven, with only essential capabilities as noted under *Features*. There are no options or preferences.
+- **The** program is menu driven, and includes only essential capabilities as noted under *Features*. There are no options or preferences.
+- See *Recommended setup* below for creating a shortcut.
 - python 3 must be in the PATH environment variable.
 
 ## **Recommended setup**
