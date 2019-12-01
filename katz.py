@@ -21,8 +21,6 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# todo -- if <E>xtract will overwrite an existing file, provide user with a warning and a choice of what to do
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
@@ -322,6 +320,7 @@ def write_one_file(file_to_add, file_name):
         with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
             f.write(file_to_add)
 
+    # zipfile doesn't update files and cannot add duplicate files
     # print message if file already resides in archive
     else:
         print('\n', file_to_add,
@@ -344,7 +343,7 @@ def extract_file(full_path, file_name):
         full_path, file_name = list_files(full_path, file_name)
 
         # let user choose which file(s) to extract
-        # example user input: 1, 3-5, 28, 52-68, 70
+        # sample user input: 1, 3-5, 28, 52-68, 70
         print(
             '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to extract\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to extract all files\n')
         choice = input("File number(s) to extract: ")
@@ -353,8 +352,8 @@ def extract_file(full_path, file_name):
         if not choice.strip():
             return full_path, file_name
 
-        # which_files is a list of digits user entered (type:string)
-        # else if choice="ALL", then generate a list of all file numbers
+        # which_files is a list of user-entered digits (type:string)
+        # if choice="ALL", then generate a list of all file numbers
         if choice.strip().upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(zip_info)+1)]
 
@@ -395,6 +394,13 @@ def extract_file(full_path, file_name):
             if ndx+1 in which_files:
                 this_file = zip_files[ndx]
                 print(this_file)
+                # prevent an unintentional file overwrite...
+                if os.path.isfile(this_file):
+                    ok = input('\nOverwrite file on disk? (Y/N): ').strip().upper()
+                    if ok == 'N':
+                        print('\nSkipping', this_file)
+                        continue
+                # extract the file here
                 f.extract(this_file, path=file_name[:-4])
 
     return full_path, file_name
