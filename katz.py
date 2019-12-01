@@ -165,6 +165,35 @@ def list_files(full_path, file_name):
     return full_path, file_name
 
 
+def dir_files():
+    """
+    List the files in a directory (not the archive). By default, this changes the working directory if a path is entered.
+    """
+    current_directory = input("\nEnter a directory: ").strip()
+
+    # make sure the directory is valid; if so, change the working directory
+    try:
+        os.chdir(current_directory)
+    except FileNotFoundError:
+        print('\nNo such directory.')
+        return
+    except OSError:
+        print('\nNot a valid directory name.')
+        return
+
+    # list all the files in the current working directory
+    files = os.listdir(current_directory)
+    print()
+
+    print('\n', dsh*52, '\n', 'current directory: ',
+          current_directory, '\n', dsh*52, sep='')
+
+    for file in files:
+        print(file)
+
+    return
+
+
 def add_file(full_path, file_name):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
@@ -570,6 +599,10 @@ def help():
 Main menu:
     katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you open a zip file or create a new zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
 
+    <D>irectory conducts two operations simultaneously.
+        (1) List the files in the specified directory (not an archive!)
+        (2) Changes the working directory to that directory. If you work with a zip file in that directory, you don't need to enter a path.
+
 Sub-menu:
     <L>ist
         -- List all the files in the archive
@@ -634,11 +667,11 @@ def main_menu():
 
         while True:
             choice = input(
-                '\n<O>pen file    <N>ew file    <A>bout\n<H>elp     Q>uit\n\nChoice: ').strip().upper()
-            if choice in 'ONAHQ':
+                '\n<O>pen file    <N>ew file    <D>irectory\n<A>bout    <H>elp     Q>uit\n\nChoice: ').strip().upper()
+            if choice in 'ONDAHQ':
                 break
             else:
-                print('\nEnter only "O", "N", "A", "H", or "Q".')
+                print('\nEnter only "O", "N", "D", "A", "H", or "Q".')
                 continue
 
         if choice == 'O':
@@ -648,6 +681,9 @@ def main_menu():
         elif choice == 'N':
             open_file, new_file = False, True
             sub_menu(open_file, new_file)
+
+        elif choice == 'D':
+            dir_files()
 
         elif choice == 'A':
             about()
