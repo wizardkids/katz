@@ -2,7 +2,7 @@
 katz.py
 
 Richard E. Rawson
-2019-11-21
+2019-11-12
 
 command-line zip archiving utility
     1. list all files, including files in subfolders, within the archive
