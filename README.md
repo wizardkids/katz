@@ -13,10 +13,21 @@ Most GUI archiving utilities have many wonderful features that I never use and a
 
 Files are compressed by default.
 
+## **Installation**
+**_katz_** requires only one file: katz.py. Using katz.bat is optional. See below.
+
+If you have python 3.7+ installed, you can download `katz.py` and, assuming python.exe is in your PATH, run:
+
+    `python katz.py`
+
+To _download_ one file, click on the file name. On the next screen, click the "Download" button.
+
+
 ## **Usage**
 - The program is menu driven, and includes only essential capabilities as noted under *Features*. There are no options or preferences.
 - See *Recommended setup* below for creating a shortcut.
 - python 3 must be in the PATH environment variable.
+
 
 ## **Recommended setup**
 If you want to run "katz" from your desktop, here is what you need to do:
@@ -26,3 +37,6 @@ If you want to run "katz" from your desktop, here is what you need to do:
 4. In the properties dialog for the shortcut
    - change "TARGET" to the full path, including the filename, for katz.bat.
    - change "START IN" to the path for the directory that holds katz.bat
+   
+## **Required python modules:**
+
