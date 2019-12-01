@@ -23,7 +23,7 @@ from pathlib import Path
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
-# todo -- version 3: add support for importing into other scripts so that downloaded archives are extracted automatically
+# todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
 
 # declare global variables
 dsh, slsh = '=', '/'
@@ -412,7 +412,7 @@ def remove_file(full_path, file_name):
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
-    # unlikely, but check if "temporary" directory already exists
+    # unlikely, abort if "temporary" directory already exists
     this_path = '_temp_' + file_name[:-4] + '_'
     if os.path.isdir(this_path):
         print('\nCannot remove files from archive, since ',
@@ -435,11 +435,14 @@ def remove_file(full_path, file_name):
         if not choice.strip():
             return full_path, file_name
 
-        # make sure user entered a valid integer
+        # make sure user entered an integer between 1 and the total
+        # number of files in the archive
         try:
             choice = int(choice)
-            if choice <= num_files:
+            if choice > 0 and choice <= num_files:
                 break
+            else:
+                raise Exception
         except:
             print('\nEnter only an integer, in range 1-',
                   num_files, '.\n', sep='')
@@ -488,25 +491,26 @@ def remove_file(full_path, file_name):
         # test the temporary archive before deleting the original one
         if not zipfile.is_zipfile('_temp_zipfile_.zip'):
             print('\nUnknown error. Aborting removal of file.')
-        # open the archive and test it using testzip()
+
+        # open and test temporary archive; if successful, delete original and rename temporary zip
         try:
             with zipfile.ZipFile('_temp_zipfile_.zip', 'r') as f:
                 if f.testzip():
-                    print('\nUnknown error. Aborting removal of file.')
+                    raise Exception
+            raise Exception
+            # delete file_name
+            os.remove(file_name)
+            # rename _temp_zipfile_.zip to file_name
+            os.rename('_temp_zipfile_.zip', file_name)
         except:
             print('\nUnknown error. Aborting removal of file.')
 
-        # delete file_name
-        try:
-            os.remove(file_name)
-        except:
-            print('\nCannot complete file removal.')
 
-        # rename _temp_zipfile_.zip to file_name
-        os.rename('_temp_zipfile_.zip', file_name)
-
-        # delete the "temporary" directory
-        shutil.rmtree(this_path)
+        # delete the "temporary" file and directory even if exception was raised in previous line
+        if os.path.isfile('_temp_zipfile_.zip'):
+            os.remove('_temp_zipfile_.zip')
+        if os.path.isdir(this_path):
+            shutil.rmtree(this_path)
 
     return full_path, file_name
 
@@ -540,7 +544,7 @@ def about():
     """
     about1 = '"katz" is named after Phil Katz, the founder of'
     about2 = 'PKWARE in 1989, the company that originated the'
-    about3 = 'ZIP file format that is still in popular use today.'
+    about3 = 'ZIP file format that is still widely used today.'
 
     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
     print(about1, '\n', about2, '\n', about3, '\n', sep='')
@@ -598,9 +602,9 @@ Sub-menu:
 
 def get_revision_number():
     """
-    Returns the revision number, which is the number of days since the initial coding of "ida" began on November 12, 2019.
+    Returns the revision number, which is the number of days since the initial coding of "katz" began on November 12, 2019.
     """
-    start_date = datetime(2019, 11, 21)
+    start_date = datetime(2019, 11, 12)
     tday = datetime.today()
     revision_delta = datetime.today() - start_date
 
@@ -622,8 +626,8 @@ def main_menu():
 
         # print the program header
         version_num = "1.0"
-        revision_number = 5
-        print("\nkatz ", version_num,
+        revision_number = get_revision_number()
+        print("\nkatz ", version_num, '.', revision_number,
               " - a command-line archiving utility", sep='')
 
         # reset user-entered file names/paths
@@ -682,10 +686,8 @@ def sub_menu(open_file, new_file):
         msg = '...' + full_path[-49:]
     else:
         msg = full_path
-    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
-    # # print a list of all the files in the archive
-    # full_path, file_name = list_files(full_path, file_name)
+    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     while True:
         # generate the sub-menu
@@ -726,5 +728,3 @@ if __name__ == '__main__':
     # =================================================
     # utility functions for developer only
     # =================================================
-    # print('Revision number:', get_revision_number())
-    # 2019-11-30: rev 9
