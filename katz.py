@@ -596,54 +596,132 @@ def about():
     return
 
 
-def fold(txt):
+def fold(txt, ndnt='     '):
     """
     Textwraps 'txt'; used by help() to wrap help text at column 45.
     """
-    return textwrap.fill(txt, width=45)
+
+    return textwrap.fill(txt, width=45, subsequent_indent=ndnt)
 
 
 def help():
     """
     A help function.
     """
-    print('\n', dsh*45, sep='')
-    print(slsh*20, ' HELP ', slsh*20, sep='')
-    print(dsh*45, sep='')
-
-    txt = """
-Main menu:
-    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you open a zip file or create a new zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
-
-    <D>irectory conducts two operations simultaneously.
-        (1) List the files in the specified directory (not an archive!)
-        (2) Changes the working directory to that directory. If you work with a zip file in that directory, you don't need to enter a path.
-
-Sub-menu:
-    <L>ist
-        -- List all the files in the archive
-
-    <A>dd
-        -- Add files to the archive.
-        -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
-        -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file.
-        -- For speed, three methods are provided for identifying files that you want to add. Don't mix methods! You can mix numbers and ranges, though. See the first item under <E>tract, below.
-
-    <E>xtract
-        -- You can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
-            -- 1, 2, 8, 4  [order does not matter]
-            -- 3-8, 11, 14 [mix a range and individual numbers]
-            -- all  [extracts all files]
-        -- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.
-
-    <R>emove
-        -- Removes a file from the archive. This operation is not undoable!
-
-    <T>est
-        -- Test the integrity of the archive. If you archive a corrupted file, testing will not identify the fact that it is corrupted!
+    open_txt = """
+    Enter a filename, including an extension. File must be a zip file. Use a path if you want to open a file in a non-default directory. If you open a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
 """
-    print("\n".join([fold(txt) for txt in txt.splitlines()]))
-    print(dsh*45)
+
+    new_txt = """
+    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you create a new zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
+"""
+
+    directory_txt = """
+    <D>irectory conducts two operations simultaneously.
+"""
+    directory1_txt = """
+        (1) List the files in the specified directory (not an archive!)
+"""
+    directory2_txt = """
+        (2) Changes the working directory to that directory. If you work with a zip file in that directory, you don't need to enter a path.
+"""
+
+    list_txt = """
+List all the files in the archive
+"""
+
+    add1_txt = """
+-- Add files to the archive.
+"""
+    add2_txt = """
+-- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
+"""
+    add3_txt = """
+-- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file.
+"""
+    add4_txt = """
+-- For speed, three methods are provided for identifying files that you want to add. Don't mix methods! You can mix numbers and ranges, though. See the first item under <E>tract, below.
+"""
+
+    extract1_txt = """
+-- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.
+"""
+    extract2_txt = """
+-- To select files for extraction, you can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
+"""
+    extract3_txt = """
+    (1)  1, 2, 8, 4  [order does not matter]
+"""
+    extract4_txt = """
+    (2) 3-8, 11, 14 [mix a range and individual numbers]
+"""
+    extract5_txt = """
+    (3) all  [extracts all files]
+"""
+
+    remove_txt = """
+Removes a file from the archive. This operation is not undoable!
+"""
+
+    test_txt = """
+Test the integrity of the archive. If you archive a corrupted file, testing will not identify the fact that it is corrupted!
+"""
+
+    while True:
+    # print("\n".join([fold(txt) for txt in txt.splitlines()]))
+    # print(dsh*45)
+        print('\n', dsh*52, '\n', slsh*20, ' HELP MENU ',
+              slsh*21, '\n', dsh*52, sep='')
+        print('<O>pen file  <N>ew file  <D>irectory  <L>ist\n<A>dd        <E>xtract   <R>emove     <T>est\n<Q>uit HELP\n')
+        choice = input(
+            'Show help on which item: ').strip().upper()
+        if choice not in 'ONDLAERTQ':
+            print('\nEnter one of O, N, D, L, A, E, R, T, Q.')
+            continue
+
+        if choice == 'O':
+            print('\nOpen File')
+            print(fold(open_txt))
+        elif choice == 'N':
+            print('\nNew File')
+            print(fold(new_txt))
+
+        elif choice == 'D':
+            print('\nDirectory')
+            print(fold(directory_txt))
+            print(fold(directory1_txt, '          '))
+            print(fold(directory2_txt, '          '))
+
+        elif choice == 'L':
+            print('\nList Files')
+            print(fold(list_txt))
+
+        elif choice == 'A':
+            print('\nAdd Files')
+            print(fold(add1_txt))
+            print(fold(add2_txt))
+            print(fold(add3_txt))
+            print(fold(add4_txt))
+
+        elif choice == 'E':
+            print('\nExtract Files')
+            print(fold(extract1_txt))
+            print(fold(extract2_txt))
+            print(fold(extract3_txt, '          '))
+            print(fold(extract4_txt, '          '))
+            print(fold(extract5_txt, '          '))
+
+        elif choice == 'R':
+            print('\nRemove File')
+            print(fold(remove_txt))
+
+        elif choice == 'T':
+            print('\nTest Archive')
+            print(fold(test_txt))
+
+        elif choice == 'Q':
+            print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+            break
 
     return
 
@@ -742,10 +820,10 @@ def sub_menu(open_file, new_file):
 
     while True:
         # generate the sub-menu
-        print('\n<L>ist    <A>dd   <E>xtract\n<R>emove  <T>est  <M>ain menu')
+        print('\n<L>ist     <D>irectory    <A>dd\n<E>xtract  <R>emove       <T>est\n<M>ain menu')
         user_choice = input('\nChoose an action: ').strip().upper()
 
-        if user_choice not in 'LAERTM':
+        if user_choice not in 'LDAERTM':
             print('\n"', user_choice, '" ', 'is an invalid action.', sep='')
             continue
 
@@ -754,6 +832,9 @@ def sub_menu(open_file, new_file):
         # actions to take on choosing a menu item
         if user_choice == 'L':
             full_path, file_name = list_files(full_path, file_name)
+
+        elif user_choice == 'D':
+            dir_files()
 
         elif user_choice == 'A':
             full_path, file_name = add_file(full_path, file_name)
