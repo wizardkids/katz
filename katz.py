@@ -169,24 +169,37 @@ def dir_files():
     """
     List the files in a directory (not the archive). By default, this changes the working directory if a path is entered.
     """
+    print('\nEnter "." for current directory\nor ".." for the parent directory.\nTo go to a subfolder of the current folder\nuse a back-slash (e.g, \sub-folder)')
+
     current_directory = input("\nEnter a directory: ").strip()
 
-    # make sure the directory is valid; if so, change the working directory
+    if not current_directory:
+        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+        return
+
+    if current_directory[0] == '\\' or current_directory[0] == '/':
+        current_directory = os.getcwd() + current_directory
+
+    # make sure the directory is valid
+    # if so, change the working directory
     try:
         os.chdir(current_directory)
+        # list all the files in the current working directory
+        files = os.listdir(current_directory)
+
     except FileNotFoundError:
+        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
         print('\nNo such directory.')
         return
+
     except OSError:
+        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
         print('\nNot a valid directory name.')
+
         return
 
-    # list all the files in the current working directory
-    files = os.listdir(current_directory)
-    print()
-
-    print('\n', dsh*52, '\n', 'current directory: ',
-          current_directory, '\n', dsh*52, sep='')
+    cwd = '...'+os.getcwd()[-49:] if len(os.getcwd()) > 49 else os.getcwd()
+    print('\n', dsh*52, '\n', cwd, '\n', dsh*52, sep='')
 
     for file in files:
         print(file)
@@ -667,7 +680,7 @@ def main_menu():
 
         while True:
             choice = input(
-                '\n<O>pen file    <N>ew file    <D>irectory\n<A>bout    <H>elp     Q>uit\n\nChoice: ').strip().upper()
+'\n<O>pen file    <N>ew file    <D>irectory\n<A>bout        <H>elp        <Q>uit\n\nChoice: ').strip().upper()
             if choice in 'ONDAHQ':
                 break
             else:
@@ -695,7 +708,7 @@ def main_menu():
             break
 
         # change back to original user directory
-        os.chdir(_user_directory_)
+        # os.chdir(_user_directory_)
 
 
 def sub_menu(open_file, new_file):
