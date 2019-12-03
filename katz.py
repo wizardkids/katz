@@ -171,6 +171,9 @@ def dir_files():
     """
     print('\nEnter "." for current directory\nor ".." for the parent directory.\nTo go to a subfolder of the current folder\nuse a back-slash (e.g, \sub-folder)')
 
+    cwd = '...'+os.getcwd()[-49:] if len(os.getcwd()) > 49 else os.getcwd()
+    print('\nCurrent directory:\n', cwd, sep='')
+
     current_directory = input("\nEnter a directory: ").strip()
 
     if not current_directory:
