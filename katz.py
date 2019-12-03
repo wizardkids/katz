@@ -438,8 +438,10 @@ def extract_file(full_path, file_name):
             if ndx+1 in which_files:
                 this_file = zip_files[ndx]
                 print(this_file)
-                # prevent an unintentional file overwrite...
-                if os.path.isfile(this_file):
+                # prevent an unintentional file overwrite of this_file
+                # in the directory where files will be extracted
+                zip_dir = os.path.join(os.getcwd() + '\\' + file_name[:-4], this_file)
+                if os.path.isfile(zip_dir):
                     ok = input('\nOverwrite file on disk? (Y/N): ').strip().upper()
                     if ok == 'N':
                         print('\nSkipping', this_file)
