@@ -20,8 +20,6 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# todo -- when you do a <D>irectory, somehow designate folder names as folders, distinct from files
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
@@ -147,7 +145,7 @@ def list_files(full_path, file_name):
             else:
                 current_directory = 'root/'
         except:
-            curJrent_directory = 'root/'
+            current_directory = 'root/'
 
         print(current_directory)
 
@@ -192,7 +190,7 @@ def dir_files():
     try:
         os.chdir(current_directory)
         # list all the files in the current working directory
-        files = os.listdir(current_directory)
+        # files = os.listdir(current_directory)
 
     except FileNotFoundError:
         print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
@@ -205,11 +203,28 @@ def dir_files():
 
         return
 
+    subs = input('Include subdirectories (Y/N): ').strip().upper()
+    subs = True if subs == 'Y' else False
+
     cwd = '...'+os.getcwd()[-49:] if len(os.getcwd()) > 49 else os.getcwd()
     print('\n', dsh*52, '\n', cwd, '\n', dsh*52, sep='')
 
-    for file in files:
-        print(file)
+    # print a list of files in the chosen folder (and, optionally, subfolders)
+    if subs:
+        for folderName, subfolders, filenames in os.walk(current_directory):
+            print(folderName)
+            for file in filenames:
+                print('     ', file)
+    else:
+        cnt = 0
+        for folderName, subfolders, filenames in os.walk(current_directory):
+            if cnt == 0:
+                print(folderName)
+                cnt += 1
+            else:
+                break
+            for file in filenames:
+                print('     ', file)
 
     return
 
