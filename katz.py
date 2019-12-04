@@ -21,10 +21,6 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# todo -- <L>ist: When listing an archive with a lot of files, have a mechanism for stopping part way through so that one screen shows at a time. Keep file numbers sequential, though.
-
-# todo -- <D>irectory: Do the same as above for dir_files().
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
