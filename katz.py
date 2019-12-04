@@ -813,11 +813,7 @@ def sub_menu(open_file, new_file):
         full_path, file_name = list_files(full_path, file_name)
 
     # use the following to delimit output from sequential commands
-    if len(full_path) >= 49:
-        msg = '...' + full_path[-49:]
-    else:
-        msg = full_path
-
+    msg = '...' + full_path[-49:] if len(full_path) >= 49 else full_path
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     while True:
