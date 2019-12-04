@@ -39,8 +39,6 @@ def create_new():
     if not file_name:
         return '', ''
 
-
-
     # if file already exists, issue "overwrite" warning
     try:
         with zipfile.ZipFile(file_name, 'r') as f:
