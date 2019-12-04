@@ -22,7 +22,7 @@ from pathlib import Path
 
 # todo -- when you do a <D>irectory, somehow designate folder names as folders, distinct from files
 
-# todo -- When you do a <D>irectory, the header bar shows the current directory for the zip file and not the current directory for the list of files that was just generated; This also implies that the current directory has not changed from the zip file directory to the directory showing when you do <D>irectory
+# todo -- When you do a <D>irectory from the submenu, the current directory changes, so when you <L>ist, you will get an error or a list of files in an archive of the same name that you <O>pened.
 
 # todo -- the anxious user may hit <Q> from the submenu, which gets them nowhere and this may be frustrating; either (i) use <Q> to go back to the main menu or (ii) print() a message saying that <Q> has no effect in the submenu
 
@@ -44,6 +44,8 @@ def create_new():
     # if no file name was entered, return to the menu
     if not file_name:
         return '', ''
+
+
 
     # if file already exists, issue "overwrite" warning
     try:
@@ -137,7 +139,7 @@ def list_files(full_path, file_name):
     """
     Generate a numbered list of all the files in the archive.
     """
-    with zipfile.ZipFile(file_name, 'r') as f:
+    with zipfile.ZipFile(os.path.join(full_path), 'r') as f:
         zip_files = f.namelist()
 
         # if the first item in namelist() is a directory, get the name
@@ -149,7 +151,7 @@ def list_files(full_path, file_name):
             else:
                 current_directory = 'root/'
         except:
-            current_directory = 'root/'
+            curJrent_directory = 'root/'
 
         print(current_directory)
 
@@ -351,23 +353,23 @@ def add_file(full_path, file_name):
         for ndx, file in enumerate(file_list):
             if file != file_name and ndx+1 in which_files:
                 print(file)
-                write_one_file(file, file_name)
+                write_one_file(file, full_path)
     else:
         for file in which_files:
-            write_one_file(file, file_name)
+            write_one_file(file, full_path)
 
     return full_path, file_name
 
 
-def write_one_file(file_to_add, file_name):
+def write_one_file(file_to_add, full_path):
     # determine if the file already exists in the archive;
     # an archive cannot have duplicate files
-    with zipfile.ZipFile(file_name) as f:
+    with zipfile.ZipFile(full_path) as f:
         zip_files = f.namelist()
 
     # add the compressed file if it does not exist in archive already
     if file_to_add not in zip_files:
-        with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+        with zipfile.ZipFile(full_path, 'a', compression=zipfile.ZIP_DEFLATED) as f:
             f.write(file_to_add)
 
     # zipfile doesn't update files and cannot add duplicate files
@@ -826,7 +828,7 @@ def sub_menu(open_file, new_file):
         print('\n<L>ist     <D>irectory    <A>dd\n<E>xtract  <R>emove       <T>est\n<M>ain menu')
         user_choice = input('\nChoose an action: ').strip().upper()
 
-        if user_choice not in 'LDAERTM':
+        if user_choice not in 'LDAERTMQ ':
             print('\n"', user_choice, '" ', 'is an invalid action.', sep='')
             continue
 
