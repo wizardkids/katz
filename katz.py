@@ -6,10 +6,11 @@ Richard E. Rawson
 
 command-line zip archiving utility
     1. list all files, including files in subfolders, within the archive
-    2. add one, many, or all files, optionally including subfolders
-    3. extract one, many, or all files from the archive, including subfolders
-    4. remove one file at a time from the archive
-    5. test the integrity of the archive
+    2. print a directory listing for a directory on disk
+    3. add one, many, or all files, optionally including subfolders from any directory on disk
+    4. extract one, many, or all files from the archive, including subfolders
+    5. remove one file at a time from the archive
+    6. test the integrity of the archive
 """
 
 import glob
