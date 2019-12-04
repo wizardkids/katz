@@ -22,10 +22,6 @@ from pathlib import Path
 
 # todo -- when you do a <D>irectory, somehow designate folder names as folders, distinct from files
 
-# todo -- When you do a <D>irectory from the submenu, the current directory changes, so when you <L>ist, you will get an error or a list of files in an archive of the same name that you <O>pened.
-
-# todo -- the anxious user may hit <Q> from the submenu, which gets them nowhere and this may be frustrating; either (i) use <Q> to go back to the main menu or (ii) print() a message saying that <Q> has no effect in the submenu
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
