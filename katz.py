@@ -21,6 +21,10 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
+# todo -- <L>ist: When listing an archive with a lot of files, have a mechanism for stopping part way through so that one screen shows at a time. Keep file numbers sequential, though.
+
+# todo -- <D>irectory: Do the same as above for dir_files().
+
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
@@ -165,6 +169,13 @@ def list_files(full_path, file_name):
             this_directory, this_file = os.path.split(file)
             print(' '*5, ndx+1, '. ', this_file, sep='')
 
+            # pause after every 25 files
+            cnt = ndx+1
+            if len(zip_files) >= 25 and cnt >= 25 and cnt % 25 == 0:
+                more = input('--ENTER to continue; Q to quit--').strip().upper()
+                if more == 'Q':
+                    break
+
     return full_path, file_name
 
 
@@ -211,21 +222,44 @@ def dir_files():
     print('\n', dsh*52, '\n', cwd, '\n', dsh*52, sep='')
 
     # print a list of files in the chosen folder (and, optionally, subfolders)
+    stop_listing = False
     if subs:
+        cnt = 1
         for folderName, subfolders, filenames in os.walk(current_directory):
+            cnt += 1
+            if cnt >= 25 and cnt % 25 == 0:
+                more = input('--ENTER to continue; Q to quit--').strip().upper()
+                if more == 'Q':
+                    break
             print(folderName)
             for file in filenames:
-                print('     ', file)
+                cnt += 1
+                print(cnt, '     ', file)
+                # pause after every 25 files
+                if cnt >= 25 and cnt % 25 == 0:
+                    more = input(
+                        '--ENTER to continue; Q to quit--').strip().upper()
+                    if more == 'Q':
+                        stop_listing = True
+            if stop_listing:
+                break
     else:
         cnt = 0
         for folderName, subfolders, filenames in os.walk(current_directory):
+            # print only the root folder but all the files in that folder
             if cnt == 0:
                 print(folderName)
-                cnt += 1
             else:
                 break
             for file in filenames:
+                cnt += 1
                 print('     ', file)
+                # pause after every 25 files
+                if cnt >= 25 and cnt % 25 == 0:
+                    more = input(
+                        '--ENTER to continue; Q to quit--').strip().upper()
+                    if more == 'Q':
+                        break
 
     return
 
