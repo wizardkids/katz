@@ -894,7 +894,3 @@ def sub_menu(open_file, new_file):
 
 if __name__ == '__main__':
     main_menu()
-
-    # =================================================
-    # utility functions for developer only
-    # =================================================
