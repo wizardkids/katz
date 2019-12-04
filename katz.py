@@ -457,9 +457,11 @@ def extract_file(full_path, file_name):
                 print(this_file)
                 # prevent an unintentional file overwrite of this_file
                 # in the directory where files will be extracted
-                zip_dir = os.path.join(os.getcwd() + '\\' + file_name[:-4], this_file)
+                zip_dir = os.path.join(
+                    os.getcwd() + '\\' + file_name[:-4], this_file)
                 if os.path.isfile(zip_dir):
-                    ok = input('\nOverwrite file on disk? (Y/N): ').strip().upper()
+                    ok = input(
+                        '\nOverwrite file on disk? (Y/N): ').strip().upper()
                     if ok == 'N':
                         print('\nSkipping', this_file)
                         continue
@@ -603,30 +605,31 @@ def about():
     """
     Provide a very little history behing the name "katz".
     """
-    about1 = '"katz" is named after Phil Katz, the founder of'
-    about2 = 'PKWARE in 1989, the company that originated the'
-    about3 = 'ZIP file format that is still widely used today.'
+    about = '''"katz" is a command-line zip file utility named after Phil Katz, the founder of PKWARE in 1989, the company that originated the ZIP file format that is still widely used today.
+'''
 
     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-    print(about1, '\n', about2, '\n', about3, '\n', sep='')
+    print(fold(about, '', 52))
 
     return
 
 
-def fold(txt, ndnt='     '):
+def fold(txt, ndnt='     ', w=52):
     """
-    Textwraps 'txt'; used by help() to wrap help text at column 45.
+    Textwraps 'txt'; used by help() to wrap help text at column 52.
     """
 
-    return textwrap.fill(txt, width=45, subsequent_indent=ndnt)
+    return textwrap.fill(txt, subsequent_indent=ndnt, width=w)
 
 
 def help():
     """
     A help function.
     """
-    open_txt = """
+    open1_txt = """
     -- Enter a filename, including an extension. File must be a zip file. Use a path if you want to <O>pen a file in a non-default directory. If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
+"""
+    open2_txt = """
     -- TIP: If you return to the main menu but decide to continue to use the current archive file, use <O>pen, and then use the UP ARROW key to cycle through recent commands until you get to the correct file.
 """
 
@@ -642,6 +645,9 @@ def help():
 """
     directory2_txt = """
         (2) Changes the working directory to that directory. If you work with a zip file in that directory, you don't need to enter a path.
+"""
+    directory3_txt = """
+    TIP: Before you <O>pen a file, use <D>irectory to change the current directory. Then <O>pen and <N>ew will manipulate files without having to enter a full path again.
 """
 
     list_txt = """
@@ -686,8 +692,8 @@ def help():
 """
 
     while True:
-    # print("\n".join([fold(txt) for txt in txt.splitlines()]))
-    # print(dsh*45)
+        # print("\n".join([fold(txt) for txt in txt.splitlines()]))
+        # print(dsh*45)
         print('\n', dsh*52, '\n', slsh*20, ' HELP MENU ',
               slsh*21, '\n', dsh*52, sep='')
         print('<O>pen file  <N>ew file  <D>irectory  <L>ist\n<A>dd        <E>xtract   <R>emove     <T>est\n<Q>uit HELP\n')
@@ -699,7 +705,8 @@ def help():
 
         if choice == 'O':
             print('\nOpen File')
-            print(fold(open_txt))
+            print(fold(open1_txt, '          '))
+            print(fold(open2_txt, '          '))
         elif choice == 'N':
             print('\nNew File')
             print(fold(new_txt))
@@ -709,6 +716,7 @@ def help():
             print(fold(directory_txt))
             print(fold(directory1_txt, '          '))
             print(fold(directory2_txt, '          '))
+            print(fold(directory3_txt))
 
         elif choice == 'L':
             print('\nList Files')
@@ -779,7 +787,7 @@ def main_menu():
 
         while True:
             choice = input(
-'\n<O>pen file    <N>ew file    <D>irectory\n<A>bout        <H>elp        <Q>uit\n\nChoice: ').strip().upper()
+                '\n<O>pen file    <N>ew file    <D>irectory\n<A>bout        <H>elp        <Q>uit\n\nChoice: ').strip().upper()
             if choice in 'ONDAHQ':
                 break
             else:
