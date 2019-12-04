@@ -20,6 +20,12 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
+# todo -- when you do a <D>irectory, somehow designate folder names as folders, distinct from files
+
+# todo -- When you do a <D>irectory, the header bar shows the current directory for the zip file and not the current directory for the list of files that was just generated; This also implies that the current directory has not changed from the zip file directory to the directory showing when you do <D>irectory
+
+# todo -- the anxious user may hit <Q> from the submenu, which gets them nowhere and this may be frustrating; either (i) use <Q> to go back to the main menu or (ii) print() a message saying that <Q> has no effect in the submenu
+
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
@@ -543,14 +549,12 @@ def remove_file(full_path, file_name):
             with zipfile.ZipFile('_temp_zipfile_.zip', 'r') as f:
                 if f.testzip():
                     raise Exception
-            raise Exception
             # delete file_name
             os.remove(file_name)
             # rename _temp_zipfile_.zip to file_name
             os.rename('_temp_zipfile_.zip', file_name)
         except:
             print('\nUnknown error. Aborting removal of file.')
-
 
         # delete the "temporary" file and directory even if exception was raised in previous line
         if os.path.isfile('_temp_zipfile_.zip'):
@@ -611,62 +615,63 @@ def help():
     A help function.
     """
     open_txt = """
-    Enter a filename, including an extension. File must be a zip file. Use a path if you want to open a file in a non-default directory. If you open a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
+    -- Enter a filename, including an extension. File must be a zip file. Use a path if you want to <O>pen a file in a non-default directory. If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
+    -- TIP: If you return to the main menu but decide to continue to use the current archive file, use <O>pen, and then use the UP ARROW key to cycle through recent commands until you get to the correct file.
 """
 
     new_txt = """
-    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you create a new zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
+    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you create a <N>ew zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
 """
 
     directory_txt = """
     <D>irectory conducts two operations simultaneously.
 """
     directory1_txt = """
-        (1) List the files in the specified directory (not an archive!)
+        (1) List the files in the specified directory (not an archive!). <D>irectory lists files in the current directory, while <L>ist produces a list of files in the archive.
 """
     directory2_txt = """
         (2) Changes the working directory to that directory. If you work with a zip file in that directory, you don't need to enter a path.
 """
 
     list_txt = """
-List all the files in the archive
+    <L>ist all the files in the archive. <D>irectory lists files in the current directory, while <L>ist produces a list of files in the archive.
 """
 
     add1_txt = """
--- Add files to the archive.
+    -- <A>dd provides a numbered list of files that you can <A>dd to the archive.
 """
     add2_txt = """
--- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
+    -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
 """
     add3_txt = """
--- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file.
+    -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.
 """
     add4_txt = """
--- For speed, three methods are provided for identifying files that you want to add. Don't mix methods! You can mix numbers and ranges, though. See the first item under <E>tract, below.
+    -- For speed, three methods are provided for identifying files that you want to <A>dd. Don't mix methods! You can mix numbers and ranges, though. See the first item under <E>tract, below.
 """
 
     extract1_txt = """
--- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.
+    -- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.
 """
     extract2_txt = """
--- To select files for extraction, you can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
+    -- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
 """
     extract3_txt = """
-    (1)  1, 2, 8, 4  [order does not matter]
+        (1) 1, 2, 8, 4  [order does not matter]
 """
     extract4_txt = """
-    (2) 3-8, 11, 14 [mix a range and individual numbers]
+        (2) 3-8, 11, 14  [mix a range and individual numbers]
 """
     extract5_txt = """
-    (3) all  [extracts all files]
+        (3) all  [extracts all files]
 """
 
     remove_txt = """
-Removes a file from the archive. This operation is not undoable!
+    <R>emoves a file from the archive. This operation is not undoable!
 """
 
     test_txt = """
-Test the integrity of the archive. If you archive a corrupted file, testing will not identify the fact that it is corrupted!
+    <T>est the integrity of the archive. If you archive a corrupted file, testing will not identify the fact that it is corrupted!
 """
 
     while True:
@@ -700,15 +705,15 @@ Test the integrity of the archive. If you archive a corrupted file, testing will
 
         elif choice == 'A':
             print('\nAdd Files')
-            print(fold(add1_txt))
-            print(fold(add2_txt))
-            print(fold(add3_txt))
-            print(fold(add4_txt))
+            print(fold(add1_txt, '          '))
+            print(fold(add2_txt, '          '))
+            print(fold(add3_txt, '          '))
+            print(fold(add4_txt, '          '))
 
         elif choice == 'E':
             print('\nExtract Files')
-            print(fold(extract1_txt))
-            print(fold(extract2_txt))
+            print(fold(extract1_txt, '          '))
+            print(fold(extract2_txt, '          '))
             print(fold(extract3_txt, '          '))
             print(fold(extract4_txt, '          '))
             print(fold(extract5_txt, '          '))
@@ -721,7 +726,7 @@ Test the integrity of the archive. If you archive a corrupted file, testing will
             print('\nTest Archive')
             print(fold(test_txt))
 
-        elif choice == 'Q':
+        elif choice == 'Q' or choice == '':
             print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
             break
 
