@@ -42,12 +42,12 @@ def create_new():
 
     # if file already exists, issue "overwrite" warning
     try:
-        with zipfile.ZipFile(file_name, 'r') as f:
+        with zipfile.ZipFile(full_path, 'r') as f:
             msg = '\n' + file_name + ' already exists. Overwrite? '
             overwrite = input(msg).upper()
 
             if overwrite == 'Y':
-                with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
+                with zipfile.ZipFile(full_path, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
                 return full_path, file_name
 
@@ -57,7 +57,7 @@ def create_new():
 
     # if file_name was not found, then we can create it!
     except FileNotFoundError:
-        with zipfile.ZipFile(file_name, 'w', compression=zipfile.ZIP_DEFLATED) as f:
+        with zipfile.ZipFile(full_path, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             print('\n', file_name, 'created as new archive.\n')
         return full_path, file_name
 
@@ -75,7 +75,7 @@ def open_archive():
 
     # sort out possible errors in file_name
     try:
-        with zipfile.ZipFile(file_name, 'r') as f:
+        with zipfile.ZipFile(full_path, 'r') as f:
             pass
     except FileNotFoundError:
         print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
@@ -103,11 +103,13 @@ def get_filename():
     while True:
         # get a file name from the user
         full_path = input("\nName of archive: ").strip()
-        file_name = Path(full_path).name
 
         # if no file name was entered, return to menu
         if not full_path.strip():
             return '', ''
+
+        file_name = Path(full_path).name
+        full_path = os.path.join(os.getcwd(), file_name)
 
         # zip files don't require a .zip extension, but it's a bad idea
         if file_name[-4:] != '.zip':
@@ -233,11 +235,11 @@ def add_file(full_path, file_name):
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
     glob_it = False  # flag needed because which_files is treated differently
-    msg = 'FILES IN THE CURRENT DIRECTORY'
 
     # preserve absolute and relative paths to current directory
     current_directory = os.getcwd()
     rel_dir = os.path.relpath(current_directory, '')
+    msg = 'CURRENT DIRECTORY: ' + current_directory
 
     # ==================================================
     # GENERATE A LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
@@ -395,7 +397,7 @@ def extract_file(full_path, file_name):
     Extract one or more files from an archive.
     """
     # get a list files in the archive and number them
-    with zipfile.ZipFile(file_name, 'r') as f:
+    with zipfile.ZipFile(full_path, 'r') as f:
         zip_info = f.infolist()
         num_files = [str(x) for x in range(1, len(zip_info)+1)]
         num_files.append(' ')
@@ -448,9 +450,12 @@ def extract_file(full_path, file_name):
     which_files = [int(x) for x in which_files]
 
     # extract the files the user has chosen to path=file_name
-    with zipfile.ZipFile(file_name, 'r') as f:
+    with zipfile.ZipFile(full_path, 'r') as f:
         zip_files = f.namelist()
         print('\nExtracting...')
+        path_info = os.path.split(os.path.abspath(full_path))
+        zip_dir = path_info[0]
+        extract_location = zip_dir + '\\' + file_name[:-4]
         # extract designated files and print the files on screen
         for ndx, file in enumerate(zip_files):
             if ndx+1 in which_files:
@@ -458,8 +463,6 @@ def extract_file(full_path, file_name):
                 print(this_file)
                 # prevent an unintentional file overwrite of this_file
                 # in the directory where files will be extracted
-                zip_dir = os.path.join(
-                    os.getcwd() + '\\' + file_name[:-4], this_file)
                 if os.path.isfile(zip_dir):
                     ok = input(
                         '\nOverwrite file on disk? (Y/N): ').strip().upper()
@@ -467,7 +470,7 @@ def extract_file(full_path, file_name):
                         print('\nSkipping', this_file)
                         continue
                 # extract the file here
-                f.extract(this_file, path=file_name[:-4])
+                f.extract(this_file, path=extract_location)
 
     return full_path, file_name
 
@@ -478,15 +481,23 @@ def remove_file(full_path, file_name):
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
+    # save the current working directory
+    original_dir = os.getcwd()
+
+    # make sure you are in the same directory as the zip file
+    path_info = os.path.split(os.path.abspath(full_path))
+    os.chdir(path_info[0])
+
     # unlikely, abort if "temporary" directory already exists
     this_path = '_temp_' + file_name[:-4] + '_'
     if os.path.isdir(this_path):
         print('\nCannot remove files from archive, since ',
               this_path, ' directory exists.', sep='')
+        os.chdir(original_dir)
         return full_path, file_name
 
     # get a list of files in the archive and their total number
-    with zipfile.ZipFile(file_name, 'r') as f:
+    with zipfile.ZipFile(full_path, 'r') as f:
         zip_files = f.namelist()
         num_files = len(f.namelist())
 
@@ -499,6 +510,7 @@ def remove_file(full_path, file_name):
 
         # if no file name is entered, return to menu
         if not choice.strip():
+            os.chdir(original_dir)
             return full_path, file_name
 
         # make sure user entered an integer between 1 and the total
@@ -515,7 +527,7 @@ def remove_file(full_path, file_name):
             continue
 
     # get confirmation from the user about the file to be removed
-    with zipfile.ZipFile(file_name, 'r') as f:
+    with zipfile.ZipFile(full_path, 'r') as f:
         print()
         for ndx, file in enumerate(zip_files):
             if ndx+1 == choice:
@@ -528,7 +540,7 @@ def remove_file(full_path, file_name):
 
         # extract all the files to "this_path" except
         # the file user has chosen
-        with zipfile.ZipFile(file_name, 'r') as f:
+        with zipfile.ZipFile(full_path, 'r') as f:
             for ndx, file in enumerate(zip_files):
                 if ndx+1 != choice:
                     this_file = zip_files[ndx]
@@ -576,6 +588,9 @@ def remove_file(full_path, file_name):
         if os.path.isdir(this_path):
             shutil.rmtree(this_path)
 
+    # change back to the original working directory
+    os.chdir(original_dir)
+
     return full_path, file_name
 
 
@@ -584,12 +599,12 @@ def test_archive(full_path, file_name):
     Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
     """
     # first, test if it is a valid zip file
-    if not zipfile.is_zipfile(file_name):
+    if not zipfile.is_zipfile(full_path):
         print('\nNot a valid zip file.')
         return full_path, file_name
 
     # open the archive and test it using testzip()
-    with zipfile.ZipFile(file_name, 'r') as f:
+    with zipfile.ZipFile(full_path, 'r') as f:
         tested_files = f.testzip()
         num_files = len(f.infolist())
 
