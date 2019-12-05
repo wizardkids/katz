@@ -19,7 +19,6 @@ import shutil
 import textwrap
 import zipfile
 from datetime import datetime
-from pathlib import Path
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -673,10 +672,10 @@ def help():
     A help function.
     """
     open1_txt = """
-    -- Enter a filename, including an extension. File must be a zip file. Use a path if you want to <O>pen a file in a non-default directory. If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
+    -- Enter a filename, including a .zip extension. Use a path if you want to <O>pen a file in a non-default directory. If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all subsequent operations in the sub-menu.
 """
     open2_txt = """
-    -- TIP: If you return to the main menu but decide to continue to use the current archive file, use <O>pen, and then use the UP ARROW key to cycle through recent commands until you get to the correct file.
+    -- TIP: If you return to the main menu from the sub-menu,. any file you were working with is forgotten. If you decide to continue to use that file, use <O>pen, and then use the UP ARROW key to cycle through recent commands until you get to the correct file.
 """
 
     new_txt = """
@@ -687,17 +686,17 @@ def help():
     <D>irectory conducts two operations simultaneously.
 """
     directory1_txt = """
-        (1) List the files in the specified directory (not an archive!). <D>irectory lists files in the current directory, while <L>ist produces a list of files in the archive.
+        (1) List the files in the specified directory (not an archive!). <D>irectory lists files in a directory on disk, while <L>ist produces a list of files in the archive.
 """
     directory2_txt = """
-        (2) Changes the working directory to that directory. If you work with a zip file in that directory, you don't need to enter a path.
+        (2) Changes the working directory to the directory you enter. If you <O>pen a zip file or create a <N>ew zip file in that directory, you don't need to enter a path.
 """
     directory3_txt = """
-    TIP: Before you <O>pen a file, use <D>irectory to change the current directory. Then <O>pen and <N>ew will manipulate files without having to enter a full path again.
+    TIP: Before you <O>pen a file or create a <N>ew file, use <D>irectory to change the current directory. Then, <O>pen and <N>ew will manipulate files without having to enter a full path again.
 """
 
     list_txt = """
-    <L>ist all the files in the archive. <D>irectory lists files in the current directory, while <L>ist produces a list of files in the archive.
+    <L>ist all the files in the archive. <D>irectory lists files in a directory in disk, while <L>ist produces a list of files in the archive.
 """
 
     add1_txt = """
@@ -710,7 +709,7 @@ def help():
     -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.
 """
     add4_txt = """
-    -- For speed, three methods are provided for identifying files that you want to <A>dd. Don't mix methods! You can mix numbers and ranges, though. See the first item under <E>tract, below.
+    -- For speed, three methods are provided for identifying files that you want to <A>dd. Don't mix methods! You can mix numbers and ranges, though. See the second item under <E>tract, below, for details.
 """
 
     extract1_txt = """
@@ -730,11 +729,11 @@ def help():
 """
 
     remove_txt = """
-    <R>emoves a file from the archive. This operation is not undoable!
+    <R>emoves a file from the archive. You can only remove one file at a time. This operation cannot be reversed!
 """
 
     test_txt = """
-    <T>est the integrity of the archive. If you archive a corrupted file, testing will not identify the fact that it is corrupted!
+    <T>est the integrity of the archive. Special NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!
 """
 
     while True:
