@@ -43,14 +43,16 @@ def create_new():
     if not file_name:
         return '', ''
 
+    full_filename = os.path.join(full_path, file_name)
+
     # if file already exists, issue "overwrite" warning
     try:
-        with zipfile.ZipFile(full_path, 'r') as f:
+        with zipfile.ZipFile(full_filename, 'r') as f:
             msg = '\n' + file_name + ' already exists. Overwrite? '
             overwrite = input(msg).upper()
 
             if overwrite == 'Y':
-                with zipfile.ZipFile(full_path, 'w', compression=zipfile.ZIP_DEFLATED) as f:
+                with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
                 return full_path, file_name
 
@@ -60,7 +62,7 @@ def create_new():
 
     # if file_name was not found, then we can create it!
     except FileNotFoundError:
-        with zipfile.ZipFile(full_path, 'w', compression=zipfile.ZIP_DEFLATED) as f:
+        with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             print('\n', file_name, 'created as new archive.\n')
         return full_path, file_name
 
@@ -541,32 +543,55 @@ def remove_file(full_path, file_name):
         full_path, file_name = list_files(full_path, file_name)
 
         # get from the user the file or folder that should be removed
-        choice = input("\nEnter the number of file to remove: ")
+        print("\nEnter the number of file to remove or")
+        print('to remove a whole folder,')
+        choice = input("type the name of the folder: ").strip()
 
         # if no file name is entered, return to menu
         if not choice.strip():
             return full_path, file_name
 
-        # make sure user entered an integer between 1 and the total
+        # if a non-integer was typed, then check if it's a valid folder name
+        # otherwise, make sure it's an integer between 1 and the total
         # number of files in the archive
         try:
             choice = int(choice)
             if choice > 0 and choice <= num_files:
                 break
             else:
-                raise Exception
+                print('\nEnter only an integer, in range 1-',
+                      num_files, '.\n', sep='')
+                continue
         except:
-            print('\nEnter only an integer, in range 1-',
-                  num_files, '.\n', sep='')
-            continue
+            # deny ability to delete root/ folder
+            if 'ROOT' in choice.upper():
+                print(
+                    '\nDeleting root deletes all files/folders in the archive.\nDelete the archive file itself, instead.')
+                continue
+            bad_choice, folderName = False, ''
+            for line in zip_files:
+                pos = line.rfind('/')
+                folderName = line[0:pos].upper()
+                if pos:
+                    if choice.upper() in folderName:
+                        break
+            if not folderName:
+                print('\n', choice, ' is not a folder.')
+                continue
+            else:
+                break
 
     # get confirmation from the user about the file to be removed
     print()
     for ndx, file in enumerate(zip_files):
         if ndx+1 == choice:
             print(ndx+1, '. ', file, sep='')
+        else:
+            pos = file.find('/')
+            if choice.upper() == file[0:pos].upper():
+                print(file)
 
-    confirmed = input('\nRemove file? (Y/N) ').strip().upper()
+    confirmed = input('\nRemove file(s)? (Y/N) ').strip().upper()
     if confirmed == 'Y':
         # create the directory that will hold files temporarily
         os.mkdir(this_path)
@@ -576,9 +601,13 @@ def remove_file(full_path, file_name):
             # extract all the files to "this_path" except
             # the file user has chosen
             for ndx, file in enumerate(zip_files):
-                if ndx+1 != choice:
-                    this_file = zip_files[ndx]
-                    f.extract(this_file, path=this_path)
+                if isinstance(choice, int):
+                    if ndx+1 != choice:
+                        f.extract(file, path=this_path)
+                else:
+                    pos = file.find('/')
+                    if file[0:pos].upper() != choice.upper():
+                        f.extract(file, path=this_path)
 
         # get relative path to temporary directory
         cwd = full_path + '\\' + this_path
@@ -621,14 +650,16 @@ def remove_file(full_path, file_name):
             try:
                 os.remove('_temp_zipfile_.zip')
             except:
-                print('Cannot complete operation. _temp_zipfile_.zip is being used by another process.', sep='')
+                print(
+                    'Cannot complete operation. _temp_zipfile_.zip is being used by another process.', sep='')
 
         # delete "temporary" dir even if exception was raised in previous line
         if os.path.isdir(this_path):
             try:
                 shutil.rmtree(this_path, ignore_errors=False)
             except PermissionError:
-                print('Cannot complete operation. A file or folder in ', this_path, ' is being used by another process.', sep='')
+                print('Cannot complete operation. A file or folder in ',
+                      this_path, ' is being used by another process.', sep='')
 
     return full_path, file_name
 
@@ -742,7 +773,7 @@ def help():
 """
 
     remove_txt = """
-    <R>emoves a file from the archive. You can only remove one file at a time. This operation cannot be reversed!
+    <R>emoves a file or a folder from the archive. You can only remove one file or folder at a time. This operation cannot be reversed! Removing a folder removes all sub-folders, as well. "katz" will confirm before removing any files or folders.
 """
 
     test_txt = """
@@ -939,3 +970,14 @@ def sub_menu(open_file, new_file):
 
 if __name__ == '__main__':
     main_menu()
+
+    # full_path = 'c:\\temp\\one'
+    # file_name = 'temp.zip'
+    # full_filename = os.path.join(full_path, file_name)
+    # r = 'four'
+    # list_files(full_path, file_name)
+    # with zipfile.ZipFile(full_filename, 'r')as f:
+    #     zip_files = f.namelist()
+
+    # for i in zip_files:
+    #     print(i)
