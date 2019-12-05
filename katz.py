@@ -519,23 +519,20 @@ def remove_file(full_path, file_name):
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
-    # save the current working directory
-    original_dir = os.getcwd()
+    full_filename = os.path.join(full_path, file_name)
 
     # make sure you are in the same directory as the zip file
-    path_info = os.path.split(os.path.abspath(full_path))
-    os.chdir(path_info[0])
+    os.chdir(full_path)
 
     # unlikely, abort if "temporary" directory already exists
     this_path = '_temp_' + file_name[:-4] + '_'
     if os.path.isdir(this_path):
         print('\nCannot remove files from archive, since ',
               this_path, ' directory exists.', sep='')
-        os.chdir(original_dir)
         return full_path, file_name
 
     # get a list of files in the archive and their total number
-    with zipfile.ZipFile(full_path, 'r') as f:
+    with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
         num_files = len(f.namelist())
 
@@ -548,7 +545,6 @@ def remove_file(full_path, file_name):
 
         # if no file name is entered, return to menu
         if not choice.strip():
-            os.chdir(original_dir)
             return full_path, file_name
 
         # make sure user entered an integer between 1 and the total
@@ -565,34 +561,34 @@ def remove_file(full_path, file_name):
             continue
 
     # get confirmation from the user about the file to be removed
-    with zipfile.ZipFile(full_path, 'r') as f:
-        print()
-        for ndx, file in enumerate(zip_files):
-            if ndx+1 == choice:
-                print(ndx+1, '. ', file, sep='')
+    print()
+    for ndx, file in enumerate(zip_files):
+        if ndx+1 == choice:
+            print(ndx+1, '. ', file, sep='')
 
     confirmed = input('\nRemove file? (Y/N) ').strip().upper()
     if confirmed == 'Y':
         # create the directory that will hold files temporarily
         os.mkdir(this_path)
 
-        # extract all the files to "this_path" except
-        # the file user has chosen
-        with zipfile.ZipFile(full_path, 'r') as f:
+        with zipfile.ZipFile(full_filename, 'r') as f:
+            zip_files = f.namelist()
+            # extract all the files to "this_path" except
+            # the file user has chosen
             for ndx, file in enumerate(zip_files):
                 if ndx+1 != choice:
                     this_file = zip_files[ndx]
                     f.extract(this_file, path=this_path)
 
-        # preserve absolute and relative paths to current directory
-        current_directory = os.getcwd()
-        rel_dir = os.path.relpath(current_directory, '')
+        # get relative path to temporary directory
+        cwd = full_path + '\\' + this_path
+        rel_dir = os.path.relpath(cwd, cwd)
 
         # add all the extracted files to _temp_zipfile_.zip
         with zipfile.ZipFile('_temp_zipfile_.zip', 'w', compression=zipfile.ZIP_DEFLATED) as f:
-            # change directory to the temporary directory which will be
-            # the location of our temporary zip file
+            # change directory to the temporary directory, which contains all files in the archive, except the file destined for removal
             os.chdir(this_path)
+
             # Iterate over all the files in the root directory
             for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
                 for filename in filenames:
@@ -601,8 +597,8 @@ def remove_file(full_path, file_name):
                     # add file to zip
                     f.write(filePath)
 
-        # change back to the directory holding file_name
-        os.chdir(current_directory)
+        # change back to directory with zip file in it
+        os.chdir(full_path)
 
         # test the temporary archive before deleting the original one
         if not zipfile.is_zipfile('_temp_zipfile_.zip'):
@@ -620,14 +616,19 @@ def remove_file(full_path, file_name):
         except:
             print('\nUnknown error. Aborting removal of file.')
 
-        # delete the "temporary" file and directory even if exception was raised in previous line
+        # delete "temporary" file even if exception was raised in previous line
         if os.path.isfile('_temp_zipfile_.zip'):
-            os.remove('_temp_zipfile_.zip')
-        if os.path.isdir(this_path):
-            shutil.rmtree(this_path)
+            try:
+                os.remove('_temp_zipfile_.zip')
+            except:
+                print('Cannot complete operation. _temp_zipfile_.zip is being used by another process.', sep='')
 
-    # change back to the original working directory
-    os.chdir(original_dir)
+        # delete "temporary" dir even if exception was raised in previous line
+        if os.path.isdir(this_path):
+            try:
+                shutil.rmtree(this_path, ignore_errors=False)
+            except PermissionError:
+                print('Cannot complete operation. A file or folder in ', this_path, ' is being used by another process.', sep='')
 
     return full_path, file_name
 
@@ -681,10 +682,7 @@ def help():
     A help function.
     """
     open1_txt = """
-    -- Enter a filename, including a .zip extension. Use a path if you want to <O>pen a file in a non-default directory. If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all subsequent operations in the sub-menu.
-"""
-    open2_txt = """
-    -- TIP: If you return to the main menu from the sub-menu,. any file you were working with is forgotten. If you decide to continue to use that file, use <O>pen, and then use the UP ARROW key to cycle through recent commands until you get to the correct file.
+    -- Enter a filename, including a .zip extension. Use a path if you want to <O>pen a file in a non-default directory (which is set using <D>irectory). If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all subsequent operations in the sub-menu.
 """
 
     new_txt = """
@@ -698,7 +696,7 @@ def help():
         (1) List the files in the specified directory (not an archive!). <D>irectory lists files in a directory on disk, while <L>ist produces a list of files in the archive.
 """
     directory2_txt = """
-        (2) Changes the working directory to the directory you enter. If you <O>pen a zip file or create a <N>ew zip file in that directory, you don't need to enter a path.
+        (2) Changes the default (working) directory.
 """
     directory3_txt = """
     TIP: Before you <O>pen a file or create a <N>ew file, use <D>irectory to change the current directory. Then, <O>pen and <N>ew will manipulate files without having to enter a full path again.
@@ -740,7 +738,7 @@ def help():
     SYMLINKS:
 """
     extract7_txt = """
-        "katz" will archive file symlinks, but only as the original file, not as a symlink. When the file is extracted, it will not extract as a symlink. Likewise a folder symlink will also extract as the original folder, along with the original files.
+        "katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.
 """
 
     remove_txt = """
@@ -766,7 +764,7 @@ def help():
         if choice == 'O':
             print('\nOpen File')
             print(fold(open1_txt, '          '))
-            print(fold(open2_txt, '          '))
+
         elif choice == 'N':
             print('\nNew File')
             print(fold(new_txt))
@@ -878,7 +876,7 @@ def main_menu():
             break
 
     # change back to original user directory
-    os.chdir(_user_directory_)
+    # os.chdir(_user_directory_)
 
 
 def sub_menu(open_file, new_file):
