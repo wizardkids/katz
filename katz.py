@@ -20,6 +20,8 @@ import textwrap
 import zipfile
 from datetime import datetime
 
+# todo -- initially, remove_file() allows removal of one file; add ability to remove an entire folder
+
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
@@ -167,7 +169,8 @@ def list_files(full_path, file_name):
             # pause after every 25 files
             cnt = ndx+1
             if len(zip_files) >= 25 and cnt >= 25 and cnt % 25 == 0:
-                more = input('--ENTER to continue; Q to quit--').strip().upper()
+                more = input(
+                    '--ENTER to continue; Q to quit--').strip().upper()
                 if more == 'Q':
                     break
 
@@ -220,10 +223,11 @@ def dir_files():
     stop_listing = False
     if subs:
         cnt = 1
-        for folderName, subfolders, filenames in os.walk(current_directory):
+        for folderName, subfolders, filenames in os.walk(current_directory, followlinks=True):
             cnt += 1
             if cnt >= 25 and cnt % 25 == 0:
-                more = input('--ENTER to continue; Q to quit--').strip().upper()
+                more = input(
+                    '--ENTER to continue; Q to quit--').strip().upper()
                 if more == 'Q':
                     break
             print(folderName)
@@ -240,7 +244,7 @@ def dir_files():
                 break
     else:
         cnt = 0
-        for folderName, subfolders, filenames in os.walk(current_directory):
+        for folderName, subfolders, filenames in os.walk(current_directory, followlinks=True):
             # print only the root folder but all the files in that folder
             if cnt == 0:
                 print(folderName)
@@ -299,7 +303,7 @@ def add_file(full_path, file_name):
     if subs:
         # Iterate over all the files in the root directory
         file_list, file_cnt = [], 1
-        for folderName, subfolders, filenames in os.walk(rel_dir):
+        for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
             for filename in filenames:
                 # create complete filepath of file in directory
                 filePath = os.path.relpath(os.path.join(folderName, filename))
@@ -324,7 +328,7 @@ def add_file(full_path, file_name):
         # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
         print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*/?) to designate files')
 
-        choice = input("File(s) to add: ").strip()
+        choice = input("\nFile(s) to add: ").strip()
 
         # if nothing is entered, return to menu
         if not choice:
@@ -341,7 +345,7 @@ def add_file(full_path, file_name):
             glob_it, which_files = True, []
             rel_dir = os.path.relpath('.', '')
             if subs:
-                for folderName, subfolders, filenames in os.walk(rel_dir):
+                for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
                     f = os.path.join(folderName, choice)
                     for name in glob.glob(f):
                         if name != os.path.join(folderName, file_name):
@@ -584,7 +588,7 @@ def remove_file(full_path, file_name):
             # the location of our temporary zip file
             os.chdir(this_path)
             # Iterate over all the files in the root directory
-            for folderName, subfolders, filenames in os.walk(rel_dir):
+            for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
                 for filename in filenames:
                     # create complete filepath of file in directory
                     filePath = os.path.join(folderName, filename)
@@ -727,7 +731,10 @@ def help():
         (3) all  [extracts all files]
 """
     extract6_txt = """
-    "katz" will archive symlinks, but only as the original file, not as a symlink. When the file is extracted, it will not extract as a symlink.
+    SYMLINKS:
+"""
+    extract7_txt = """
+        "katz" will archive file symlinks, but only as the original file, not as a symlink. When the file is extracted, it will not extract as a symlink. Likewise a folder symlink will also extract as the original folder, along with the original files.
 """
 
     remove_txt = """
@@ -784,6 +791,7 @@ def help():
             print(fold(extract4_txt, '          '))
             print(fold(extract5_txt, '          '))
             print(fold(extract6_txt))
+            print(fold(extract7_txt, '          '))
 
         elif choice == 'R':
             print('\nRemove File')
