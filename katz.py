@@ -22,8 +22,6 @@ from datetime import datetime
 
 # todo -- In list_files(), pause the screen every 25 files
 
-# todo -- initially, remove_file() allows removal of one file; add ability to remove an entire folder
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
@@ -168,6 +166,8 @@ def list_files(full_path, file_name):
                 current_directory = os.path.dirname(file)
                 if current_directory:
                     print(current_directory)
+                else:
+                    print('root/')
 
             # print files indented 5 spaces
             this_directory, this_file = os.path.split(file)
@@ -274,10 +274,7 @@ def add_file(full_path, file_name):
     """
     full_filename = os.path.join(full_path, file_name)
     glob_it = False  # flag needed because which_files is treated differently
-
-    # preserve absolute and relative paths to current directory
-    rel_dir = os.path.relpath(full_path, '')
-    msg = 'CURRENT DIRECTORY: ' + full_path
+    current_directory = os.getcwd()
 
     # ==================================================
     # GENERATE A LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
@@ -295,19 +292,23 @@ def add_file(full_path, file_name):
         if dir == '.':
             dir = full_path
 
-        if not os.path.exists(dir):
-            print('\nDirectory does not exist. Re-enter.')
+        if not os.path.exists(dir) or not os.path.isdir(dir):
+            print('\Entry does not exist or is not a directory. Re-enter.')
             continue
         else:
             subs = input('Include subdirectories (Y/N): ').strip().upper()
             subs = True if subs == 'Y' else False
             break
 
+
+    msg = 'CURRENT DIRECTORY: ' + dir
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     # print a list of eligible files in the chosen directory and subdirectories
+    os.chdir(dir)
+    rel_dir = os.path.relpath(dir, dir)
     if subs:
-        # Iterate over all the files in the root directory
+        # Iterate over all the files in the 'dir' directory
         file_list, file_cnt = [], 1
         for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
             for filename in filenames:
@@ -338,6 +339,7 @@ def add_file(full_path, file_name):
 
         # if nothing is entered, return to menu
         if not choice:
+            os.chdir(current_directory)
             return full_path, file_name
 
         # which_files is a list of digits user entered (type:string)
@@ -407,6 +409,8 @@ def add_file(full_path, file_name):
     else:
         for file in which_files:
             write_one_file(file, full_filename)
+
+    os.chdir(current_directory)
 
     return full_path, file_name
 
