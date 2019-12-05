@@ -107,7 +107,7 @@ def get_filename():
         if not full_path.strip():
             return '', ''
 
-        file_name = Path(full_path).name
+        file_name = os.path.basename(full_path)
         full_path = os.path.join(os.getcwd(), file_name)
 
         # zip files don't require a .zip extension, but it's a bad idea
@@ -229,7 +229,7 @@ def dir_files():
             print(folderName)
             for file in filenames:
                 cnt += 1
-                print(cnt, '     ', file)
+                print('     ', file)
                 # pause after every 25 files
                 if cnt >= 25 and cnt % 25 == 0:
                     more = input(
@@ -255,7 +255,6 @@ def dir_files():
                         '--ENTER to continue; Q to quit--').strip().upper()
                     if more == 'Q':
                         break
-
     return
 
 
@@ -727,6 +726,9 @@ def help():
     extract5_txt = """
         (3) all  [extracts all files]
 """
+    extract6_txt = """
+    "katz" will archive symlinks, but only as the original file, not as a symlink. When the file is extracted, it will not extract as a symlink.
+"""
 
     remove_txt = """
     <R>emoves a file from the archive. You can only remove one file at a time. This operation cannot be reversed!
@@ -781,6 +783,7 @@ def help():
             print(fold(extract3_txt, '          '))
             print(fold(extract4_txt, '          '))
             print(fold(extract5_txt, '          '))
+            print(fold(extract6_txt))
 
         elif choice == 'R':
             print('\nRemove File')
