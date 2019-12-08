@@ -21,7 +21,7 @@ import textwrap
 import zipfile
 from datetime import datetime
 
-# this prevents a warning being issued to user if they try to add
+# the following if... prevents a warning being issued to user if they try to add
 # a duplicate file to an archive; this warning is handled in add_file()
 if not sys.warnoptions:
     import warnings
@@ -31,7 +31,7 @@ if not sys.warnoptions:
 
 # todo -- add the capability of adding files to any folder already in the archive
 
-# todo -- when adding files from a folder other than default, add the parent folder of those files and then add the files to that folder
+# todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that they should simply delete the zip file.
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -330,14 +330,15 @@ def add_file(full_path, file_name):
     for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
         for filename in filenames:
             # create complete filepath of file in directory
-            if subs:
-                filePath = os.path.join(folderName, filename)
-            else:
-                filePath = os.path.join(filename)
+            filePath = os.path.join(folderName, filename)
             if os.path.split(filePath)[1] != file_name:
                 file_list.append(filePath)
-                print(cnt, '. ', filePath, sep='')
-        cnt += 1
+                if subs:
+                    print(cnt, '. ', filePath, sep='')
+                else:
+                    if filePath.split('\\')[-2] == rel_dir:
+                        print(cnt, '. ', filePath, sep='')
+            cnt += 1
 
     # ==================================================
     # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
@@ -415,9 +416,11 @@ def add_file(full_path, file_name):
 
         break
 
+    os.chdir(root_folder)
+
     # ==================================================
     # ADD THE FILES:
-    #   files always go into named folders
+    #   files ALWAYS go into named folders
     # ==================================================
 
     # get a list of all the files that are in the archive
@@ -433,6 +436,8 @@ def add_file(full_path, file_name):
             else:
                 print('\n', file,
                         ' already exists in archive.\nRemove this file before adding a new version.', sep='')
+
+    os.chdir(current_directory)
 
     return full_path, file_name
 
@@ -699,13 +704,15 @@ def test_archive(full_path, file_name):
     """
     Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
     """
+    full_filename = os.path.join(full_path, file_name)
+
     # first, test if it is a valid zip file
-    if not zipfile.is_zipfile(full_path):
+    if not zipfile.is_zipfile(full_filename):
         print('\nNot a valid zip file.')
         return full_path, file_name
 
     # open the archive and test it using testzip()
-    with zipfile.ZipFile(full_path, 'r') as f:
+    with zipfile.ZipFile(full_filename, 'r') as f:
         tested_files = f.testzip()
         num_files = len(f.infolist())
 
