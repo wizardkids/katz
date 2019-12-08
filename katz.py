@@ -29,8 +29,6 @@ if not sys.warnoptions:
 
 # todo -- In list_files(), pause the screen every 25 files
 
-# todo -- add the capability of adding files to any folder already in the archive
-
 # todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that they should simply delete the zip file.
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
@@ -332,11 +330,12 @@ def add_file(full_path, file_name):
             # create complete filepath of file in directory
             filePath = os.path.join(folderName, filename)
             if os.path.split(filePath)[1] != file_name:
-                file_list.append(filePath)
                 if subs:
+                    file_list.append(filePath)
                     print(cnt, '. ', filePath, sep='')
                 else:
                     if filePath.split('\\')[-2] == rel_dir:
+                        file_list.append(filePath)
                         print(cnt, '. ', filePath, sep='')
             cnt += 1
 
@@ -426,6 +425,13 @@ def add_file(full_path, file_name):
     # get a list of all the files that are in the archive
     with zipfile.ZipFile(full_filename) as f:
         zip_files = f.namelist()
+
+    # namelist() formats paths as: foo/bar/bar.txt
+    # need to change"/" into "\\""
+    zip_files_temp = zip_files.copy()
+    for ndx, file in enumerate(zip_files_temp):
+        file = file.replace('/', '\\')
+        zip_files[ndx] = file
 
     # puts files in folder
     with zipfile.ZipFile(full_filename, 'a') as f:
