@@ -16,11 +16,22 @@ command-line zip archiving utility
 import glob
 import os
 import shutil
+import sys
 import textwrap
 import zipfile
 from datetime import datetime
 
+# this prevents a warning being issued to user if they try to add
+# a duplicate file to an archive; this warning is handled in add_file()
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
+
 # todo -- In list_files(), pause the screen every 25 files
+
+# todo -- add the capability of adding files to any folder already in the archive
+
+# todo -- when adding files from a folder other than default, add the parent folder of those files and then add the files to that folder
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -273,11 +284,13 @@ def add_file(full_path, file_name):
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
     full_filename = os.path.join(full_path, file_name)
-    glob_it = False  # flag needed because which_files is treated differently
     current_directory = os.getcwd()
 
+    msg = 'CURRENT DIRECTORY: ' + current_directory
+    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+
     # ==================================================
-    # GENERATE A LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
+    # GET THE SOURCE DIRECTORY FROM THE USER
     # ==================================================
 
     # get directory containing files that you want to add
@@ -293,41 +306,42 @@ def add_file(full_path, file_name):
             dir = full_path
 
         if not os.path.exists(dir) or not os.path.isdir(dir):
-            print('\Entry does not exist or is not a directory. Re-enter.')
+            print('\nEntry does not exist or is not a directory. Re-enter.')
             continue
         else:
             subs = input('Include subdirectories (Y/N): ').strip().upper()
             subs = True if subs == 'Y' else False
+            print()
             break
 
+    # ==================================================
+    # GENERATE A NUMBERED LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
+    # EXAMPLES:
+    # dir = c:\foo\bar
+    # root_folder = c:\foo
+    # rel_dir = bar
+    # ==================================================
+    root_folder = os.path.split(dir)[0]
+    rel_dir = os.path.relpath(dir, root_folder)
 
-    msg = 'CURRENT DIRECTORY: ' + dir
-    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+    os.chdir(root_folder)
 
-    # print a list of eligible files in the chosen directory and subdirectories
-    os.chdir(dir)
-    rel_dir = os.path.relpath(dir, dir)
-    if subs:
-        # Iterate over all the files in the 'dir' directory
-        file_list, file_cnt = [], 1
-        for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
-            for filename in filenames:
-                # create complete filepath of file in directory
-                filePath = os.path.relpath(os.path.join(folderName, filename))
-                if file_name[0] != '.':
-                    file_list.append(filePath)
-                    print(file_cnt, '. ', filePath, sep='')
-                file_cnt += 1
-
-    # print a list of all files in just the chosen directory
-    else:
-        file_list = [f for f in os.listdir(
-            dir) if os.path.isfile(os.path.join(dir, f))]
-        for ndx, file in enumerate(file_list):
-            print(ndx+1, '. ', file, sep='')
+    cnt, file_list = 1, []
+    for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
+        for filename in filenames:
+            # create complete filepath of file in directory
+            if subs:
+                filePath = os.path.join(folderName, filename)
+            else:
+                filePath = os.path.join(filename)
+            if os.path.split(filePath)[1] != file_name:
+                file_list.append(filePath)
+                print(cnt, '. ', filePath, sep='')
+        cnt += 1
 
     # ==================================================
-    # GET A LIST OF THE FILES THAT THE USER WANTS TO ADD
+    # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
+    #   user can choose individual files or "all" files
     # ==================================================
 
     while True:
@@ -342,27 +356,29 @@ def add_file(full_path, file_name):
             os.chdir(current_directory)
             return full_path, file_name
 
-        # which_files is a list of digits user entered (type:string)
-        # else if choice="ALL", then generate a list of all file numbers
+        # ========================================================
+        # BASED ON USER'S CHOICES, CREATE A LIST OF THE ELIGIBLE FILES
+        # ========================================================
+
+        add_files = []  # list that contains file names w/ paths to add
         if choice.upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(file_list)+1)]
+            for file_number in which_files:
+                add_files.append(file_list[int(file_number)-1])
 
         # see https://pymotw.com/2/glob/
         elif '*' in choice or '?' in choice:
-            # print('\nWildcards not functional at present.')
-            glob_it, which_files = True, []
-            rel_dir = os.path.relpath('.', '')
             if subs:
                 for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
                     f = os.path.join(folderName, choice)
                     for name in glob.glob(f):
                         if name != os.path.join(folderName, file_name):
-                            which_files.append(name)
+                            add_files.append(name)
                             print(name)
             else:
                 for name in glob.glob(choice):
                     if name != os.path.join(folderName, file_name):
-                        which_files.append(name)
+                        add_files.append(os.path.join(folderName, name))
                         print(name)
 
         # extract all the file numbers from the user's list:
@@ -383,6 +399,7 @@ def add_file(full_path, file_name):
                     except:
                         print(
                             '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                        return full_path, file_name
                 # treating all other single digits
                 else:
                     try:
@@ -391,46 +408,55 @@ def add_file(full_path, file_name):
                     except:
                         print(
                             '\nInvalid number(s) excluded. Did you comma-separate values?')
+                        return full_path, file_name
+
+            for file_number in which_files:
+                add_files.append(file_list[int(file_number)-1])
+
         break
 
     # ==================================================
-    # WRITE THE SELECTED FILES INTO THE ARCHIVE
+    # ADD THE FILES:
+    #   files always go into named folders
     # ==================================================
 
-    if not glob_it:
-        # which_files contains all of the integers for the selected files
-        which_files = [int(x) for x in which_files]
+    # get a list of all the files that are in the archive
+    with zipfile.ZipFile(full_filename) as f:
+        zip_files = f.namelist()
 
-        # for each integer in which_files, add the corresponding file to archive
-        for ndx, file in enumerate(file_list):
-            if file != file_name and ndx+1 in which_files:
-                print(file)
-                write_one_file(file, full_filename)
-    else:
-        for file in which_files:
-            write_one_file(file, full_filename)
-
-    os.chdir(current_directory)
+    # puts files in folder
+    with zipfile.ZipFile(full_filename, 'a') as f:
+        for file in add_files:
+            file_to_add = file
+            if file_to_add not in zip_files:
+                f.write(file_to_add)
+            else:
+                print('\n', file,
+                        ' already exists in archive.\nRemove this file before adding a new version.', sep='')
 
     return full_path, file_name
 
 
 def write_one_file(file_to_add, full_filename):
-    # determine if the file already exists in the archive;
-    # an archive cannot have duplicate files
-    with zipfile.ZipFile(full_filename) as f:
-        zip_files = f.namelist()
+    # # determine if the file already exists in the archive;
+    # # an archive cannot have duplicate files
+    # with zipfile.ZipFile(full_filename) as f:
+    #     zip_files = f.namelist()
 
     # add the compressed file if it does not exist in archive already
-    if file_to_add not in zip_files:
-        with zipfile.ZipFile(full_filename, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+    # if file_to_add not in zip_files:
+    with zipfile.ZipFile(full_filename, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+        try:
             f.write(file_to_add)
+        except UserWarning:
+            print('\n', file_to_add,
+                  ' already exists in archive.\nRemove this file before adding a new version.', sep='')
 
     # zipfile doesn't update files and cannot add duplicate files
     # print message if file already resides in archive
-    else:
-        print('\n', file_to_add,
-              ' already exists in archive.\nRemove this file before adding a new version.', sep='')
+    # else:
+    #     print('\n', file_to_add,
+    #           ' already exists in archive.\nRemove this file before adding a new version.', sep='')
     return
 
 
@@ -590,7 +616,7 @@ def remove_file(full_path, file_name):
     for ndx, file in enumerate(zip_files):
         if ndx+1 == choice:
             print(ndx+1, '. ', file, sep='')
-        else:
+        elif isinstance(choice, str):
             pos = file.find('/')
             if choice.upper() == file[0:pos].upper():
                 print(file)
@@ -623,6 +649,7 @@ def remove_file(full_path, file_name):
             os.chdir(this_path)
 
             # Iterate over all the files in the root directory
+            # write each file to the temporary zip file
             for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
                 for filename in filenames:
                     # create complete filepath of file in directory
@@ -742,10 +769,10 @@ def help():
 """
 
     add1_txt = """
-    -- <A>dd provides a numbered list of files that you can <A>dd to the archive.
+    -- <A>dd provides a list of files that you can <A>dd to the archive.
 """
     add2_txt = """
-    -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory.
+    -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to the root folder in the archive.
 """
     add3_txt = """
     -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.
