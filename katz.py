@@ -30,12 +30,6 @@ if not sys.warnoptions:
 
 # todo -- In list_files(), pause the screen every 25 files
 
-# todo -- When you do a <D>irectory, make it work like DOS:
-# ? <D>
-# ? c:\temp\one
-# ? cd three   --> c:\temp\one\three
-# ? cd .. --> c:\temp\one
-
 # todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that, if that is the intent,  should simply delete the zip file. Files in "root" must be removed one at a time.
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
@@ -202,44 +196,46 @@ def list_files(full_path, file_name):
 
 def dir_files():
     """
-    List the files in a directory (not the archive). By default, this changes the working directory if a path is entered.
+    List the files in a directory (not the archive). This menu option also changes the working directory if a path is entered.
     """
-    print('\nEnter "." for current directory\nor ".." for the parent directory.\nTo go to a subfolder of the current folder\nuse a back-slash (e.g, \sub-folder)')
+
+    err = 'The system cannot find the path specified.'
 
     cwd = '...'+os.getcwd()[-49:] if len(os.getcwd()) > 49 else os.getcwd()
-    print('\nCurrent directory:\n', cwd, sep='')
+    print('='*52, '\nCurrent directory:\n', cwd, '\n', '='*52, sep='')
 
-    current_directory = input("\nEnter a directory: ").strip()
+    print('\nEnter a path or use standard methods to\nchange directories.')
+    dir = input("\nEnter a directory: ").strip()
 
-    if not current_directory:
+    if not dir:
         print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
         return os.getcwd()
 
-    if current_directory[0] == '\\' or current_directory[0] == '/':
-        current_directory = os.getcwd() + current_directory
+    if dir[:3] == 'cd ':
+        current_directory = os.path.join(os.getcwd(), dir[3:])
+    elif dir[:4] == 'cd..' or dir[:5] == 'cd ..':
+        current_directory = os.path.abspath(os.path.join(os.getcwd(), '..'))
+    else:
+        # by default, current_directory = dir; otherwise, we will change it
+        current_directory = dir
 
     # make sure the directory is valid
     # if so, change the working directory
     try:
         os.chdir(current_directory)
-        # list all the files in the current working directory
-        # files = os.listdir(current_directory)
-
     except FileNotFoundError:
-        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-        print('\nNo such directory.')
+        print('\n', dsh*52, '\n', err, '\n', dsh*52, sep='')
         return os.getcwd()
 
     except OSError:
-        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-        print('\nNot a valid directory name.')
+        print('\n', dsh*52, '\n', err, '\n', dsh*52, sep='')
         return os.getcwd()
 
     subs = input('Include subdirectories (Y/N): ').strip().upper()
     subs = True if subs == 'Y' else False
 
     cwd = '...'+os.getcwd()[-49:] if len(os.getcwd()) > 49 else os.getcwd()
-    print('\n', dsh*52, '\n', cwd, '\n', dsh*52, sep='')
+    print('\n', dsh*52, '\n', 'Files in: ', cwd, '\n', dsh*52, sep='')
 
     # print a list of files in the chosen folder (and, optionally, subfolders)
     stop_listing = False
@@ -984,7 +980,6 @@ def main_menu():
     while True:
 
         # print the program header
-        print('one')
         version_num = "1.0"
         revision_number = get_revision_number()
         print("\nkatz ", version_num, '.', revision_number,
@@ -1086,14 +1081,5 @@ def sub_menu(open_file, new_file):
 
 if __name__ == '__main__':
     main_menu()
-
-    # full_path = 'c:\\temp\\one'
-    # file_name = 'temp.zip'
-    # full_filename = os.path.join(full_path, file_name)
-    # r = 'four'
-    # list_files(full_path, file_name)
-    # with zipfile.ZipFile(full_filename, 'r')as f:
-    #     zip_files = f.namelist()
-
-    # for i in zip_files:
-    #     print(i)
+    # while True:
+    #     dir_files()
