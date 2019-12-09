@@ -303,15 +303,6 @@ def add_file(full_path, file_name):
     msg = 'CURRENT DIRECTORY: ' + current_directory
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
-
-# fixme: When I <A>dd files using root as c:\temp\one with no subfolders, I get this list of files:
-# ? 1. one\one - Copy(2).txt
-# ? 2. one\one - Copy.txt
-# ? 3. one\one.txt
-# ? 5. one\temp\one\one - Copy(2).txt
-# ? 6. one\temp\one\one - Copy.txt
-# ? 7. one\temp\one\one.txt
-
     # ==================================================
     # GET THE SOURCE DIRECTORY FROM THE USER
     # ==================================================
@@ -349,6 +340,8 @@ def add_file(full_path, file_name):
 
     os.chdir(root_folder)
 
+# fixme: The following code won't list a file in the root directory of the archive; this program won't put a file there, but other programs might
+
     cnt, file_list = 1, []
     for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
         for filename in filenames:
@@ -359,7 +352,8 @@ def add_file(full_path, file_name):
                     file_list.append(filePath)
                     print(cnt, '. ', filePath, sep='')
                 else:
-                    if filePath.split('\\')[-2] == rel_dir:
+                    filePath_list = '\\'.join(filePath.split('\\')[:-1])
+                    if filePath_list == rel_dir:
                         file_list.append(filePath)
                         print(cnt, '. ', filePath, sep='')
                 cnt += 1
