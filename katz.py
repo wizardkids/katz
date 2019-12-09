@@ -28,10 +28,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- In list_files(), pause the screen every 25 files
-
-# todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that, if that is the intent,  should simply delete the zip file. Files in "root" must be removed one at a time.
-
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
 # todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
@@ -1081,5 +1077,3 @@ def sub_menu(open_file, new_file):
 
 if __name__ == '__main__':
     main_menu()
-    # while True:
-    #     dir_files()
