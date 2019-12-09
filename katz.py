@@ -35,9 +35,7 @@ if not sys.warnoptions:
 # ? cd three   --> c:\temp\one\three
 # ? cd .. --> c:\temp\one
 
-# todo -- remove_file()... cannot remove a subfolder
-
-# todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that they should simply delete the zip file.
+# todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that, if that is the intent, they should simply delete the zip file. Files in "root" must be removed one at a time.
 
 # todo -- I cannot <R>emove a subfolder. If I have:
 # ? one/temp/one
@@ -340,13 +338,12 @@ def add_file(full_path, file_name):
 
     os.chdir(root_folder)
 
-# fixme: The following code won't list a file in the root directory of the archive; this program won't put a file there, but other programs might
-
     cnt, file_list = 1, []
     for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
         for filename in filenames:
             # create complete filepath of file in directory
             filePath = os.path.join(folderName, filename)
+            # as long as the current file is not the archive itself
             if os.path.split(filePath)[1] != file_name:
                 if subs:
                     file_list.append(filePath)
