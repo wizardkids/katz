@@ -29,7 +29,23 @@ if not sys.warnoptions:
 
 # todo -- In list_files(), pause the screen every 25 files
 
+# todo -- When you do a <D>irectory, make it work like DOS:
+# ? <D>
+# ? c:\temp\one
+# ? cd three   --> c:\temp\one\three
+# ? cd .. --> c:\temp\one
+
+# todo -- remove_file()... cannot remove a subfolder
+
 # todo -- remove_file() can remove whole folders except for the root folder. For that folder, if the user types "root" in response to "type the name of the folder:", advise them that removing "root" will remove all files in the archive and that they should simply delete the zip file.
+
+# todo -- I cannot <R>emove a subfolder. If I have:
+# ? one/temp/one
+# ?      4. one - Copy (2).txt
+# ?      5. one - Copy.txt
+# ?      6. one.txt
+# todo -- ...then I cannot remove the folder "one/temp/one"
+# todo -- relatedly, I cannot <R>emove a range of files
 
 # todo -- version 2, add support for other archiving formats, including tar and gzip
 
@@ -55,7 +71,7 @@ def create_new():
     # if file already exists, issue "overwrite" warning
     try:
         with zipfile.ZipFile(full_filename, 'r') as f:
-            msg = '\n' + file_name + ' already exists. Overwrite? '
+            msg = '\n' + file_name + ' already exists. Overwrite? (Y/N) '
             overwrite = input(msg).upper()
 
             if overwrite == 'Y':
@@ -287,6 +303,15 @@ def add_file(full_path, file_name):
     msg = 'CURRENT DIRECTORY: ' + current_directory
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
+
+# fixme: When I <A>dd files using root as c:\temp\one with no subfolders, I get this list of files:
+# ? 1. one\one - Copy(2).txt
+# ? 2. one\one - Copy.txt
+# ? 3. one\one.txt
+# ? 5. one\temp\one\one - Copy(2).txt
+# ? 6. one\temp\one\one - Copy.txt
+# ? 7. one\temp\one\one.txt
+
     # ==================================================
     # GET THE SOURCE DIRECTORY FROM THE USER
     # ==================================================
@@ -337,7 +362,7 @@ def add_file(full_path, file_name):
                     if filePath.split('\\')[-2] == rel_dir:
                         file_list.append(filePath)
                         print(cnt, '. ', filePath, sep='')
-            cnt += 1
+                cnt += 1
 
     # ==================================================
     # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
@@ -448,29 +473,6 @@ def add_file(full_path, file_name):
     return full_path, file_name
 
 
-def write_one_file(file_to_add, full_filename):
-    # # determine if the file already exists in the archive;
-    # # an archive cannot have duplicate files
-    # with zipfile.ZipFile(full_filename) as f:
-    #     zip_files = f.namelist()
-
-    # add the compressed file if it does not exist in archive already
-    # if file_to_add not in zip_files:
-    with zipfile.ZipFile(full_filename, 'a', compression=zipfile.ZIP_DEFLATED) as f:
-        try:
-            f.write(file_to_add)
-        except UserWarning:
-            print('\n', file_to_add,
-                  ' already exists in archive.\nRemove this file before adding a new version.', sep='')
-
-    # zipfile doesn't update files and cannot add duplicate files
-    # print message if file already resides in archive
-    # else:
-    #     print('\n', file_to_add,
-    #           ' already exists in archive.\nRemove this file before adding a new version.', sep='')
-    return
-
-
 def extract_file(full_path, file_name):
     """
     Extract one or more files from an archive.
@@ -540,13 +542,13 @@ def extract_file(full_path, file_name):
         for ndx, file in enumerate(zip_files):
             if ndx+1 in which_files:
                 this_file = zip_files[ndx]
-                print(this_file)
+                print('\n', this_file, sep='')
 
                 # prevent an unintentional file overwrite of this_file
                 # in the directory where files will be extracted
                 if os.path.isfile(os.path.join(extract_location, this_file)):
                     ok = input(
-                        '\nOverwrite file on disk? (Y/N): ').strip().upper()
+                        'Overwrite file on disk? (Y/N): ').strip().upper()
                     if ok == 'N':
                         print('\nSkipping', this_file)
                         continue
@@ -913,6 +915,7 @@ def main_menu():
     while True:
 
         # print the program header
+        print('one')
         version_num = "1.0"
         revision_number = get_revision_number()
         print("\nkatz ", version_num, '.', revision_number,
