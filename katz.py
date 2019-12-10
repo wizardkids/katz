@@ -200,17 +200,24 @@ def dir_files():
     cwd = '...'+os.getcwd()[-49:] if len(os.getcwd()) > 49 else os.getcwd()
     print('='*52, '\nCurrent directory:\n', cwd, '\n', '='*52, sep='')
 
-    print('\nEnter a path or use standard methods to\nchange directories.')
-    dir = input("\nEnter a directory: ").strip()
+    print('\nUse standard methods to change directories')
+    dir = input('or "." for the current directory:\n').strip()
 
     if not dir:
         print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
         return os.getcwd()
 
-    if dir[:3] == 'cd ':
+    if dir[:4] == 'cd..' or dir[:5] == 'cd ..':
+        p1 = os.path.normpath(os.getcwd())
+        p2 = p1.split(os.sep)
+        current_directory = '\\'.join(p2[:-1])
+
+    elif dir[:3] == 'cd ':
         current_directory = os.path.join(os.getcwd(), dir[3:])
-    elif dir[:4] == 'cd..' or dir[:5] == 'cd ..':
-        current_directory = os.path.abspath(os.path.join(os.getcwd(), '..'))
+
+    elif dir[:2] == '..':
+        current_directory = os.getcwd()
+
     else:
         # by default, current_directory = dir; otherwise, we will change it
         current_directory = dir
@@ -816,7 +823,7 @@ def help():
     A help function.
     """
     open1_txt = """
-    -- Enter a filename, including a .zip extension. Use a path if you want to <O>pen a file in a non-default directory (which is set using <D>irectory). If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all subsequent operations in the sub-menu.
+    Enter a filename, including a .zip extension. Use a path if you want to <O>pen a file in a non-default directory (which is set using <D>irectory). If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all subsequent operations in the sub-menu.
 """
 
     new_txt = """
@@ -844,7 +851,7 @@ def help():
     -- <A>dd provides a list of files that you can <A>dd to the archive.
 """
     add2_txt = """
-    -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to the root folder in the archive.
+    -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to a folder with the same name as the folder holding the zip file.
 """
     add3_txt = """
     -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.
@@ -883,7 +890,7 @@ def help():
 """
 
     test_txt = """
-    <T>est the integrity of the archive. Special NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!
+    <T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!
 """
 
     while True:
