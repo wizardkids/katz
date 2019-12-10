@@ -619,7 +619,7 @@ def remove_file(full_path, file_name):
         else:
             # deny ability to delete root/ folder
             if 'ROOT' in choice.upper():
-                msg = '\nOperation cannot be completed.\nDeleting "root" deletes all files/folders in the archive.\nSee "HELP".\n'
+                msg = '\nOperation cannot be completed.\nSee "HELP >> <R>emove Files".\n'
                 print('='*52, msg, '='*52, sep='')
                 continue
             choice = choice.replace('/', '\\')
@@ -883,7 +883,7 @@ def help():
 """
 
     remove_txt1 = """
-    <R>emoves files or a single folder from the archive. This operation cannot be reversed! Removing a folder removes all sub-folders, as well. "katz" will confirm before removing any files or folders.
+    <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the folder has subfolders, only the files in the folder will be removed; subfolders will be retained. "katz" will confirm before removing any files or folders.
 """
     remove_txt2 = """
     Removing all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.
