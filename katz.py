@@ -28,9 +28,11 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- version 2, add support for other archiving formats, including tar and gzip
+# todo -- version 2: Make the interface behave like a standard windows command window, with functions specialized for zip files.
 
-# todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
+# todo -- version 3: Add support for other archiving formats, including tar and gzip
+
+# todo -- version 4: Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
 
 # declare global variables
 dsh, slsh = '=', '/'
