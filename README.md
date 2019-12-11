@@ -6,6 +6,7 @@ Most GUI archiving utilities have many wonderful features that I never use and a
 ## **CAUTION:**
 - This branch is currently under development
 - The following information is largely still correct, but not guaranteed
+- The goal is to create a shell-like command window that allows the user to interact with the window as if it were a command shell, albeit with a limited list of shell commands, but with special commands that allow (fast) manipulation of zip files.
 
 #
 

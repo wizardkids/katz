@@ -2,7 +2,7 @@
 katz.py
 
 Richard E. Rawson
-2019-11-12
+2019-12-10
 
 command-line zip archiving utility
     1. list all files, including files in subfolders, within the archive
@@ -21,6 +21,8 @@ import sys
 import textwrap
 import zipfile
 from datetime import datetime
+from pathlib import Path, PurePath
+from subprocess import check_output
 
 # the following if... prevents a warning being issued to user if they try to add
 # a duplicate file to an archive; this warning is handled in add_file()
@@ -28,12 +30,25 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- version 2, add support for other archiving formats, including tar and gzip
+# fixme: When reporting errors, include them in a bar.
 
-# todo -- version 3: add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
+
+# todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
+
+
+# todo -- version 3: Add support for other archiving formats, including tar and gzip
+
+# todo -- version 4: Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
 
 # declare global variables
 dsh, slsh = '=', '/'
+
+shell_cmds = {
+    'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]',
+    'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.',
+    'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)',
+    'EXIT': 'Quits the CMD.EXE program(command interpreter) or the current batch script.',
+    }
 
 
 def create_new():
@@ -71,17 +86,20 @@ def create_new():
         return full_path, file_name
 
 
-def open_archive():
+def open_archive(file):
     """
     Open an archive and list the files in the archive.
     """
-    # get a file name from user
-    full_path, file_name = get_filename()
-    full_filename = os.path.join(full_path, file_name)
-
     # if no file_name was entered, return to menu
-    if not file_name:
+    if not file:
+        print('\nFile not found.')
         return '', ''
+
+    # parse the file components
+    file_name = Path(file).parts[-1]
+    full_path = Path.cwd()
+    full_filename = PurePath(full_path, file_name)
+
 
     # sort out possible errors in file_name
     try:
@@ -146,10 +164,12 @@ def list_files(full_path, file_name):
     """
     Generate a numbered list of all the files and folders in the archive.
     """
-    full_filename = os.path.join(full_path, file_name)
+    full_filename = PurePath(full_path, file_name)
 
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
+
+# fixme: With pathlib.Path, you can probable write a better routine here
 
         # if the first item in namelist() is a directory, get the name
         # else... use root/ as the starting directory
@@ -814,37 +834,38 @@ def fold(txt, ndnt='     ', w=52):
     """
     Textwraps 'txt'; used by help() to wrap help text at column 52.
     """
-
     return textwrap.fill(txt, subsequent_indent=ndnt, width=w)
 
+def base_help():
+    msg = '/'*23 + ' HELP ' + '/'*23
+    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+    print('Help for shell commands: cmd /? [example: dir /?]')
+    print('\n', 'AVAILABLE SHELL COMMANDS:', sep='')
+    for k, v in shell_cmds.items():
+        print(k)
+    print()
+    print('Help for manipulating zip file commands, type: help')
+    print( dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
 
-def help():
+
+def shell_help(command):
+    print(shell_cmds[command])
+
+
+def zip_help():
     """
     A help function.
     """
     open1_txt = """
-    Enter a filename, including a .zip extension. Use a path if you want to <O>pen a file in a non-default directory (which is set using <D>irectory). If you <O>pen a zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all subsequent operations in the sub-menu.
+    Enter a filename, including a .zip extension. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.
 """
 
     new_txt = """
-    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. If you create a <N>ew zip file with a path (e.g., c:\\mydata\\foo.zip), the path to that zip file will be considered the root directory for all operations in the sub-menu.
-"""
-
-    directory_txt = """
-    <D>irectory conducts two operations simultaneously.
-"""
-    directory1_txt = """
-        (1) List the files in the specified directory (not an archive!). <D>irectory lists files in a directory on disk, while <L>ist produces a list of files in the archive.
-"""
-    directory2_txt = """
-        (2) Changes the default (working) directory.
-"""
-    directory3_txt = """
-    TIP: Before you <O>pen a file or create a <N>ew file, use <D>irectory to change the current directory. Then, <O>pen and <N>ew will manipulate files without having to enter a full path again.
+    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.
 """
 
     list_txt = """
-    <L>ist all the files in the archive. <D>irectory lists files in a directory in disk, while <L>ist produces a list of files in the archive.
+    <L>ist all the files in the archive. <DIR> lists files in a directory in disk, while <L>ist produces a list of files in the archive.
 """
 
     add1_txt = """
@@ -898,9 +919,10 @@ def help():
         # print(dsh*45)
         print('\n', dsh*52, '\n', slsh*20, ' HELP MENU ',
               slsh*21, '\n', dsh*52, sep='')
-        print('<O>pen file  <N>ew file  <D>irectory  <L>ist\n<A>dd        <E>xtract   <R>emove     <T>est\n<Q>uit HELP\n')
+        print('<O>pen file  <N>ew file  <L>ist  <A>dd\n<E>xtract    <R>emove     <T>est  <Q>uit HELP\n')
         choice = input(
             'Show help on which item: ').strip().upper()
+
         if choice not in 'ONDLAERTQ':
             print('\nEnter one of O, N, D, L, A, E, R, T, Q.')
             continue
@@ -912,13 +934,6 @@ def help():
         elif choice == 'N':
             print('\nNew File')
             print(fold(new_txt))
-
-        elif choice == 'D':
-            print('\nDirectory')
-            print(fold(directory_txt))
-            print(fold(directory1_txt, '          '))
-            print(fold(directory2_txt, '          '))
-            print(fold(directory3_txt))
 
         elif choice == 'L':
             print('\nList Files')
@@ -961,11 +976,53 @@ def get_revision_number():
     """
     Returns the revision number, which is the number of days since the initial coding of "katz" began on November 12, 2019.
     """
-    start_date = datetime(2019, 11, 12)
+    start_date = datetime(2019, 12, 10)
     tday = datetime.today()
     revision_delta = datetime.today() - start_date
 
     return revision_delta.days
+
+
+def dir(path=''):
+    if path == '/?':
+        shell_help('DIR')
+    else:
+        try:
+            # preserve the user's current directory
+            current_directory = os.getcwd()
+            # change the cwd if a path was entered
+            if path:
+                os.chdir(path)
+            output = str(check_output('dir', shell=True))
+            out = output.split('\\r\\n')
+            # print the output of 'dir'
+            print()
+            for ndx, i in enumerate(out[:-1]):
+                if ndx == 0:
+                    print(i[2:])
+                else:
+                    print(i)
+            # restore the user's current directory
+            os.chdir(current_directory)
+        except:
+            print('The system cannot find the file specified: ', path)
+
+
+def cd(path=''):
+    try:
+        path = Path(path)
+        if path == '.':
+            pass
+        elif path == '..':
+            os.chdir(path.parent)
+        else:
+            os.chdir(path)
+    except:
+        print('The system cannot find the path specified.')
+
+
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 
 def main_menu():
@@ -975,62 +1032,92 @@ def main_menu():
     Variables:
         open_file, new_file: whether or not we are opening an existing file or creating a new one; passed to sub_menu()
     """
-    # store the user's current working directory
-    _user_directory_ = os.getcwd()
+    # INITIALIZE VARIABLES
     full_path, file_name = '', ''
+    command_list = ['DIR', 'CD', 'CLS', 'EXIT', 'CLEAR', 'HELP', 'CD.', 'CD..', '.', '..', 'QUIT', 'A', 'H', 'N', 'O', 'Q', 'L', 'A', 'E', 'R', 'T', 'M']
 
-    # generate the main menu until the user presses "Q"
+    # ===============================================
+    # GENERATE THE MAIN MENU
+    # ===============================================
+
     while True:
 
         # print the program header
-        version_num = "1.0"
+        version_num = "2.0"
         revision_number = get_revision_number()
-        print("\nkatz ", version_num, '.', revision_number,
-              " - a command-line archiving utility", sep='')
+        print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
 
-        # reset user-entered file names/paths
-        # full_path, file_name = '', ''
+        # ===============================================
+        # GET A COMMAND FROM THE USER
+        # ===============================================
 
         while True:
-            choice = input(
-                '\n<O>pen file    <N>ew file    <D>irectory\n<A>bout        <H>elp        <Q>uit\n\nChoice: ').strip().upper()
-            if choice in 'ONDAHQ':
+            print_help = False
+            prompt = os.getcwd() + ">"
+            print(
+                '\n<O>pen file    <N>ew file\n<A>bout        <H>elp\n\n')
+            choice = input(prompt).strip().upper()
+            if "/?" in choice:
+                print_help = True
+                break
+            elif choice.split(' ')[0] in command_list:
                 break
             else:
-                print('\nEnter only "O", "N", "D", "A", "H", or "Q".')
+                print(choice, ' is not recognized as a valid command within this shell.', sep='')
                 continue
 
-        if choice == 'O':
+        # ===============================================
+        # PROCESS THE USER'S COMMAND
+        # ===============================================
+
+        if choice[:4] in ['EXIT', 'QUIT'] or choice[0:] == 'Q':
+            break
+
+        elif print_help:
+            shell_help(choice.split(' ')[0])
+
+        elif choice == 'HELP':
+            zip_help()
+
+        elif choice[:2] == 'CD':
+            cd(choice[2:].strip())
+
+        elif choice[:3] == 'DIR':
+            dir(choice[4:])
+
+        elif choice in ['CLS', 'CLEAR']:
+            clear()
+
+        elif choice.split(' ')[0] == 'O':
             open_file, new_file = True, False
-            sub_menu(open_file, new_file)
+            space_ndx = choice.find(' ')
+            file = '' if space_ndx==-1 else choice[space_ndx+1:].strip()
+            sub_menu(open_file, new_file, file)
 
         elif choice == 'N':
             open_file, new_file = False, True
             sub_menu(open_file, new_file)
 
-        elif choice == 'D':
-            full_path = dir_files()
-
         elif choice == 'A':
             about()
 
         elif choice == 'H':
-            help()
+            base_help()
 
-        elif choice == 'Q':
-            break
-
-    # change back to original user directory
-    # os.chdir(_user_directory_)
+        elif choice in 'LDERTM ':
+            print('Command available only in the submenu.')
 
 
-def sub_menu(open_file, new_file):
+def sub_menu(open_file, new_file, file=''):
     """
     Menu of actions on the file that the user has opened or created.
     """
+
+# fixme: "DIR" is an invalid action... generated when I try to do a <dir> command from the submenu
+
     # either open the file or create a new file
     if open_file:
-        full_path, file_name = open_archive()
+        full_path, file_name = open_archive(file)
     else:
         full_path, file_name = create_new()
 
@@ -1043,12 +1130,12 @@ def sub_menu(open_file, new_file):
         full_path, file_name = list_files(full_path, file_name)
 
     # use the following to delimit output from sequential commands
-    msg = '...' + full_path[-49:] if len(full_path) >= 49 else full_path
+    msg = '...' + full_path[-49:] if len(full_path.__str__()) >= 49 else full_path
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     while True:
         # generate the sub-menu
-        print('\n<L>ist     <D>irectory    <A>dd\n<E>xtract  <R>emove       <T>est\n<M>ain menu')
+        print('\n<L>ist     <A>dd\n<E>xtract  <R>emove       <T>est\n<M>ain menu')
         user_choice = input('\nChoose an action: ').strip().upper()
 
         if user_choice not in 'LDAERTMQ ':
