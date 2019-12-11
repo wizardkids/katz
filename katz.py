@@ -30,9 +30,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# fixme: When reporting errors, include them in a bar.
-
-
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
 
 
@@ -49,6 +46,8 @@ shell_cmds = {
     'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)',
     'EXIT': 'Quits the CMD.EXE program(command interpreter) or the current batch script.',
     }
+
+command_list = ['DIR', 'CD', 'CLS', 'EXIT', 'CLEAR', 'H', 'HELP', 'CD.', 'CD..', '.', '..', 'Q', 'QUIT', 'A', 'N', 'NEW', 'O', 'OPEN', 'L', 'A', 'E', 'R', 'T']
 
 
 def create_new():
@@ -844,7 +843,16 @@ def base_help():
     for k, v in shell_cmds.items():
         print(k)
     print()
-    print('Help for manipulating zip file commands, type: help')
+    print('Help for zip file commands: help [cmd] [example: help o]')
+    print('\n', 'AVAILABLE ZIP FILE COMMANDS:', sep='')
+    print('O or OPEN')
+    print('N or NEW')
+    print('L or LIST')
+    print('A or ADD')
+    print('E or EXTRACT')
+    print('R or REMOVE')
+    print('T or TEST')
+    print('\nAll commands are case insensitive.')
     print( dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
 
 
@@ -852,7 +860,7 @@ def shell_help(command):
     print(shell_cmds[command])
 
 
-def zip_help():
+def zip_help(switch):
     """
     A help function.
     """
@@ -914,60 +922,62 @@ def zip_help():
     <T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!
 """
 
-    while True:
+    # while True:
         # print("\n".join([fold(txt) for txt in txt.splitlines()]))
         # print(dsh*45)
-        print('\n', dsh*52, '\n', slsh*20, ' HELP MENU ',
-              slsh*21, '\n', dsh*52, sep='')
-        print('<O>pen file  <N>ew file  <L>ist  <A>dd\n<E>xtract    <R>emove     <T>est  <Q>uit HELP\n')
-        choice = input(
-            'Show help on which item: ').strip().upper()
+        # print('\n', dsh*52, '\n', slsh*20, ' HELP MENU ',
+        #       slsh*21, '\n', dsh*52, sep='')
+        # print('<O>pen file  <N>ew file  <L>ist  <A>dd\n<E>xtract    <R>emove     <T>est  <Q>uit HELP\n')
+        # choice = input(
+        #     'Show help on which item: ').strip().upper()
 
-        if choice not in 'ONDLAERTQ':
-            print('\nEnter one of O, N, D, L, A, E, R, T, Q.')
-            continue
+        # if choice not in 'ONDLAERTQ':
+        #     print('\nEnter one of O, N, D, L, A, E, R, T, Q.')
+        #     continue
 
-        if choice == 'O':
-            print('\nOpen File')
-            print(fold(open1_txt, '          '))
+    switch = switch.strip().upper()
 
-        elif choice == 'N':
-            print('\nNew File')
-            print(fold(new_txt))
+    if switch == 'O' or switch == 'OPEN':
+        print('\nOpen File')
+        print(fold(open1_txt, '          '))
 
-        elif choice == 'L':
-            print('\nList Files')
-            print(fold(list_txt))
+    elif switch == 'N' or switch == 'NEW':
+        print('\nNew File')
+        print(fold(new_txt))
 
-        elif choice == 'A':
-            print('\nAdd Files')
-            print(fold(add1_txt, '          '))
-            print(fold(add2_txt, '          '))
-            print(fold(add3_txt, '          '))
-            print(fold(add4_txt, '          '))
+    elif switch == 'L' or switch == 'LIST':
+        print('\nList Files')
+        print(fold(list_txt))
 
-        elif choice == 'E':
-            print('\nExtract Files')
-            print(fold(extract1_txt, '          '))
-            print(fold(extract2_txt, '          '))
-            print(fold(extract3_txt, '          '))
-            print(fold(extract4_txt, '          '))
-            print(fold(extract5_txt, '          '))
-            print(fold(extract6_txt))
-            print(fold(extract7_txt, '          '))
+    elif switch == 'A' or switch == 'ADD':
+        print('\nAdd Files')
+        print(fold(add1_txt, '          '))
+        print(fold(add2_txt, '          '))
+        print(fold(add3_txt, '          '))
+        print(fold(add4_txt, '          '))
 
-        elif choice == 'R':
-            print('\nRemove File')
-            print(fold(remove_txt1, '          '))
-            print(fold(remove_txt2, '          '))
+    elif switch == 'E' or switch == 'EXTRACT':
+        print('\nExtract Files')
+        print(fold(extract1_txt, '          '))
+        print(fold(extract2_txt, '          '))
+        print(fold(extract3_txt, '          '))
+        print(fold(extract4_txt, '          '))
+        print(fold(extract5_txt, '          '))
+        print(fold(extract6_txt))
+        print(fold(extract7_txt, '          '))
 
-        elif choice == 'T':
-            print('\nTest Archive')
-            print(fold(test_txt))
+    elif switch == 'R' or switch == 'REMOVE':
+        print('\nRemove File')
+        print(fold(remove_txt1, '          '))
+        print(fold(remove_txt2, '          '))
 
-        elif choice == 'Q' or choice == '':
-            print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-            break
+    elif switch == 'T' or switch == 'TEST':
+        print('\nTest Archive')
+        print(fold(test_txt))
+
+        # elif choice == 'Q' or choice == '':
+        #     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
+        #     break
 
     return
 
@@ -978,52 +988,158 @@ def get_revision_number():
     """
     start_date = datetime(2019, 12, 10)
     tday = datetime.today()
-    revision_delta = datetime.today() - start_date
+    rd = datetime.today() - start_date
+    r_delta = rd.total_seconds() / 60 / 60
+    revision_delta = int(r_delta)
 
-    return revision_delta.days
-
-
-def dir(path=''):
-    if path == '/?':
-        shell_help('DIR')
-    else:
-        try:
-            # preserve the user's current directory
-            current_directory = os.getcwd()
-            # change the cwd if a path was entered
-            if path:
-                os.chdir(path)
-            output = str(check_output('dir', shell=True))
-            out = output.split('\\r\\n')
-            # print the output of 'dir'
-            print()
-            for ndx, i in enumerate(out[:-1]):
-                if ndx == 0:
-                    print(i[2:])
-                else:
-                    print(i)
-            # restore the user's current directory
-            os.chdir(current_directory)
-        except:
-            print('The system cannot find the file specified: ', path)
+    return revision_delta
 
 
-def cd(path=''):
+def dir(full_path=''):
     try:
-        path = Path(path)
-        if path == '.':
-            pass
-        elif path == '..':
-            os.chdir(path.parent)
+        # preserve the user's current directory
+        current_directory = os.getcwd()
+        # change the cwd if a path was entered
+        if full_path:
+            os.chdir(full_path)
+        output = str(check_output('dir', shell=True))
+        out = output.split('\\r\\n')
+        # print the output of 'dir'
+        print()
+        for ndx, i in enumerate(out[:-1]):
+            if ndx == 0:
+                print(i[2:])
+            else:
+                print(i)
+        # restore the user's current directory
+        os.chdir(current_directory)
+    except:
+        print('The system cannot find the file specified: ', full_path)
+
+
+def cd(cmd='', switch='', full_path=''):
+    try:
+        if cmd[2:] == '..' or switch == '..':
+            os.chdir(Path(full_path).parent)
         else:
-            os.chdir(path)
+            try:
+                full_path = Path(switch).absolute()
+                os.chdir(full_path)
+            except:
+                print('The system cannot find the path specified.')
     except:
         print('The system cannot find the path specified.')
+    print()
 
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def parse_input(entry):
+    """
+    This function takes whatever the user entered at the command line and divides it into a command and then whatever follows. Then it uses the command portion to figure out what to do.
+
+    Arguments:
+        entry {str} -- takes whatever the user entered at the command line
+    """
+    # ===============================================
+    # PROCESS THE USER'S ENTRY, WHICH WILL BE EITHER:
+    #   1. CMD [/?]
+    #   2. CMD [PATH][FILE]
+    #   3. AN UNRECOGNIZABLE ENTRY
+    # ===============================================
+
+    # command only
+    if entry.find(' ') == -1:
+        cmd, switch = entry, ''
+
+    # command + space + switch
+    else:
+        space_ndx = entry.find(' ')
+        cmd, switch = entry[:space_ndx], entry[space_ndx+1:]
+        # remove quotes from switch, if present
+        switch = switch.replace('"', '')
+        switch = switch.replace("'", '')
+
+    if cmd not in command_list:
+        msg = cmd + ' is not recognized as a valid command.'
+        print(msg)
+        # print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+
+    # ===============================================
+    # SECOND PART OF ENTRY WILL BE EITHER:
+    #   1. A PATH[/FILE]
+    #   2 /? (REQUEST FOR HELP)
+    #   3. UNRECOGNIZABLE
+    # ===============================================
+
+    # get path and, potentially, file name
+    if switch == '/?':
+        file_name, full_path = '', ''
+    else:
+        full_path = Path(os.getcwd()).absolute()
+
+        if full_path.is_dir():
+            file_name = ''
+        else:
+            file_name = full_path.name
+            full_path = full_path.parent.absolute()
+
+        if not full_path.is_dir():
+            full_filename = Path(full_path / file_name)
+        else:
+            full_filename = full_path
+
+    # ===============================================
+    # PROCESS THE USER'S COMMAND
+    # ===============================================
+
+    if cmd[:4] in ['EXIT', 'QUIT'] or cmd[0:] == 'Q':
+        pass
+
+    elif switch == '/?':
+        print(shell_help(cmd))
+
+    elif (cmd == 'HELP' or cmd == 'H') and not switch:
+        base_help()
+
+    elif (cmd == 'HELP' or cmd == 'H') and switch:
+        zip_help(switch)
+
+    elif cmd[:2] == 'CD' or cmd[:4] == 'CD..' or cmd[:5] == 'CD ..':
+        cd(cmd, switch, full_path)
+
+    elif cmd[:3] == 'DIR':
+        dir(full_path)
+
+    elif cmd in ['CLS', 'CLEAR']:
+        clear()
+
+    elif cmd == 'O' or cmd == 'OPEN':
+        open_file, new_file = True, False
+        space_ndx = cmd.find(' ')
+        file = '' if space_ndx == -1 else cmd[space_ndx+1:].strip()
+        sub_menu(open_file, new_file, file_name, full_path)
+
+    elif cmd == 'N':
+        open_file, new_file = False, True
+        sub_menu(open_file, new_file)
+
+    elif cmd == 'A':
+        about()
+
+    elif cmd == 'H':
+        base_help()
+
+# fixme: not sure how this will work once the submenu is operational
+
+    elif cmd in 'LERT':
+        print('Command available only in the submenu.')
+
+    elif not cmd:
+        pass
+
+    return cmd
 
 def main_menu():
     """
@@ -1034,78 +1150,30 @@ def main_menu():
     """
     # INITIALIZE VARIABLES
     full_path, file_name = '', ''
-    command_list = ['DIR', 'CD', 'CLS', 'EXIT', 'CLEAR', 'HELP', 'CD.', 'CD..', '.', '..', 'QUIT', 'A', 'H', 'N', 'O', 'Q', 'L', 'A', 'E', 'R', 'T', 'M']
 
     # ===============================================
-    # GENERATE THE MAIN MENU
+    # PRINT THE PROGRAM HEADER... JUST ONCE
+    # ===============================================
+    version_num = "2.0"
+    revision_number = get_revision_number()
+    print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
+    print('\n<O>pen file    <N>ew file\n<A>bout        <H>elp\n\n')
+
+    # ===============================================
+    # GENERATE THE MAIN MENU IN A LOOP
     # ===============================================
 
     while True:
 
-        # print the program header
-        version_num = "2.0"
-        revision_number = get_revision_number()
-        print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-
         # ===============================================
         # GET A COMMAND FROM THE USER
         # ===============================================
+        prompt = "(katz) " + os.getcwd() + ">"
+        entry = input(prompt).strip().upper()
 
-        while True:
-            print_help = False
-            prompt = os.getcwd() + ">"
-            print(
-                '\n<O>pen file    <N>ew file\n<A>bout        <H>elp\n\n')
-            choice = input(prompt).strip().upper()
-            if "/?" in choice:
-                print_help = True
-                break
-            elif choice.split(' ')[0] in command_list:
-                break
-            else:
-                print(choice, ' is not recognized as a valid command within this shell.', sep='')
-                continue
-
-        # ===============================================
-        # PROCESS THE USER'S COMMAND
-        # ===============================================
-
-        if choice[:4] in ['EXIT', 'QUIT'] or choice[0:] == 'Q':
+        parsed = parse_input(entry)
+        if parsed in ['EXIT', 'QUIT', 'Q']:
             break
-
-        elif print_help:
-            shell_help(choice.split(' ')[0])
-
-        elif choice == 'HELP':
-            zip_help()
-
-        elif choice[:2] == 'CD':
-            cd(choice[2:].strip())
-
-        elif choice[:3] == 'DIR':
-            dir(choice[4:])
-
-        elif choice in ['CLS', 'CLEAR']:
-            clear()
-
-        elif choice.split(' ')[0] == 'O':
-            open_file, new_file = True, False
-            space_ndx = choice.find(' ')
-            file = '' if space_ndx==-1 else choice[space_ndx+1:].strip()
-            sub_menu(open_file, new_file, file)
-
-        elif choice == 'N':
-            open_file, new_file = False, True
-            sub_menu(open_file, new_file)
-
-        elif choice == 'A':
-            about()
-
-        elif choice == 'H':
-            base_help()
-
-        elif choice in 'LDERTM ':
-            print('Command available only in the submenu.')
 
 
 def sub_menu(open_file, new_file, file=''):
