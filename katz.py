@@ -87,8 +87,10 @@ def create_new():
 
 def open_archive(file):
     """
-    Open an archive and list the files in the archive.
+    Open an archive and list the files in the archive. If a path is entered, chdir() to that path and then save the filename as file_name.
     """
+    file_name, full_path, full_filename = get_filename()
+
     # if no file_name was entered, return to menu
     if not file:
         print('\nFile not found.')
@@ -120,7 +122,7 @@ def open_archive(file):
         print('\nEncountered an unpredicable error.')
         return '', ''
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
 def get_filename():
@@ -129,17 +131,18 @@ def get_filename():
     """
     while True:
         # get a file name from the user
-        full_path = input("\nName of archive: ").strip()
+        full_filename = input("\nName of archive: ").strip()
 
         # if no file name was entered, return to menu
-        if not full_path.strip():
+        if not full_filename.strip():
             return '', ''
 
-        file_name = os.path.basename(full_path)
-        if os.path.dirname(full_path):
-            full_path = os.path.dirname(full_path)
-        else:
-            full_path = os.getcwd()
+        if full_filename.is_dir():
+            print('File not found.\n')
+            continue
+
+        file_name = Path(full_filename).name
+        full_path = str(Path(full_filename).parent)
 
         # zip files don't require a .zip extension, but it's a bad idea
         if file_name[-4:] != '.zip':
@@ -153,10 +156,10 @@ def get_filename():
         if full_path:
             os.chdir(full_path)
     except:
-        print('\nPath or filename is invalid.')
+        print('The system cannot find the path specified.')
         return '', ''
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
 def list_files(full_path, file_name):
@@ -1035,9 +1038,12 @@ def cd(cmd='', switch='', full_path=''):
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+
 def parse_input(entry):
     """
     This function takes whatever the user entered at the command line and divides it into a command and then whatever follows. Then it uses the command portion to figure out what to do.
+
+    Once a zip file is opened, or a new zip file is created, submenu commands (zip file commands) become available.
 
     Arguments:
         entry {str} -- takes whatever the user entered at the command line
@@ -1119,7 +1125,7 @@ def parse_input(entry):
         open_file, new_file = True, False
         space_ndx = cmd.find(' ')
         file = '' if space_ndx == -1 else cmd[space_ndx+1:].strip()
-        sub_menu(open_file, new_file, file_name, full_path)
+        sub_menu(open_file, new_file)
 
     elif cmd == 'N':
         open_file, new_file = False, True
@@ -1140,6 +1146,7 @@ def parse_input(entry):
         pass
 
     return cmd
+
 
 def main_menu():
     """
@@ -1176,7 +1183,7 @@ def main_menu():
             break
 
 
-def sub_menu(open_file, new_file, file=''):
+def sub_menu(open_file, new_file, file_name='', full_path='', full_filename=''):
     """
     Menu of actions on the file that the user has opened or created.
     """
@@ -1185,7 +1192,7 @@ def sub_menu(open_file, new_file, file=''):
 
     # either open the file or create a new file
     if open_file:
-        full_path, file_name = open_archive(file)
+        file_name, full_path, full_filename = open_archive()
     else:
         full_path, file_name = create_new()
 
