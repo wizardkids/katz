@@ -1003,6 +1003,9 @@ def dir(full_path=''):
         current_directory = os.getcwd()
         # change the cwd if a path was entered
         if full_path:
+            # if user enteres "dir subfolder", next line
+            # provides the whole path
+            full_path = Path(full_path).absolute()
             os.chdir(full_path)
         output = str(check_output('dir', shell=True))
         out = output.split('\\r\\n')
