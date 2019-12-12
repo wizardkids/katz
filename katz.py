@@ -24,6 +24,8 @@ from datetime import datetime
 from pathlib import Path, PurePath
 from subprocess import check_output
 
+# fixme: Entering... EXIT /? exits the program rather than displaying help.
+
 # the following if... prevents a warning being issued to user if they try to add
 # a duplicate file to an archive; this warning is handled in add_file()
 if not sys.warnoptions:
@@ -31,7 +33,6 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
-
 
 # todo -- version 3: Add support for other archiving formats, including tar and gzip
 
@@ -41,32 +42,55 @@ if not sys.warnoptions:
 dsh, slsh = '=', '/'
 
 shell_cmds = {
-    'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]',
-    'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.',
-    'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)',
-    'EXIT': 'Quits the CMD.EXE program(command interpreter) or the current batch script.',
+    'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]\n',
+    'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.\n',
+    'CLS': 'Clears the screen. ("CLEAR" on Unix systems.\n)',
+    'OPEN': 'Open an existing zip file. Optionally include a path.\n',
+    'O': 'Open an existing zip file. Optionally include a path.\n',
+    'NEW': 'Create a new zip file. Optionally include a path.\n',
+    'N': 'Create a new zip file. Optionally include a path.\n',
+    'EXIT': 'Quits the CMD.EXE program(command interpreter) or the current batch script.\n',
     }
 
-command_list = ['DIR', 'CD', 'CLS', 'EXIT', 'CLEAR', 'H', 'HELP', 'CD.', 'CD..', '.', '..', 'Q', 'QUIT', 'A', 'N', 'NEW', 'O', 'OPEN', 'L', 'A', 'E', 'R', 'T']
+command_list = ['DIR', 'CD', 'CLS', 'EXIT', 'CLEAR', 'N', 'NEW', 'O', 'OPEN', 'H',
+                'HELP', 'CD.', 'CD..', '.', '..', 'Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
 
 
-def create_new():
+def create_new(switch):
     """
     Create a new zip file.
     """
-    # get a valid filename from the user
-    full_path, file_name = get_filename()
+    # if the user included a path/file on the command line...
+    if switch:
+        file_name = Path(switch).name
+        full_path = str(Path(switch).parent.absolute())
+        full_filename = str(Path(Path(full_path) / file_name))
+    # otherwise, get a filename from the user
+    else:
+        full_path = input("\nName of archive: ").strip()
+        file_name = Path(full_path).name
+        full_path = str(Path(full_path).parent.absolute())
+        full_filename = str(Path(Path(full_path) / file_name))
+        print()
 
-    # if no file name was entered, return to the menu
+    # if there's no full_path, return to the menu
     if not file_name:
-        return '', ''
+        return '', '', ''
+    # if a file was entered, but not a zip file...
+    if Path(full_filename).suffix != '.ZIP':
+        print('File is not a zip file.\n')
+        return '', '', ''
 
-    full_filename = os.path.join(full_path, file_name)
+    try:
+        os.chdir(full_path)
+    except:
+        print('The system cannot find the path specified.')
+        return '', '', ''
 
     # if file already exists, issue "overwrite" warning
     try:
         with zipfile.ZipFile(full_filename, 'r') as f:
-            msg = '\n' + file_name + ' already exists. Overwrite? (Y/N) '
+            msg = file_name + ' already exists. Overwrite? (Y/N) '
             overwrite = input(msg).upper()
 
             if overwrite == 'Y':
@@ -76,88 +100,57 @@ def create_new():
 
             else:
                 print(file_name, 'not created.\n')
-                return '', ''
+                return '', '', ''
 
     # if file_name was not found, then we can create it!
     except FileNotFoundError:
         with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             print('\n', file_name, 'created as new archive.\n')
-        return full_path, file_name
+
+        return file_name, full_path, full_filename
 
 
-def open_archive(file):
+def open_archive(switch):
     """
     Open an archive and list the files in the archive. If a path is entered, chdir() to that path and then save the filename as file_name.
     """
-    file_name, full_path, full_filename = get_filename()
+    # if a path/file was entered, then use the path to chdir()
+    if switch and Path(switch).is_file():
+        file_name = Path(switch).name
+        full_path = str(Path(switch).parent.absolute())
+        full_filename = str(Path(Path(full_path) / file_name))
+        os.chdir(full_path)
+
+    # if an only a path was entered, or not argument was entered...
+    else:
+        print('File not found.')
+        full_path = input("\nName of archive: ").strip()
+        print()
+        file_name = Path(full_path).name
+        full_path = str(Path(full_path).parent.absolute())
+        full_filename = str(Path(Path(full_path) / file_name))
+        os.chdir(full_path)
 
     # if no file_name was entered, return to menu
-    if not file:
-        print('\nFile not found.')
-        return '', ''
-
-    # parse the file components
-    file_name = Path(file).parts[-1]
-    full_path = Path.cwd()
-    full_filename = PurePath(full_path, file_name)
-
+    if not file_name:
+        return '', '', ''
 
     # sort out possible errors in file_name
     try:
         with zipfile.ZipFile(full_filename, 'r') as f:
             pass
     except FileNotFoundError:
-        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-        print('\nFile not found.')
-        return '', ''
+        print('File not found.\n')
+        return '', '', ''
     except OSError:
-        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-        print('\nInvalid file name.')
-        return '', ''
+        print('Invalid file name.\n')
+        return '', '', ''
     except zipfile.BadZipFile:
-        print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-        print('\nFile is not a zip file.')
-        return '', ''
+        print('File is not a zip file.\n')
+        return '', '', ''
     except:
-        print('\nEncountered an unpredicable error.')
-        return '', ''
-
-    return file_name, full_path, full_filename
-
-
-def get_filename():
-    """
-    Get a filename from user and check the entry for validity.
-    """
-    while True:
-        # get a file name from the user
-        full_filename = input("\nName of archive: ").strip()
-
-        # if no file name was entered, return to menu
-        if not full_filename.strip():
-            return '', ''
-
-        if full_filename.is_dir():
-            print('File not found.\n')
-            continue
-
-        file_name = Path(full_filename).name
-        full_path = str(Path(full_filename).parent)
-
-        # zip files don't require a .zip extension, but it's a bad idea
-        if file_name[-4:] != '.zip':
-            print('\nMust enter a ".zip" extension.')
-            continue
-
-        break
-
-    # change the cwd() to the path for this file
-    try:
-        if full_path:
-            os.chdir(full_path)
-    except:
-        print('The system cannot find the path specified.')
-        return '', ''
+        print('Encountered an unpredicable error.\n')
+        return '', '', ''
 
     return file_name, full_path, full_filename
 
@@ -841,15 +834,16 @@ def fold(txt, ndnt='     ', w=52):
 def base_help():
     msg = '/'*23 + ' HELP ' + '/'*23
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
-    print('Help for shell commands: cmd /? [example: dir /?]')
+    print('Help for shell commands: cmd /? (example: dir /?)')
     print('\n', 'AVAILABLE SHELL COMMANDS:', sep='')
     for k, v in shell_cmds.items():
-        print(k)
+        if k == 'O' or k == 'N':
+            pass
+        else:
+            print(k)
     print()
-    print('Help for zip file commands: help [cmd] [example: help o]')
+    print('Help for zip file commands: help [cmd] (example: help o)')
     print('\n', 'AVAILABLE ZIP FILE COMMANDS:', sep='')
-    print('O or OPEN')
-    print('N or NEW')
     print('L or LIST')
     print('A or ADD')
     print('E or EXTRACT')
@@ -857,6 +851,7 @@ def base_help():
     print('T or TEST')
     print('\nAll commands are case insensitive.')
     print( dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
+    print()
 
 
 def shell_help(command):
@@ -924,20 +919,6 @@ def zip_help(switch):
     test_txt = """
     <T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!
 """
-
-    # while True:
-        # print("\n".join([fold(txt) for txt in txt.splitlines()]))
-        # print(dsh*45)
-        # print('\n', dsh*52, '\n', slsh*20, ' HELP MENU ',
-        #       slsh*21, '\n', dsh*52, sep='')
-        # print('<O>pen file  <N>ew file  <L>ist  <A>dd\n<E>xtract    <R>emove     <T>est  <Q>uit HELP\n')
-        # choice = input(
-        #     'Show help on which item: ').strip().upper()
-
-        # if choice not in 'ONDLAERTQ':
-        #     print('\nEnter one of O, N, D, L, A, E, R, T, Q.')
-        #     continue
-
     switch = switch.strip().upper()
 
     if switch == 'O' or switch == 'OPEN':
@@ -978,9 +959,10 @@ def zip_help(switch):
         print('\nTest Archive')
         print(fold(test_txt))
 
-        # elif choice == 'Q' or choice == '':
-        #     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-        #     break
+    else:
+        print(switch, 'is not recognized as a valid zip-file command.')
+
+    print()
 
     return
 
@@ -999,6 +981,19 @@ def get_revision_number():
 
 
 def dir(full_path=''):
+    """
+    Run a OS dir command.
+
+    Keyword Arguments:
+        full_path {str or WindowsPath object} -- contains the path for which to get a directory listing
+        default: {''})
+    """
+     # full_path is passed by parse_input() as a WindowsPath object
+    full_path = str(full_path)
+    # remove quotes from full_path, if present
+    full_path = full_path.replace('"', '')
+    full_path = full_path.replace("'", '')
+
     try:
         # preserve the user's current directory
         current_directory = os.getcwd()
@@ -1017,10 +1012,19 @@ def dir(full_path=''):
         # restore the user's current directory
         os.chdir(current_directory)
     except:
-        print('The system cannot find the file specified: ', full_path)
+        print('The system cannot find the path specified: ', full_path)
+    print()
 
 
 def cd(cmd='', switch='', full_path=''):
+    """
+    Run an OS cd (change directory) command.
+
+    Keyword Arguments:
+        cmd {str} -- the command to run (cd) (default: {''})
+        switch {str} -- the path to cd to; may be .. (default: {''})
+        full_path {WindowsPath object} -- the path to cd to; needed in case cd.. is entered (default: {''})
+    """
     try:
         if cmd[2:] == '..' or switch == '..':
             os.chdir(Path(full_path).parent)
@@ -1036,6 +1040,9 @@ def cd(cmd='', switch='', full_path=''):
 
 
 def clear():
+    """
+    Run a cls or clear command to clear the terminal.
+    """
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
@@ -1067,12 +1074,12 @@ def parse_input(entry):
         switch = switch.replace('"', '')
         switch = switch.replace("'", '')
 
-    if cmd not in command_list:
-        msg = cmd + ' is not recognized as a valid command.'
+    if cmd and cmd not in command_list:
+        msg = cmd + ' is not recognized as a valid command.\n'
         print(msg)
-        # print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     # ===============================================
+    # FIRST PART OF ENTRY IS A COMMAND
     # SECOND PART OF ENTRY WILL BE EITHER:
     #   1. A PATH[/FILE]
     #   2 /? (REQUEST FOR HELP)
@@ -1083,14 +1090,18 @@ def parse_input(entry):
     if switch == '/?':
         file_name, full_path = '', ''
     else:
-        full_path = Path(os.getcwd()).absolute()
+        full_path = Path(switch)
 
+        # if it's a directory, then there's no file name
         if full_path.is_dir():
             file_name = ''
+        # if there's a file, then the "parent" is the path
         else:
             file_name = full_path.name
             full_path = full_path.parent.absolute()
 
+        # if full_path is not a directory,
+        # then full_filename is path\file_name
         if not full_path.is_dir():
             full_filename = Path(full_path / file_name)
         else:
@@ -1104,9 +1115,13 @@ def parse_input(entry):
         pass
 
     elif switch == '/?':
-        print(shell_help(cmd))
+        try:
+            shell_help(cmd)
+        except:
+            print(cmd, 'is not recognized as a valid shell command.\n')
 
     elif (cmd == 'HELP' or cmd == 'H') and not switch:
+        clear()
         base_help()
 
     elif (cmd == 'HELP' or cmd == 'H') and switch:
@@ -1123,24 +1138,25 @@ def parse_input(entry):
 
     elif cmd == 'O' or cmd == 'OPEN':
         open_file, new_file = True, False
-        space_ndx = cmd.find(' ')
-        file = '' if space_ndx == -1 else cmd[space_ndx+1:].strip()
-        sub_menu(open_file, new_file)
+        file_name, full_path, full_filename = open_archive(switch)
+        if file_name:
+            sub_menu(file_name, full_path, full_filename)
 
     elif cmd == 'N':
         open_file, new_file = False, True
-        sub_menu(open_file, new_file)
+        file_name, full_path, full_filename = create_new(switch)
+        if file_name:
+            sub_menu(file_name, full_path, full_filename)
 
     elif cmd == 'A':
         about()
 
     elif cmd == 'H':
+        clear()
         base_help()
 
-# fixme: not sure how this will work once the submenu is operational
-
-    elif cmd in 'LERT':
-        print('Command available only in the submenu.')
+    elif cmd and cmd in 'LERT':
+        print('Command available only in the submenu. Open or create a file first.\n')
 
     elif not cmd:
         pass
@@ -1150,10 +1166,7 @@ def parse_input(entry):
 
 def main_menu():
     """
-    Menu for opening a file or creating a new file, which the user can then manipulate via the sub-menu.
-
-    Variables:
-        open_file, new_file: whether or not we are opening an existing file or creating a new one; passed to sub_menu()
+    Display initial "splash" screen, then expose "shell" that accepts shell commands.
     """
     # INITIALIZE VARIABLES
     full_path, file_name = '', ''
@@ -1164,7 +1177,8 @@ def main_menu():
     version_num = "2.0"
     revision_number = get_revision_number()
     print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-    print('\n<O>pen file    <N>ew file\n<A>bout        <H>elp\n\n')
+    print('\n<O>pen file    <N>ew file\n<A>bout\n\n<H>elp - from most prompts')
+    print('')
 
     # ===============================================
     # GENERATE THE MAIN MENU IN A LOOP
@@ -1179,67 +1193,79 @@ def main_menu():
         entry = input(prompt).strip().upper()
 
         parsed = parse_input(entry)
+
         if parsed in ['EXIT', 'QUIT', 'Q']:
             break
 
 
-def sub_menu(open_file, new_file, file_name='', full_path='', full_filename=''):
+def sub_menu(file_name, full_path, full_filename):
     """
-    Menu of actions on the file that the user has opened or created.
+    Menu of actions on the zip file that the user has opened or created.
     """
-
-# fixme: "DIR" is an invalid action... generated when I try to do a <dir> command from the submenu
-
-    # either open the file or create a new file
-    if open_file:
-        file_name, full_path, full_filename = open_archive()
-    else:
-        full_path, file_name = create_new()
-
-    # go back to the main menu if no file name is entered
-    if not file_name:
-        return
-
-    # if we are opening a zip file, show its contents
-    if open_file:
-        full_path, file_name = list_files(full_path, file_name)
-
+    zip_commands = ['L', 'LIST', 'D', 'DIR', 'A', 'ADD', 'E', 'EXTRACT',
+        'R' 'REMOVE', 'T', 'TEST', 'H', 'HELP' 'Q', 'QUIT', '']
     # use the following to delimit output from sequential commands
-    msg = '...' + full_path[-49:] if len(full_path.__str__()) >= 49 else full_path
+    msg = '...' + full_filename[-49:] if len(full_filename.__str__()) >= 49 else full_filename
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     while True:
         # generate the sub-menu
-        print('\n<L>ist     <A>dd\n<E>xtract  <R>emove       <T>est\n<M>ain menu')
-        user_choice = input('\nChoose an action: ').strip().upper()
+        print('\n<L>ist     <A>dd     <dir>ectory\n<E>xtract  <R>emove  <T>est\n<H>elp')
+        user_choice = input('\nzip-file command> ').strip().upper()
 
-        if user_choice not in 'LDAERTMQ ':
-            print('\n"', user_choice, '" ', 'is an invalid action.', sep='')
-            continue
+        if user_choice in command_list[:9]:
+            if user_choice != 'DIR' or user_choice != 'D':
+                print('Return to shell to use shell commands.')
 
-        print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+        # show the delimiter, but not if we're returning to the "command prompt"
+        if user_choice in zip_commands[:13]:
+            print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+
+        # fix user_choice in case user just types <ENTER>
+        if user_choice == '':
+            user_choice = ' '
 
         # actions to take on choosing a menu item
-        if user_choice == 'L':
+        if user_choice == 'L' or user_choice == 'LIST':
             full_path, file_name = list_files(full_path, file_name)
 
-        elif user_choice == 'D':
-            full_path = dir_files()
+        elif user_choice[0] == 'D':
+            try:
+                if user_choice[0] == 'D' and user_choice[1] == ' ':
+                    full_path = user_choice[2:]
+                if user_choice[:3] == 'DIR' and user_choice[3] == ' ':
+                    full_path = user_choice[4:]
+            except:
+                full_path = ''
+            dir(full_path)
 
-        elif user_choice == 'A':
+        elif user_choice == 'A' or user_choice == 'ADD':
             full_path, file_name = add_file(full_path, file_name)
 
-        elif user_choice == 'E':
+        elif user_choice == 'E' or user_choice == 'EXTRACT':
             full_path, file_name = extract_file(full_path, file_name)
 
-        elif user_choice == 'R':
+        elif user_choice == 'R' or user_choice == 'REMOVE':
             full_path, file_name = remove_file(full_path, file_name)
 
-        elif user_choice == 'T':
+        elif user_choice == 'T' or user_choice == 'TEST':
             full_path, file_name = test_archive(full_path, file_name)
 
-        else:
+        elif user_choice[0] == 'H':
+            if user_choice.find(' ') == 4:
+                zip_help(user_choice[5:])
+            elif user_choice.find(' ') == 1:
+                zip_help(user_choice[2:])
+            else:
+                clear()
+                base_help()
+
+        elif user_choice in ['Q', 'QUIT', ' ']:
+            clear()
             return
+
+        else:
+            continue
 
     return
 
