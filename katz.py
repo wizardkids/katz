@@ -24,8 +24,6 @@ from datetime import datetime
 from pathlib import Path, PurePath
 from subprocess import check_output
 
-# fixme: Entering... EXIT /? exits the program rather than displaying help.
-
 # the following if... prevents a warning being issued to user if they try to add
 # a duplicate file to an archive; this warning is handled in add_file()
 if not sys.warnoptions:
@@ -49,7 +47,7 @@ shell_cmds = {
     'O': 'Open an existing zip file. Optionally include a path.\n',
     'NEW': 'Create a new zip file. Optionally include a path.\n',
     'N': 'Create a new zip file. Optionally include a path.\n',
-    'EXIT': 'Quits the CMD.EXE program(command interpreter) or the current batch script.\n',
+    'EXIT': 'Quits the shell and the current script.\n',
     }
 
 command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', 'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..',  'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
@@ -376,7 +374,7 @@ def add_file(full_path, file_name):
     while True:
         # let user choose which file(s) to add
         # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
-        print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*/?) to designate files')
+        print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*, ?) to designate files')
 
         choice = input("\nFile(s) to add: ").strip()
 
@@ -1122,14 +1120,14 @@ def parse_input(entry):
     # PROCESS THE USER'S COMMAND
     # ===============================================
 
-    if cmd[:4] in ['EXIT', 'QUIT'] or cmd[0:] == 'Q':
-        pass
-
-    elif switch == '/?':
+    if switch == '/?':
         try:
             shell_help(cmd)
         except:
             print(cmd, 'is not recognized as a valid shell command.\n')
+
+    elif cmd[:4] in ['EXIT', 'QUIT'] or cmd[0:] == 'Q':
+        pass
 
     elif (cmd == 'HELP' or cmd == 'H') and not switch:
         clear()
