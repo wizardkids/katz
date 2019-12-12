@@ -152,16 +152,12 @@ def open_archive(switch):
     return file_name, full_path, full_filename
 
 
-def list_files(full_path, file_name):
+def list_files(file_name, full_path, full_filename):
     """
     Generate a numbered list of all the files and folders in the archive.
     """
-    full_filename = PurePath(full_path, file_name)
-
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
-
-# fixme: With pathlib.Path, you can probable write a better routine here
 
         # if the first item in namelist() is a directory, get the name
         # else... use root/ as the starting directory
@@ -199,7 +195,7 @@ def list_files(full_path, file_name):
                 if more == 'Q':
                     break
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
 def dir_files():
@@ -489,7 +485,8 @@ def extract_file(full_path, file_name):
 
     while True:
         # print a list of files in the archive
-        full_path, file_name = list_files(full_path, file_name)
+        file_name, full_path, full_filename = list_files(
+            file_name, full_path, full_filename)
 
         # let user choose which file(s) to extract
         # sample user input: 1, 3-5, 28, 52-68, 70
@@ -594,7 +591,8 @@ def remove_file(full_path, file_name):
 
     while True:
         # for the user, print a list of files and folders in the archive
-        full_path, file_name = list_files(full_path, file_name)
+        file_name, full_path, full_filename = list_files(
+            file_name, full_path, full_filename)
 
         # get from the user the file or folder that should be removed
         print("\nEnter file number(s) or range(s) to")
@@ -1238,7 +1236,8 @@ def sub_menu(file_name, full_path, full_filename):
 
         # actions to take on choosing a menu item
         if user_choice == 'L' or user_choice == 'LIST':
-            full_path, file_name = list_files(full_path, file_name)
+            file_name, full_path, full_filename = list_files(
+                file_name, full_path, full_filename)
 
         elif user_choice[0] == 'D':
             try:
@@ -1285,4 +1284,5 @@ def sub_menu(file_name, full_path, full_filename):
 
 
 if __name__ == '__main__':
+    os.chdir('c:\\temp\\one')
     main_menu()
