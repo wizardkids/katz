@@ -52,8 +52,7 @@ shell_cmds = {
     'EXIT': 'Quits the CMD.EXE program(command interpreter) or the current batch script.\n',
     }
 
-command_list = ['DIR', 'CD', 'CLS', 'EXIT', 'CLEAR', 'N', 'NEW', 'O', 'OPEN', 'H',
-                'HELP', 'CD.', 'CD..', '.', '..', 'Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
+command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', 'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..',  'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
 
 
 def create_new(switch):
@@ -302,6 +301,13 @@ def add_file(full_path, file_name):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
+
+# fixme: if you enter a directory like this:
+# fixme: cdw() = c:\temp\one
+# fixme: Directory containing files to add: two
+# fixme: an error is generated
+
+
     full_filename = os.path.join(full_path, file_name)
     current_directory = os.getcwd()
 
@@ -871,7 +877,7 @@ def zip_help(switch):
 """
 
     list_txt = """
-    <L>ist all the files in the archive. <DIR> lists files in a directory in disk, while <L>ist produces a list of files in the archive.
+    <L>ist all the files in the archive. <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.
 """
 
     add1_txt = """
@@ -910,7 +916,7 @@ def zip_help(switch):
 """
 
     remove_txt1 = """
-    <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the folder has subfolders, only the files in the folder will be removed; subfolders will be retained. "katz" will confirm before removing any files or folders.
+    <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders.
 """
     remove_txt2 = """
     Removing all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.
@@ -1027,7 +1033,7 @@ def cd(cmd='', switch='', full_path=''):
     """
     try:
         if cmd[2:] == '..' or switch == '..':
-            os.chdir(Path(full_path).parent)
+            os.chdir(full_path.absolute().parent)
         else:
             try:
                 full_path = Path(switch).absolute()
@@ -1077,6 +1083,11 @@ def parse_input(entry):
     if cmd and cmd not in command_list:
         msg = cmd + ' is not recognized as a valid command.\n'
         print(msg)
+
+    # Windows OS understands "CD.."" and "CD .."" as equivalent
+    # commands, but it's better to process only one version...
+    if cmd == 'CD' and switch == '..':
+        cmd, switch = 'CD..', ''
 
     # ===============================================
     # FIRST PART OF ENTRY IS A COMMAND
@@ -1203,7 +1214,7 @@ def sub_menu(file_name, full_path, full_filename):
     Menu of actions on the zip file that the user has opened or created.
     """
     zip_commands = ['L', 'LIST', 'D', 'DIR', 'A', 'ADD', 'E', 'EXTRACT',
-        'R' 'REMOVE', 'T', 'TEST', 'H', 'HELP' 'Q', 'QUIT', '']
+        'R' 'REMOVE', 'T', 'TEST', 'H', 'HELP' 'Q', 'QUIT', 'CLS', 'CLEAR', '']
     # use the following to delimit output from sequential commands
     msg = '...' + full_filename[-49:] if len(full_filename.__str__()) >= 49 else full_filename
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
@@ -1213,9 +1224,8 @@ def sub_menu(file_name, full_path, full_filename):
         print('\n<L>ist     <A>dd     <dir>ectory\n<E>xtract  <R>emove  <T>est\n<H>elp')
         user_choice = input('\nzip-file command> ').strip().upper()
 
-        if user_choice in command_list[:9]:
-            if user_choice != 'DIR' or user_choice != 'D':
-                print('Return to shell to use shell commands.')
+        if user_choice.split(' ')[0] in command_list[3:13]:
+            print('Return to shell to use shell commands, except dir and cls.')
 
         # show the delimiter, but not if we're returning to the "command prompt"
         if user_choice in zip_commands[:13]:
@@ -1259,6 +1269,9 @@ def sub_menu(file_name, full_path, full_filename):
             else:
                 clear()
                 base_help()
+
+        elif user_choice in ['CLS', 'CLEAR']:
+            clear()
 
         elif user_choice in ['Q', 'QUIT', ' ']:
             clear()
