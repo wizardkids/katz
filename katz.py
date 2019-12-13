@@ -185,8 +185,7 @@ def list_files(file_name, full_path, full_filename):
 
             # print files indented 5 spaces
             this_directory, this_file = os.path.split(file)
-            # print(' '*3, ndx+1, '. ', this_file, sep='')
-            print(' '*3, this_file, sep='')
+            print(' '*3, ndx+1, '. ', this_file, sep='')
 
             # pause after every 25 files
             cnt = ndx+1
@@ -373,13 +372,14 @@ def add_file(file_name, full_path, full_filename):
                 if i not in Path(dir).parent.parts:
                     loc = ndx
                     break
-            # first rel_folder is the part of the "dir" path
-            # INCLUDING AND AFTER the folder holding the zip file
+            # rel_folder is the relative path to the current file (in add_files)
             rel_folder = '\\'.join(file_parts[loc:-1])
             rel_folder = Path(rel_folder, Path(file).name)
 
-            if Path(file).name != file_name:  # katz won't add the zip to itself
-                f.write(file, arcname=rel_folder)
+            if Path(file).name.upper() != file_name.upper():  # katz won't add the zip to itself
+                # if the current file (in add_files) is already in zip file, skip adding it
+                if str(rel_folder) not in zip_files:
+                    f.write(file, arcname=rel_folder)
 
     return file_name, full_path, full_filename
 
@@ -474,8 +474,6 @@ def remove_file(file_name, full_path, full_filename):
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
-    # full path to the user's zip file
-    full_filename = os.path.join(full_path, file_name)
 
     # make sure you are in the same directory as the zip file
     os.chdir(full_path)
@@ -599,22 +597,30 @@ def remove_file(file_name, full_path, full_filename):
                         f.extract(file, path=temporary_path)
 
         # get relative path to temporary directory
-        cwd = full_path + '\\' + temporary_path
+        cwd = Path(full_path, temporary_path)
         rel_dir = os.path.relpath(cwd, cwd)
 
-        # add all the extracted files to _temp_zipfile_.zip
-        with zipfile.ZipFile('_temp_zipfile_.zip', 'w', compression=zipfile.ZIP_DEFLATED) as f:
-            # change directory to the temporary directory, which contains all files in the archive, except the file destined for removal
-            os.chdir(temporary_path)
+        # file_list contains subfolders
+        file_list = sorted(Path(cwd).glob('**/*.*'))
+        # # file_list contains contents of only the current folder
+        # file_list = sorted(Path(dir).glob('*.*'))
 
-            # Iterate over all the files in the root directory
-            # write each file to the temporary zip file
-            for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
-                for filename in filenames:
-                    # create complete filepath of file in directory
-                    filePath = os.path.join(folderName, filename)
-                    # add file to zip
-                    f.write(filePath)
+        # add all the extracted files to _temp_zipfile_.zip
+        with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+            for file in file_list:
+                # this code finds the relative folder name
+                file_parts = Path(file).parts
+                for ndx, i in enumerate(file_parts):
+                    if i not in Path(rel_dir).parent.parts:
+                        loc = ndx
+                        break
+                # first rel_folder is the part of the "dir" path
+                # INCLUDING AND AFTER the folder holding the zip file
+                rel_folder = '\\'.join(file_parts[loc:-1])
+                rel_folder = Path(rel_folder, Path(file).name)
+
+                if Path(file).name != file_name:  # katz won't add the zip to itself
+                    f.write(file, arcname=rel_folder)
 
         # ===============================================
         # CLEAN UP TEMPORARY FILES AND DIRECTORY
