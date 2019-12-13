@@ -202,6 +202,9 @@ def add_file(file_name, full_path, full_filename):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
+
+# fixme: If you add all files to temp.zip, them remove "one" and then add all files again, including subfolders, you get a weird result
+
     current_directory = os.getcwd()
 
     msg = 'CURRENT DIRECTORY: ' + current_directory
@@ -468,7 +471,7 @@ def extract_file(file_name, full_path, full_filename):
     return file_name, full_path, full_filename
 
 
-def remove_file(file_name, full_path, full_filename):
+def remove_files(file_name, full_path, full_filename):
     """
     This utility removes only one file at a time.
 
@@ -480,6 +483,8 @@ def remove_file(file_name, full_path, full_filename):
 
     # unlikely, but... abort if "temporary" directory already exists
     temporary_path = '_temp_' + file_name[:-4] + '_'
+    temp_dir = str(Path(full_path, temporary_path))
+
     if os.path.isdir(temporary_path):
         msg = '\nCannot remove files from archive, since ' + temporary_path + ' directory exists.\n'
         print('='*52, msg, '='*52, sep='')
@@ -493,12 +498,12 @@ def remove_file(file_name, full_path, full_filename):
     #       B. THE NAME OF THE FOLDER TO REMOVE
     # ===================================================
 
-    # get a list of files in the archive and their total number
-    with zipfile.ZipFile(full_filename, 'r') as f:
-        zip_files = f.namelist()
-        num_files = len(f.namelist())
-
     while True:
+        # get a list of files in the archive and their total number
+        with zipfile.ZipFile(full_filename, 'r') as f:
+            zip_files = f.namelist()
+            num_files = len(f.namelist())
+
         # for the user, print a list of files and folders in the archive
         file_name, full_path, full_filename = list_files(
             file_name, full_path, full_filename)
@@ -514,15 +519,15 @@ def remove_file(file_name, full_path, full_filename):
 
         # determine if "choice" is an integer/range or a folder
         for c in choice:
-            # if the entire string comprised digits or '-'
+            # if the entire string comprises digits or contains '-'
             if c in string.digits or c in [',', ' ', '-']:
-                choice_numbers = True
+                choice_isNumbers = True
             else:
-                choice_numbers = False
+                choice_isNumbers = False
                 break
 
         # if choice is an integer or range, get a list of integers
-        if choice_numbers:
+        if choice_isNumbers:
             which_files = process_numbers(choice, num_files)
             # if process_numbers returns an empty which_files, then
             # something went wrong
@@ -545,18 +550,17 @@ def remove_file(file_name, full_path, full_filename):
         else:
             # deny ability to delete root/ folder
             if 'ROOT' in choice.upper():
-                msg = '\nOperation cannot be completed.\nSee "HELP >> <R>emove Files".\n'
+                msg = '\nOperation cannot be completed.\type: "help remove".\n'
                 print('='*52, msg, '='*52, sep='')
                 continue
             choice = choice.replace('/', '\\')
 
             # confirm the user's choice of folders to remove by
             # looking for the path in "choice" within zip_files
-            for ndx, line in enumerate(zip_files):
+            for ndx, file in enumerate(zip_files):
                 # if "line" contains the path in "choice"
-                line_path = line.split('/')[:-1]
-                line_path = '\\'.join(line_path).upper()
-                if choice.upper() == line_path:
+                file_path = str(Path(file).parent)
+                if choice.upper() == file_path.upper():
                     confirmed = input('\nRemove folder: ' + choice + ' (Y/N) ').upper()
                     break
                 if ndx == num_files-1:
@@ -576,7 +580,7 @@ def remove_file(file_name, full_path, full_filename):
         os.mkdir(temporary_path)
 
         # if "choice" is a list of numbers, extract all numbered files except those in "choice"
-        if choice_numbers:
+        if choice_isNumbers:
             # which_files contains a list of integers denoting files to remove
             with zipfile.ZipFile(full_filename, 'r') as f:
                 # extract all the files to "temporary_path" except
@@ -588,30 +592,26 @@ def remove_file(file_name, full_path, full_filename):
         # if choice is a folder name, extract all files except ones in that folder
         else:
             with zipfile.ZipFile(full_filename, 'r') as f:
-                # extract all the files to "temporary_path" except
+                # extract all the files to "temporary_path" EXCEPT
                 # the file user has chosen
                 for file in zip_files:
-                    line_path = file.split('/')[:-1]
-                    line_path = '\\'.join(line_path).upper()
-                    if choice.upper() != line_path:
+                    file_path = str(Path(file).parent)
+                    if choice.upper() != file_path.upper():
                         f.extract(file, path=temporary_path)
 
-        # get relative path to temporary directory
-        cwd = Path(full_path, temporary_path)
-        rel_dir = os.path.relpath(cwd, cwd)
+        # Make the temporary directory current
+        os.chdir(temp_dir)
 
         # file_list contains subfolders
-        file_list = sorted(Path(cwd).glob('**/*.*'))
-        # # file_list contains contents of only the current folder
-        # file_list = sorted(Path(dir).glob('*.*'))
+        file_list = sorted(Path(temp_dir).glob('**/*.*'))
 
         # add all the extracted files to _temp_zipfile_.zip
-        with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+        with zipfile.ZipFile('_temp_zipfile_.zip', 'w', compression=zipfile.ZIP_DEFLATED) as f:
             for file in file_list:
                 # this code finds the relative folder name
                 file_parts = Path(file).parts
                 for ndx, i in enumerate(file_parts):
-                    if i not in Path(rel_dir).parent.parts:
+                    if i not in Path(temp_dir).parts:
                         loc = ndx
                         break
                 # first rel_folder is the part of the "dir" path
@@ -619,15 +619,13 @@ def remove_file(file_name, full_path, full_filename):
                 rel_folder = '\\'.join(file_parts[loc:-1])
                 rel_folder = Path(rel_folder, Path(file).name)
 
-                if Path(file).name != file_name:  # katz won't add the zip to itself
+                # katz won't add the zip to itself
+                if Path(file).name.upper() != file_name.upper and Path(file).name.lower() != '_temp_zipfile_.zip':
                     f.write(file, arcname=rel_folder)
 
         # ===============================================
         # CLEAN UP TEMPORARY FILES AND DIRECTORY
         # ===============================================
-
-        # change back to directory with zip file in it
-        os.chdir(full_path)
 
         # test the temporary archive before deleting the original one
         if not zipfile.is_zipfile('_temp_zipfile_.zip'):
@@ -640,9 +638,9 @@ def remove_file(file_name, full_path, full_filename):
                 if f.testzip():
                     raise Exception
             # delete file_name
-            os.remove(file_name)
-            # rename _temp_zipfile_.zip to file_name
-            os.rename('_temp_zipfile_.zip', file_name)
+            os.remove(full_filename)
+            # copy _temp_zipfile_.zip to file_name
+            shutil.copyfile('_temp_zipfile_.zip', full_filename)
         except:
             msg = '\nUnknown error. Aborting removal of file.\n'
             print('='*52, msg, '='*52, sep='')
@@ -655,10 +653,13 @@ def remove_file(file_name, full_path, full_filename):
                 msg = '\nCannot complete operation. _temp_zipfile_.zip is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
 
+        # change back to original directory
+        os.chdir(full_path)
+
         # delete "temporary" dir even if exception was raised in previous line
-        if os.path.isdir(temporary_path):
+        if Path(full_path, temporary_path).is_dir():
             try:
-                shutil.rmtree(temporary_path, ignore_errors=False)
+                shutil.rmtree(Path(full_path, temporary_path), ignore_errors=False)
             except PermissionError:
                 msg = '\nCannot complete operation. A file or folder in ' + temporary_path + ' is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
@@ -1173,7 +1174,7 @@ def sub_menu(file_name, full_path, full_filename):
                 file_name, full_path, full_filename)
 
         elif user_choice == 'R' or user_choice == 'REMOVE':
-            file_name, full_path, full_filename = remove_file(
+            file_name, full_path, full_filename = remove_files(
                 file_name, full_path, full_filename)
 
         elif user_choice == 'T' or user_choice == 'TEST':
