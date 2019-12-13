@@ -74,7 +74,7 @@ def create_new(switch):
     if not file_name:
         return '', '', ''
     # if a file was entered, but not a zip file...
-    if Path(full_filename).suffix != '.ZIP':
+    if Path(full_filename).suffix.upper() != '.ZIP':
         print('File is not a zip file.\n')
         return '', '', ''
 
@@ -185,7 +185,8 @@ def list_files(file_name, full_path, full_filename):
 
             # print files indented 5 spaces
             this_directory, this_file = os.path.split(file)
-            print(' '*5, ndx+1, '. ', this_file, sep='')
+            # print(' '*3, ndx+1, '. ', this_file, sep='')
+            print(' '*3, this_file, sep='')
 
             # pause after every 25 files
             cnt = ndx+1
@@ -291,18 +292,10 @@ def dir_files():
     return current_directory
 
 
-def add_file(full_path, file_name):
+def add_file(file_name, full_path, full_filename):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
-
-# fixme: if you enter a directory like this:
-# fixme: cdw() = c:\temp\one
-# fixme: Directory containing files to add: two
-# fixme: an error is generated
-
-
-    full_filename = os.path.join(full_path, file_name)
     current_directory = os.getcwd()
 
     msg = 'CURRENT DIRECTORY: ' + current_directory
@@ -319,12 +312,12 @@ def add_file(full_path, file_name):
 
         # if user enters nothing, return to the menu
         if not dir:
-            return full_path, file_name
+            return file_name, full_path, full_filename
 
         if dir == '.':
-            dir = full_path
+            dir = Path(full_path).absolute()
 
-        if not os.path.exists(dir) or not os.path.isdir(dir):
+        if not Path(dir).exists() or not Path(dir).is_dir():
             print('\nEntry does not exist or is not a directory. Re-enter.')
             continue
         else:
@@ -335,32 +328,30 @@ def add_file(full_path, file_name):
 
     # ==================================================
     # GENERATE A NUMBERED LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
-    # EXAMPLES:
-    # dir = c:\foo\bar
-    # root_folder = c:\foo
-    # rel_dir = bar
     # ==================================================
-    root_folder = os.path.split(dir)[0]
-    rel_dir = os.path.relpath(dir, root_folder)
 
-    os.chdir(root_folder)
+    if subs:
+        # file_list contains subfolders
+        file_list = sorted(Path(dir).glob('**/*.*'))
+    else:
+        # file_list contains contents of only the "dir" folder
+        file_list = sorted(Path(dir).glob('*.*'))
 
-    cnt, file_list = 1, []
-    for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
-        for filename in filenames:
-            # create complete filepath of file in directory
-            filePath = os.path.join(folderName, filename)
-            # as long as the current file is not the archive itself
-            if os.path.split(filePath)[1] != file_name:
-                if subs:
-                    file_list.append(filePath)
-                    print(cnt, '. ', filePath, sep='')
-                else:
-                    filePath_list = '\\'.join(filePath.split('\\')[:-1])
-                    if filePath_list == rel_dir:
-                        file_list.append(filePath)
-                        print(cnt, '. ', filePath, sep='')
-                cnt += 1
+    with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+        cnt = 1
+        for file in file_list:
+            # this code finds the relative folder name
+            file_parts = Path(file).parts
+            for ndx, i in enumerate(file_parts):
+                if i not in Path(dir).parent.parts:
+                    loc = ndx
+                    break
+            # first rel_folder is the part of the "dir" path
+            # INCLUDING AND AFTER the folder holding the zip file
+            rel_folder = '\\'.join(file_parts[loc:-1])
+            rel_folder = Path(rel_folder, Path(file).name)
+            print(cnt, '. ', rel_folder, sep='')
+            cnt += 1
 
     # ==================================================
     # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
@@ -377,7 +368,7 @@ def add_file(full_path, file_name):
         # if nothing is entered, return to menu
         if not choice:
             os.chdir(current_directory)
-            return full_path, file_name
+            return file_name, full_path, full_filename
 
         # ========================================================
         # BASED ON USER'S CHOICES, CREATE A LIST OF THE ELIGIBLE FILES
@@ -387,22 +378,33 @@ def add_file(full_path, file_name):
         if choice.upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(file_list)+1)]
             for file_number in which_files:
-                add_files.append(file_list[int(file_number)-1])
+                add_files.append(str(file_list[int(file_number)-1]))
 
         # see https://pymotw.com/2/glob/
         elif '*' in choice or '?' in choice:
+            folders = set()
+
+            # generate a list of all folders in file_list
+            for file in file_list:
+                folders.add(str(Path(file).parent))
+
+            # get all files in subfolders that match "choice"
             if subs:
-                for folderName, subfolders, filenames in os.walk(rel_dir, followlinks=True):
-                    f = os.path.join(folderName, choice)
-                    for name in glob.glob(f):
-                        if name != os.path.join(folderName, file_name):
-                            add_files.append(name)
-                            print(name)
+                for folder in folders:
+                    os.chdir(folder)
+                    f = glob.glob(choice)
+                    for i in f:
+                        file = Path(folder, i)
+                        add_files.append(file)
+                        print(i)
+            # get all files that match "choice" but only in "dir"
             else:
-                for name in glob.glob(choice):
-                    if name != os.path.join(folderName, file_name):
-                        add_files.append(os.path.join(folderName, name))
-                        print(name)
+                os.chdir(dir)
+                f = glob.glob(choice)
+                for i in f:
+                    file = Path(folder, i)
+                    add_files.append(file)
+                    print(f)
 
         # extract all the file numbers from the user's list:
         else:
@@ -422,7 +424,7 @@ def add_file(full_path, file_name):
                     except:
                         print(
                             '\nInvalid range of numbers was excluded. Did you comma-separate values?')
-                        return full_path, file_name
+                        return file_name, full_path, full_filename
                 # treating all other single digits
                 else:
                     try:
@@ -431,14 +433,14 @@ def add_file(full_path, file_name):
                     except:
                         print(
                             '\nInvalid number(s) excluded. Did you comma-separate values?')
-                        return full_path, file_name
+                        return file_name, full_path, full_filename
 
             for file_number in which_files:
                 add_files.append(file_list[int(file_number)-1])
 
         break
 
-    os.chdir(root_folder)
+    os.chdir(current_directory)
 
     # ==================================================
     # ADD THE FILES:
@@ -456,27 +458,29 @@ def add_file(full_path, file_name):
         file = file.replace('/', '\\')
         zip_files[ndx] = file
 
-    # puts files in folder
-    with zipfile.ZipFile(full_filename, 'a') as f:
+    with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
         for file in add_files:
-            file_to_add = file
-            if file_to_add not in zip_files:
-                f.write(file_to_add)
-            else:
-                print('\n', file,
-                      ' already exists in archive.\nRemove this file before adding a new version.', sep='')
+            # this code finds the relative folder name
+            file_parts = Path(file).parts
+            for ndx, i in enumerate(file_parts):
+                if i not in Path(dir).parent.parts:
+                    loc = ndx
+                    break
+            # first rel_folder is the part of the "dir" path
+            # INCLUDING AND AFTER the folder holding the zip file
+            rel_folder = '\\'.join(file_parts[loc:-1])
+            rel_folder = Path(rel_folder, Path(file).name)
 
-    os.chdir(current_directory)
+            if Path(file).name != file_name:  # katz won't add the zip to itself
+                f.write(file, arcname=rel_folder)
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
-def extract_file(full_path, file_name):
+def extract_file(file_name, full_path, full_filename):
     """
     Extract one or more files from an archive.
     """
-    full_filename = os.path.join(full_path, file_name)
-
     # get a list files in the archive and number them
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_info = f.infolist()
@@ -496,7 +500,7 @@ def extract_file(full_path, file_name):
 
         # if no choice is made, return to menu
         if not choice.strip():
-            return full_path, file_name
+            return file_name, full_path, full_filename
 
         # which_files is a list of user-entered digits (type:string)
         # if choice="ALL", then generate a list of all file numbers
@@ -554,10 +558,10 @@ def extract_file(full_path, file_name):
                 # extract the file here
                 f.extract(this_file, path=extract_location)
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
-def remove_file(full_path, file_name):
+def remove_file(file_name, full_path, full_filename):
     """
     This utility removes only one file at a time.
 
@@ -575,7 +579,7 @@ def remove_file(full_path, file_name):
         msg = '\nCannot remove files from archive, since ' + temporary_path + ' directory exists.\n'
         print('='*52, msg, '='*52, sep='')
 
-        return full_path, file_name
+        return file_name, full_path, full_filename
 
     # ===================================================
     # 1. GET AND PRINT A NUMBERED LIST OF FILES IN THE ARCHIVE
@@ -601,7 +605,7 @@ def remove_file(full_path, file_name):
 
         # if no file name is entered, return to menu
         if not choice.strip():
-            return full_path, file_name
+            return file_name, full_path, full_filename
 
         # determine if "choice" is an integer/range or a folder
         for c in choice:
@@ -746,7 +750,7 @@ def remove_file(full_path, file_name):
                 msg = '\nCannot complete operation. A file or folder in ' + temporary_path + ' is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
 def process_numbers(choice, num_files):
@@ -789,12 +793,10 @@ def process_numbers(choice, num_files):
     return which_files
 
 
-def test_archive(full_path, file_name):
+def test_archive(file_name, full_path, full_filename):
     """
     Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
     """
-    full_filename = os.path.join(full_path, file_name)
-
     # first, test if it is a valid zip file
     if not zipfile.is_zipfile(full_filename):
         print('\nNot a valid zip file.')
@@ -811,7 +813,7 @@ def test_archive(full_path, file_name):
         print('\nTested ', num_files, ' files:  ',
               num_files, ' OK.  0 failed.', sep='')
 
-    return full_path, file_name
+    return file_name, full_path, full_filename
 
 
 def about():
@@ -1250,16 +1252,20 @@ def sub_menu(file_name, full_path, full_filename):
             dir(full_path)
 
         elif user_choice == 'A' or user_choice == 'ADD':
-            full_path, file_name = add_file(full_path, file_name)
+            file_name, full_path, full_filename = add_file(
+                file_name, full_path, full_filename)
 
         elif user_choice == 'E' or user_choice == 'EXTRACT':
-            full_path, file_name = extract_file(full_path, file_name)
+            file_name, full_path, full_filename = extract_file(
+                file_name, full_path, full_filename)
 
         elif user_choice == 'R' or user_choice == 'REMOVE':
-            full_path, file_name = remove_file(full_path, file_name)
+            file_name, full_path, full_filename = remove_file(
+                file_name, full_path, full_filename)
 
         elif user_choice == 'T' or user_choice == 'TEST':
-            full_path, file_name = test_archive(full_path, file_name)
+            file_name, full_path, full_filename = test_archive(
+                file_name, full_path, full_filename)
 
         elif user_choice[0] == 'H':
             if user_choice.find(' ') == 4:
