@@ -30,11 +30,15 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+# fixme: the case of temp.zip gets changed to upper() somewhere, inappropriately
+
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
 
 # todo -- version 3: Add support for other archiving formats, including tar and gzip
 
-# todo -- version 4: Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
+# todo -- version 4:
+#       -- 1. Write katz so it can be used as an importable module.
+#       -- 2. Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
 
 # declare global variables
 dsh, slsh = '=', '/'
@@ -93,7 +97,7 @@ def create_new(switch):
             if overwrite == 'Y':
                 with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
-                return full_path, file_name
+                return file_name, full_path, full_filename
 
             else:
                 print(file_name, 'not created.\n')
@@ -159,22 +163,17 @@ def list_files(file_name, full_path, full_filename):
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
 
-        # if the first item in namelist() is a directory, get the name
-        # else... use root/ as the starting directory
+        # get the directory of the first item in zip_files
         try:
-            if '/' in zip_files[0]:
-                slash_location = zip_files[0].find('/')
-                current_directory = zip_files[0][:slash_location]
-            else:
-                current_directory = 'root/'
+            current_directory = Path(zip_files[0]).parent
         except:
-            current_directory = 'root/'
-
-        print(current_directory)
+            current_directory = ''
+            if len(zip_files) == 0:
+                print('No files in archive.')
+                return file_name, full_path, full_filename
 
         # print a list of files in the archive
         for ndx, file in enumerate(zip_files):
-
             # when the directory changes, print it (left-justified)
             if current_directory != os.path.dirname(file):
                 current_directory = os.path.dirname(file)
@@ -202,9 +201,6 @@ def add_file(file_name, full_path, full_filename):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
-
-# fixme: If you add all files to temp.zip, them remove "one" and then add all files again, including subfolders, you get a weird result
-
     current_directory = os.getcwd()
 
     msg = 'CURRENT DIRECTORY: ' + current_directory
@@ -473,7 +469,7 @@ def extract_file(file_name, full_path, full_filename):
 
 def remove_files(file_name, full_path, full_filename):
     """
-    This utility removes only one file at a time.
+    Removes files/folders from the archive.
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
@@ -1095,7 +1091,7 @@ def main_menu():
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
     """
     # INITIALIZE VARIABLES
-    full_path, file_name = '', ''
+    file_name, full_path, full_filename = '', '', ''
 
     # ===============================================
     # PRINT THE PROGRAM HEADER... JUST ONCE
