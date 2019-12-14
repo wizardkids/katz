@@ -30,8 +30,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# fixme: the case of temp.zip gets changed to upper() somewhere, inappropriately
-
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
 
 # todo -- version 3: Add support for other archiving formats, including tar and gzip
@@ -474,8 +472,6 @@ def remove_files(file_name, full_path, full_filename):
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
 
-# fixme: remove_files() is not adding back files with the same folder structure as add_files()
-
     # make sure you are in the same directory as the zip file
     os.chdir(full_path)
 
@@ -600,53 +596,53 @@ def remove_files(file_name, full_path, full_filename):
         # Make the temporary directory current
         os.chdir(temp_dir)
 
-        # file_list contains subfolders
-        file_list = sorted(Path(temp_dir).glob('**/*.*'))
+        dir = str(Path(full_path, temporary_path))
+        temp_zip_file = str(Path(dir, '_temp_zipfile_.zip'))
+        file_list = sorted(list(Path(dir).glob('**/*.*')))
+        os.chdir(dir)
 
-        # add all the extracted files to _temp_zipfile_.zip
-        with zipfile.ZipFile('_temp_zipfile_.zip', 'w', compression=zipfile.ZIP_DEFLATED) as f:
+        with zipfile.ZipFile(temp_zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             for file in file_list:
                 # this code finds the relative folder name
                 file_parts = Path(file).parts
                 for ndx, i in enumerate(file_parts):
-                    if i not in Path(temp_dir).parts:
+                    if i not in Path(dir).parent.parts:
                         loc = ndx
                         break
-                # first rel_folder is the part of the "dir" path
-                # INCLUDING AND AFTER the folder holding the zip file
-                rel_folder = '\\'.join(file_parts[loc:-1])
+                # rel_folder is the relative path to the current file (in add_files)
+                rel_folder = '\\'.join(file_parts[loc+1:-1])
                 rel_folder = Path(rel_folder, Path(file).name)
 
-                # katz won't add the zip to itself
-                if Path(file).name.upper() != file_name.upper and Path(file).name.lower() != '_temp_zipfile_.zip':
+                if Path(file).name.upper() != file_name.upper():  # katz won't add the zip to itself
                     f.write(file, arcname=rel_folder)
 
         # ===============================================
         # CLEAN UP TEMPORARY FILES AND DIRECTORY
         # ===============================================
+        os.chdir(full_path)
 
         # test the temporary archive before deleting the original one
-        if not zipfile.is_zipfile('_temp_zipfile_.zip'):
+        if not zipfile.is_zipfile(temp_zip_file):
             msg = '\nUnknown error. Aborting removal of file.\n'
             print('='*52, msg, '='*52, sep='')
 
         # open and test temporary archive; if successful, delete original and rename temporary zip
         try:
-            with zipfile.ZipFile('_temp_zipfile_.zip', 'r') as f:
+            with zipfile.ZipFile(temp_zip_file, 'r') as f:
                 if f.testzip():
                     raise Exception
             # delete file_name
             os.remove(full_filename)
             # copy _temp_zipfile_.zip to file_name
-            shutil.copyfile('_temp_zipfile_.zip', full_filename)
+            shutil.copyfile(temp_zip_file, full_filename)
         except:
             msg = '\nUnknown error. Aborting removal of file.\n'
             print('='*52, msg, '='*52, sep='')
 
         # delete "temporary" file even if exception was raised in previous line
-        if os.path.isfile('_temp_zipfile_.zip'):
+        if os.path.isfile(temp_zip_file):
             try:
-                os.remove('_temp_zipfile_.zip')
+                os.remove(temp_zip_file)
             except:
                 msg = '\nCannot complete operation. _temp_zipfile_.zip is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
