@@ -160,6 +160,7 @@ def list_files(file_name, full_path, full_filename):
     """
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
+        zip_files = sorted(zip_files, reverse=True)
 
         # get the directory of the first item in zip_files
         try:
@@ -353,6 +354,7 @@ def add_file(file_name, full_path, full_filename):
     # get a list of all the files that are in the archive
     with zipfile.ZipFile(full_filename) as f:
         zip_files = f.namelist()
+        zip_files = sorted(zip_files, reverse=True)
 
     # namelist() formats paths as: foo/bar/bar.txt
     # need to change"/" into "\\""
@@ -442,6 +444,7 @@ def extract_file(file_name, full_path, full_filename):
     # extract the files the user has chosen to path=file_name
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
+        zip_files = sorted(zip_files, reverse=True)
         print('\nExtracting...')
         extract_location = full_path + '\\' + file_name[:-4]
 
@@ -496,6 +499,7 @@ def remove_files(file_name, full_path, full_filename):
         # get a list of files in the archive and their total number
         with zipfile.ZipFile(full_filename, 'r') as f:
             zip_files = f.namelist()
+            zip_files = sorted(zip_files, reverse=True)
             num_files = len(f.namelist())
 
         # for the user, print a list of files and folders in the archive
