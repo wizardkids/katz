@@ -474,6 +474,8 @@ def remove_files(file_name, full_path, full_filename):
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
 
+# fixme: remove_files() is not adding back files with the same folder structure as add_files()
+
     # make sure you are in the same directory as the zip file
     os.chdir(full_path)
 
@@ -981,12 +983,12 @@ def parse_input(entry):
 
     # command only
     if entry.find(' ') == -1:
-        cmd, switch = entry, ''
+        cmd, switch = entry.upper(), ''
 
     # command + space + switch
     else:
         space_ndx = entry.find(' ')
-        cmd, switch = entry[:space_ndx], entry[space_ndx+1:]
+        cmd, switch = entry[:space_ndx].upper(), entry[space_ndx+1:]
         # remove quotes from switch, if present
         switch = switch.replace('"', '')
         switch = switch.replace("'", '')
@@ -1112,7 +1114,7 @@ def main_menu():
         # GET A COMMAND FROM THE USER
         # ===============================================
         prompt = "(katz) " + os.getcwd() + ">"
-        entry = input(prompt).strip().upper()
+        entry = input(prompt).strip()
 
         parsed = parse_input(entry)
 
