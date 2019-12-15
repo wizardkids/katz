@@ -21,7 +21,7 @@ import sys
 import textwrap
 import zipfile
 from datetime import datetime
-from pathlib import Path, PurePath
+from pathlib import Path
 from subprocess import check_output
 
 # the following if... prevents a warning being issued to user if they try to add
@@ -30,11 +30,13 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+# todo -- fix help so that all of it works like help for the shell commands (e.g., "dir /?")
+
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
 
-# todo -- version 3: Add support for other archiving formats, including tar and gzip
+# todo -- Version 3: Add support for other archiving formats, including tar and gzip
 
-# todo -- version 4:
+# todo -- Version 4:
 #       -- 1. Write katz so it can be used as an importable module.
 #       -- 2. Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
 
@@ -44,13 +46,51 @@ dsh, slsh = '=', '/'
 shell_cmds = {
     'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]\n',
     'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.\n',
-    'CLS': 'Clears the screen. ("CLEAR" on Unix systems.\n)',
+    'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)\n',
     'OPEN': 'Open an existing zip file. Optionally include a path.\n',
     'O': 'Open an existing zip file. Optionally include a path.\n',
-    'NEW': 'Create a new zip file. Optionally include a path.\n',
+    'NEW': 'katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
     'N': 'Create a new zip file. Optionally include a path.\n',
+    'LIST': '<L>ist all the files in the archive. <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.\n',
+    'ADD': '-- <A>dd provides a list of files that you can <A>dd to the archive.\n\n-- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to a folder with the same name as the folder holding the zip file.\n\n-- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
+    'EXTRACT': '-- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.\n-- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:\n(1) 1, 2, 8, 4  [order does not matter]\n(2) 3-8, 11, 14  [mix a range and individual numbers]\n(3) all  [extracts all files]\nSYMLINKS:\n"katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.\n',
+    'REMOVE': '<R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders.\nRemoving all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.\n',
+    'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!\n',
     'EXIT': 'Quits the shell and the current script.\n',
-    }
+    'QUIT': 'Quits the shell and the current script.\n',
+}
+
+translate = {
+    'D': 'DIR',
+    'DIR': 'DIR',
+    'CLS': 'CLS',
+    'CLEAR': 'CLS',
+    'EXIT': 'EXIT',
+    'N': 'NEW',
+    'NEW': 'NEW',
+    'O': 'OPEN',
+    'OPEN': 'OPEN',
+    'CD': 'CD',
+    'CD.': 'CD',
+    'CD..': 'CD',
+    '.': 'CD',
+    '..': 'CD',
+    'H': 'HELP',
+    'HELP': 'HELP',
+    'Q': 'QUIT',
+    'QUIT': 'QUIT',
+    'A': 'ADD',
+    'ADD': 'ADD',
+    'L': 'LIST',
+    'LIST': 'LIST',
+    'A': 'ADD',
+    'ADD': 'ADD',
+    'E': 'EXTRACT',
+    'EXTRACT': 'EXTRACT',
+    'R': 'REMOVE',
+    'REMOVE': 'REMOVE',
+    'T': 'TEST',
+    'TEST': 'TEST'}
 
 command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', 'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..',  'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
 
@@ -736,7 +776,7 @@ def about():
 '''
 
     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
-    print(fold(about, '', 52))
+    print(fold(about, '', 52), '\n')
 
     return
 
@@ -771,6 +811,8 @@ def base_help():
 
 
 def shell_help(command):
+    if command in ['EXIT', 'QUIT', 'Q']:
+        command = 'EXIT'
     print(shell_cmds[command])
 
 
@@ -993,7 +1035,7 @@ def parse_input(entry):
         switch = switch.replace('"', '')
         switch = switch.replace("'", '')
 
-    if cmd and cmd not in command_list:
+    if cmd and cmd not in translate.keys():
         msg = cmd + ' is not recognized as a valid command.\n'
         print(msg)
 
@@ -1037,7 +1079,15 @@ def parse_input(entry):
 
     if switch == '/?':
         try:
-            shell_help(cmd)
+            help_text = shell_cmds[translate[cmd]]
+            help_text = help_text.split('\n')
+            for i in help_text:
+                i = '     ' + i
+                print(fold(i, '        '))
+
+            # if cmd == 'EXIT', then add switch so that the program
+            # won't quit when cmd is passed back to parse_input()
+            cmd += ' /?'
         except:
             print(cmd, 'is not recognized as a valid shell command.\n')
 
