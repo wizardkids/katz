@@ -30,7 +30,7 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- fix help so that all of it works like help for the shell commands (e.g., "dir /?")
+# todo -- review all the functions in this program and see if you can make them more efficient
 
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
 
