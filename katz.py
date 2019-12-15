@@ -30,8 +30,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- replace command_list in program with {translate}
-
 # todo -- fix help so that all of it works like help for the shell commands (e.g., "dir /?")
 
 # todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
@@ -45,7 +43,7 @@ if not sys.warnoptions:
 # declare global variables
 dsh, slsh = '=', '/'
 
-# dict holds help information for commands
+# shell_cmds dict holds help information for commands
 shell_cmds = {
     'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]\n',
     'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.\n',
@@ -63,7 +61,7 @@ shell_cmds = {
     'QUIT': 'Quits the shell and the current script.\n',
 }
 
-# used to translate command abbreviations on to full command strings
+# used to translate command abbreviations into full command strings
 translate = {
     'D': 'DIR',
     'DIR': 'DIR',
@@ -96,6 +94,7 @@ translate = {
     'T': 'TEST',
     'TEST': 'TEST'}
 
+# the following list is used in sub_menu() to filter zip-file commands
 command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', 'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..',  'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
 
 
