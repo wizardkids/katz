@@ -24,8 +24,8 @@ from datetime import datetime
 from pathlib import Path
 from subprocess import check_output
 
-# the following if... prevents a warning being issued to user if they try to add
-# a duplicate file to an archive; this warning is handled in add_file()
+# ! NOT SURE IF THIS IS VALID ANYMORE:
+# the following if... prevents a warning being issued to user if they try to add a duplicate file to an archive; this warning is handled in add_file()
 if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
