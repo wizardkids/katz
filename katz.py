@@ -284,13 +284,14 @@ def add_files(file_name, full_path, full_filename):
     if subs:
         # dir_list contains subfolders
         if '*' in user_dir or '?' in user_dir:
-            dir_filter = Path(user_dir).name
+            dir_filter = '**/' + str(Path(user_dir).name)
             dir_list = sorted(Path(user_dir).parent.glob(dir_filter))
             user_dir = str(Path(user_dir).parent)
         else:
             dir_filter = '**/*.*'
             dir_list = sorted(Path(user_dir).glob(dir_filter))
-            user_dir = str(Path(user_dir).parent)
+            user_dir = str(Path(user_dir))
+
     else:
         # dir_list contains contents of only the "dir" folder
         if '*' in user_dir or '?' in user_dir:
@@ -300,9 +301,19 @@ def add_files(file_name, full_path, full_filename):
             dir_filter = '*.*'
             dir_list = sorted(Path(user_dir).glob(dir_filter))
 
-    for ndx, file in enumerate(dir_list):
-        file = os.path.relpath(str(file), user_dir)
-        print(ndx+1, '. ', str(file), sep='')
+    cnt = 1
+    for file in dir_list:
+        # this code finds the relative folder name
+        file_parts = Path(file).parts
+        for ndx, i in enumerate(file_parts):
+            if i not in Path(user_dir).parent.parts:
+                loc = ndx
+                break
+        # rel_folder is the relative path to the current file (in selected_files)
+        rel_folder = '\\'.join(file_parts[loc:-1])
+        rel_folder = Path(rel_folder, Path(file).name)
+        print(cnt, '. ', rel_folder, sep='')
+        cnt += 1
 
     # ==================================================
     # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
@@ -337,32 +348,15 @@ def add_files(file_name, full_path, full_filename):
                 folders.add(str(Path(file).parent))
 
             # get all files in folders/subfolders that match "user_selection"
-            if subs:
-                for folder in folders:
-                    os.chdir(folder)
-                    f = glob.glob(user_selection)
-                    for i in f:
-                        file = Path(folder, i)
-                        selected_files.append(file)
-                        print(i)
-            # get all files that match "user_selection" but only in "user_dir"
-            else:
-                for folder in folders:
-                    os.chdir(folder)
-                    f = glob.glob(user_selection)
-                    for i in f:
-                        file = Path(folder, i)
-                        selected_files.append(file)
-                        print(i)
+            for folder in folders:
+                os.chdir(folder)
+                f = glob.glob(user_selection)
+                for i in f:
+                    file = Path(folder, i)
+                    selected_files.append(file)
+                    print(i)
 
-                # os.chdir(user_dir)
-                # f = glob.glob(user_selection)
-                # for i in f:
-                #     file = Path(folder, i)
-                #     selected_files.append(file)
-                #     print(f)
-
-        # extract all the file numbers from the user's list:
+        # create a list of the user's chosen files
         else:
             selected_files = get_chosen_files(
                 selected_files, user_selection, dir_list, file_name, full_path, full_filename)
