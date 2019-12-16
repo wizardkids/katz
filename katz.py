@@ -244,7 +244,6 @@ def add_files(file_name, full_path, full_filename):
     """
     current_directory = os.getcwd()
 
-
     # ==================================================
     # GET THE SOURCE DIRECTORY FROM THE USER
     # ==================================================
