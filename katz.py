@@ -396,58 +396,6 @@ def add_files(file_name, full_path, full_filename):
     return file_name, full_path, full_filename
 
 
-def get_chosen_files(selected_files, user_selection, file_list, file_name, full_path, full_filename):
-    """
-    User enters one of these and all are handled differently:
-        -- 'all'
-        -- 1, 3-5, 28, 52-68, 70
-        -- *.t?t
-
-    Arguments:
-        selected_files {[list]} -- [will contain rel_path/filename of user-selected files]
-        user_selection {[str]} -- [user-selected files... see above]
-        file_list {[list of str]} -- [path/filenames of all files in archive]
-        file_name {[str]} -- [name of the archive file]
-        full_path {[str]} -- [path to the archive file]
-        full_filename {[str]} -- [path+filename of archive file]
-
-    Returns:
-        [list] -- [rel_path/filename of user-selected files]
-    """
-
-    # split user's entry at commas
-    # list now contains integers &/or ranges
-    user_files = user_selection.split(',')
-
-    which_files = []
-    for i in user_files:
-        # treating ranges, i.e., 2-8
-        if '-' in i:
-            r = i.split('-')
-            try:
-                n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
-                for x in n:
-                    which_files.append(x)
-            except:
-                print(
-                    '\nInvalid range of numbers was excluded. Did you comma-separate values?')
-                return file_name, full_path, full_filename
-        # treating all other single digits
-        else:
-            try:
-                n = int(i)
-                which_files.append(str(n))
-            except:
-                print(
-                    '\nInvalid number(s) excluded. Did you comma-separate values?')
-                return file_name, full_path, full_filename
-
-    for file_number in which_files:
-        selected_files.append(file_list[int(file_number)-1])
-
-    return selected_files
-
-
 def extract_file(file_name, full_path, full_filename):
     """
     Extract one or more files from an archive.
@@ -575,7 +523,7 @@ def remove_files(file_name, full_path, full_filename):
             selected_files = []
             selected_files = get_chosen_files(
             selected_files, user_selection, file_list, file_name, full_path, full_filename)
-            # if process_numbers returns an empty which_files, then
+            # if get_chosen_files returns an empty selected_files, then
             # something went wrong
             if not selected_files:
                 msg = '\nInvalid entry. Try again.\n'
@@ -705,44 +653,56 @@ def remove_files(file_name, full_path, full_filename):
     return file_name, full_path, full_filename
 
 
-def process_numbers(user_selection, num_files):
-    try:
-        # extract all the file numbers from the user's list:
-        selected_files = user_selection.split(',')
-        which_files = []
-        for i in selected_files:
-            # treating ranges, i.e., 2-8
-            if '-' in i:
-                r = i.split('-')
-                try:
-                    n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
-                    for x in n:
-                        which_files.append(int(x))
-                except:
-                    print(
-                        '\nrange of numbers was excluded. Did you comma-separate values?')
-                    which_files = []
-                    break
-            # treating all other single digits
-            else:
-                try:
-                    which_files.append(int(i))
-                except:
-                    print(
-                        '\nInvalid number(s) excluded. Did you comma-separate values?')
-                    which_files = []
-                    break
-    except:
-        print('nEncountered an error process entry. Try again.')
+def get_chosen_files(selected_files, user_selection, file_list, file_name, full_path, full_filename):
+    """
+    User enters one of these and all are handled differently:
+        -- 'all'
+        -- 1, 3-5, 28, 52-68, 70
+        -- *.t?t
 
-    # check validity of file numbers in which_files
-    valid_numbers = range(1, num_files+1)
-    for n in which_files:
-        if n not in valid_numbers:
-            which_files = []
-            break
+    Arguments:
+        selected_files {[list]} -- [will contain rel_path/filename of user-selected files]
+        user_selection {[str]} -- [user-selected files... see above]
+        file_list {[list of str]} -- [path/filenames of all files in archive]
+        file_name {[str]} -- [name of the archive file]
+        full_path {[str]} -- [path to the archive file]
+        full_filename {[str]} -- [path+filename of archive file]
 
-    return which_files
+    Returns:
+        [list] -- [rel_path/filename of user-selected files]
+    """
+
+    # split user's entry at commas
+    # list now contains integers &/or ranges
+    user_files = user_selection.split(',')
+
+    which_files = []
+    for i in user_files:
+        # treating ranges, i.e., 2-8
+        if '-' in i:
+            r = i.split('-')
+            try:
+                n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
+                for x in n:
+                    which_files.append(x)
+            except:
+                print(
+                    '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                return file_name, full_path, full_filename
+        # treating all other single digits
+        else:
+            try:
+                n = int(i)
+                which_files.append(str(n))
+            except:
+                print(
+                    '\nInvalid number(s) excluded. Did you comma-separate values?')
+                return file_name, full_path, full_filename
+
+    for file_number in which_files:
+        selected_files.append(file_list[int(file_number)-1])
+
+    return selected_files
 
 
 def test_archive(file_name, full_path, full_filename):
