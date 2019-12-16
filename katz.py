@@ -983,9 +983,6 @@ def parse_input(entry):
         clear()
         base_help()
 
-    elif (cmd == 'HELP' or cmd == 'H') and switch:
-        zip_help(switch)
-
     elif cmd[:2] == 'CD' or cmd[:4] == 'CD..' or cmd[:5] == 'CD ..':
         cd(cmd, switch, full_path)
 
@@ -1082,9 +1079,29 @@ def sub_menu(file_name, full_path, full_filename):
         # fix user_choice in case user just types <ENTER>
         if user_choice == '':
             user_choice = ' '
+        else:
+            cmd = user_choice.split(' ')[0]
+            try:
+                switch = user_choice.split(' ')[1]
+            except:
+                switch = ''
 
         # actions to take on choosing a menu item
-        if user_choice == 'L' or user_choice == 'LIST':
+        if switch == '/?':
+                try:
+                    help_text = shell_cmds[translate[cmd]]
+                    help_text = help_text.split('\n')
+                    for i in help_text:
+                        i = '     ' + i
+                        print(fold(i, '        '))
+
+                    # if cmd == 'EXIT', then add switch so that the program
+                    # won't quit when cmd is passed back to parse_input()
+                    cmd += ' /?'
+                except:
+                    print(cmd, 'is not recognized as a valid shell command.\n')
+
+        elif user_choice == 'L' or user_choice == 'LIST':
             file_name, full_path, full_filename = list_files(
                 file_name, full_path, full_filename)
 
