@@ -244,8 +244,6 @@ def add_files(file_name, full_path, full_filename):
     """
     current_directory = os.getcwd()
 
-    msg = 'CURRENT DIRECTORY: ' + current_directory
-    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
     # ==================================================
     # GET THE SOURCE DIRECTORY FROM THE USER
@@ -253,19 +251,26 @@ def add_files(file_name, full_path, full_filename):
 
     while True:
         print('\nEnter "." to use current directory.')
-        dir = input("Directory containing files to add: ").strip()
+        user_dir = input("Directory containing files to add: ").strip()
 
         # if user enters nothing, return to the menu
-        if not dir:
+        if not user_dir:
             return file_name, full_path, full_filename
 
-        if dir == '.':
-            dir = Path(full_path).absolute()
+        if user_dir == '.':
+            user_dir = str(Path(full_path).absolute())
 
-        if not Path(dir).exists() or not Path(dir).is_dir():
-            print('\nEntry does not exist or is not a directory. Re-enter.')
-            continue
-        else:
+        # confirm that user's entry is valid
+        msg = 'The system cannot find the path specified.'
+        if '*' in user_dir or '?' in user_dir:
+            if Path(user_dir).parent.exists():
+                msg = ''
+        elif Path(user_dir).exists():
+            if Path(user_dir).is_file():
+                msg = ''
+            else:
+                msg = ''
+        if not msg:
             subs = input('Include subdirectories (Y/N): ').strip().upper()
             subs = True if subs == 'Y' else False
             print()
@@ -278,32 +283,32 @@ def add_files(file_name, full_path, full_filename):
 
     if subs:
         # dir_list contains subfolders
-        dir_list = sorted(Path(dir).glob('**/*.*'))
+        if '*' in user_dir or '?' in user_dir:
+            dir_filter = Path(user_dir).name
+            dir_list = sorted(Path(user_dir).parent.glob(dir_filter))
+            user_dir = str(Path(user_dir).parent)
+        else:
+            dir_filter = '**/*.*'
+            dir_list = sorted(Path(user_dir).glob(dir_filter))
+            user_dir = str(Path(user_dir).parent)
     else:
         # dir_list contains contents of only the "dir" folder
-        dir_list = sorted(Path(dir).glob('*.*'))
+        if '*' in user_dir or '?' in user_dir:
+            dir_filter = Path(user_dir).name
+            dir_list = sorted(Path(user_dir).parent.glob(dir_filter))
+        else:
+            dir_filter = '*.*'
+            dir_list = sorted(Path(user_dir).glob(dir_filter))
 
-    with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
-        cnt = 1
-        for file in dir_list:
-            # this code finds the relative folder name
-            file_parts = Path(file).parts
-            for ndx, i in enumerate(file_parts):
-                if i not in Path(dir).parent.parts:
-                    loc = ndx
-                    break
-            rel_folder = '\\'.join(file_parts[loc:-1])
-            # rel_folder is path of file relative to the directory that the user entered
-            rel_folder = Path(rel_folder, Path(file).name)
-            print(cnt, '. ', rel_folder, sep='')
-            cnt += 1
+    for ndx, file in enumerate(dir_list):
+        file = os.path.relpath(str(file), user_dir)
+        print(ndx+1, '. ', str(file), sep='')
 
     # ==================================================
     # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
     # ==================================================
 
     while True:
-        # let user choose which file(s) to add
         # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
         print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*, ?) to designate files')
 
@@ -317,7 +322,7 @@ def add_files(file_name, full_path, full_filename):
         # BASED ON USER'S CHOICES, CREATE A LIST OF THE ELIGIBLE FILES
         # ========================================================
 
-        selected_files = []  # list that contains file names w/ paths to add
+        selected_files = []
         if user_selection.upper() == 'ALL':
             which_files = [str(x) for x in range(1, len(dir_list)+1)]
             for file_number in which_files:
@@ -331,7 +336,7 @@ def add_files(file_name, full_path, full_filename):
             for file in dir_list:
                 folders.add(str(Path(file).parent))
 
-            # get all files in subfolders that match "user_selection"
+            # get all files in folders/subfolders that match "user_selection"
             if subs:
                 for folder in folders:
                     os.chdir(folder)
@@ -340,14 +345,22 @@ def add_files(file_name, full_path, full_filename):
                         file = Path(folder, i)
                         selected_files.append(file)
                         print(i)
-            # get all files that match "user_selection" but only in "dir"
+            # get all files that match "user_selection" but only in "user_dir"
             else:
-                os.chdir(dir)
-                f = glob.glob(user_selection)
-                for i in f:
-                    file = Path(folder, i)
-                    selected_files.append(file)
-                    print(f)
+                for folder in folders:
+                    os.chdir(folder)
+                    f = glob.glob(user_selection)
+                    for i in f:
+                        file = Path(folder, i)
+                        selected_files.append(file)
+                        print(i)
+
+                # os.chdir(user_dir)
+                # f = glob.glob(user_selection)
+                # for i in f:
+                #     file = Path(folder, i)
+                #     selected_files.append(file)
+                #     print(f)
 
         # extract all the file numbers from the user's list:
         else:
@@ -380,7 +393,7 @@ def add_files(file_name, full_path, full_filename):
             # this code finds the relative folder name
             file_parts = Path(file).parts
             for ndx, i in enumerate(file_parts):
-                if i not in Path(dir).parent.parts:
+                if i not in Path(user_dir).parent.parts:
                     loc = ndx
                     break
             # rel_folder is the relative path to the current file (in selected_files)
