@@ -314,7 +314,6 @@ def add_file(file_name, full_path, full_filename):
 
         # if nothing is entered, return to menu
         if not choice:
-            os.chdir(current_directory)
             return file_name, full_path, full_filename
 
         # ========================================================
@@ -355,35 +354,8 @@ def add_file(file_name, full_path, full_filename):
 
         # extract all the file numbers from the user's list:
         else:
-            # split user's entry at commas
-            # list now contains integers &/or ranges
-            selected_files = choice.split(',')
-
-            which_files = []
-            for i in selected_files:
-                # treating ranges, i.e., 2-8
-                if '-' in i:
-                    r = i.split('-')
-                    try:
-                        n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
-                        for x in n:
-                            which_files.append(x)
-                    except:
-                        print(
-                            '\nInvalid range of numbers was excluded. Did you comma-separate values?')
-                        return file_name, full_path, full_filename
-                # treating all other single digits
-                else:
-                    try:
-                        n = int(i)
-                        which_files.append(str(n))
-                    except:
-                        print(
-                            '\nInvalid number(s) excluded. Did you comma-separate values?')
-                        return file_name, full_path, full_filename
-
-            for file_number in which_files:
-                add_files.append(file_list[int(file_number)-1])
+            add_files = get_chosen_files(
+                add_files, choice, file_list, file_name, full_path, full_filename)
 
         break
 
@@ -424,6 +396,43 @@ def add_file(file_name, full_path, full_filename):
                     f.write(file, arcname=rel_folder)
 
     return file_name, full_path, full_filename
+
+
+def get_chosen_files(add_files, choice, file_list, file_name, full_path, full_filename):
+    """
+
+    """
+    # split user's entry at commas
+    # list now contains integers &/or ranges
+    selected_files = choice.split(',')
+
+    which_files = []
+    for i in selected_files:
+        # treating ranges, i.e., 2-8
+        if '-' in i:
+            r = i.split('-')
+            try:
+                n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
+                for x in n:
+                    which_files.append(x)
+            except:
+                print(
+                    '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                return file_name, full_path, full_filename
+        # treating all other single digits
+        else:
+            try:
+                n = int(i)
+                which_files.append(str(n))
+            except:
+                print(
+                    '\nInvalid number(s) excluded. Did you comma-separate values?')
+                return file_name, full_path, full_filename
+
+    for file_number in which_files:
+        add_files.append(file_list[int(file_number)-1])
+
+    return add_files
 
 
 def extract_file(file_name, full_path, full_filename):
@@ -793,21 +802,20 @@ def fold(txt, ndnt='     ', w=52):
 def base_help():
     msg = '/'*23 + ' HELP ' + '/'*23
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
-    print('Help for shell commands: cmd /? (example: dir /?)')
+    print('Usage: cmd /? (example: dir /?)')
     print('\n', 'AVAILABLE SHELL COMMANDS:', sep='')
     for k, v in shell_cmds.items():
         if k == 'O' or k == 'N':
             pass
         else:
-            print(k)
-    print()
-    print('Help for zip file commands: help [cmd] (example: help o)')
-    print('\n', 'AVAILABLE ZIP FILE COMMANDS:', sep='')
-    print('L or LIST')
-    print('A or ADD')
-    print('E or EXTRACT')
-    print('R or REMOVE')
-    print('T or TEST')
+            if k in ['QUIT', 'Q']:
+                pass
+            else:
+                if k == 'EXIT':
+                    print('EXIT, QUIT, Q')
+                else:
+                    print(k)
+
     print('\nAll commands are case insensitive.')
     print( dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
     print()
@@ -817,115 +825,6 @@ def shell_help(command):
     if command in ['EXIT', 'QUIT', 'Q']:
         command = 'EXIT'
     print(shell_cmds[command])
-
-
-def zip_help(switch):
-    """
-    A help function.
-    """
-    open1_txt = """
-    Enter a filename, including a .zip extension. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.
-"""
-
-    new_txt = """
-    katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.
-"""
-
-    list_txt = """
-    <L>ist all the files in the archive. <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.
-"""
-
-    add1_txt = """
-    -- <A>dd provides a list of files that you can <A>dd to the archive.
-"""
-    add2_txt = """
-    -- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to a folder with the same name as the folder holding the zip file.
-"""
-    add3_txt = """
-    -- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.
-"""
-    add4_txt = """
-    -- For speed, three methods are provided for identifying files that you want to <A>dd. Don't mix methods! You can mix numbers and ranges, though. See the second item under <E>tract, below, for details.
-"""
-
-    extract1_txt = """
-    -- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.
-"""
-    extract2_txt = """
-    -- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:
-"""
-    extract3_txt = """
-        (1) 1, 2, 8, 4  [order does not matter]
-"""
-    extract4_txt = """
-        (2) 3-8, 11, 14  [mix a range and individual numbers]
-"""
-    extract5_txt = """
-        (3) all  [extracts all files]
-"""
-    extract6_txt = """
-    SYMLINKS:
-"""
-    extract7_txt = """
-        "katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.
-"""
-
-    remove_txt1 = """
-    <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders.
-"""
-    remove_txt2 = """
-    Removing all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.
-"""
-
-    test_txt = """
-    <T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!
-"""
-    switch = switch.strip().upper()
-
-    if switch == 'O' or switch == 'OPEN':
-        print('\nOpen File')
-        print(fold(open1_txt, '          '))
-
-    elif switch == 'N' or switch == 'NEW':
-        print('\nNew File')
-        print(fold(new_txt))
-
-    elif switch == 'L' or switch == 'LIST':
-        print('\nList Files')
-        print(fold(list_txt))
-
-    elif switch == 'A' or switch == 'ADD':
-        print('\nAdd Files')
-        print(fold(add1_txt, '          '))
-        print(fold(add2_txt, '          '))
-        print(fold(add3_txt, '          '))
-        print(fold(add4_txt, '          '))
-
-    elif switch == 'E' or switch == 'EXTRACT':
-        print('\nExtract Files')
-        print(fold(extract1_txt, '          '))
-        print(fold(extract2_txt, '          '))
-        print(fold(extract3_txt, '          '))
-        print(fold(extract4_txt, '          '))
-        print(fold(extract5_txt, '          '))
-        print(fold(extract6_txt))
-        print(fold(extract7_txt, '          '))
-
-    elif switch == 'R' or switch == 'REMOVE':
-        print('\nRemove File')
-        print(fold(remove_txt1, '          '))
-        print(fold(remove_txt2, '          '))
-
-    elif switch == 'T' or switch == 'TEST':
-        print('\nTest Archive')
-        print(fold(test_txt))
-
-    else:
-        print(switch, 'is not recognized as a valid zip-file command.')
-
-    print()
-
-    return
 
 
 def get_revision_number():
@@ -1154,7 +1053,7 @@ def main_menu():
     version_num = "2.0"
     revision_number = get_revision_number()
     print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-    print('\n<O>pen file    <N>ew file\n<A>bout\n\n<H>elp - from most prompts')
+    print('\n<O>pen file   <N>ew file\n<A>bout       <H>elp')
     print('')
 
     # ===============================================
