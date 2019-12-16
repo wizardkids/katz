@@ -788,7 +788,7 @@ def get_revision_number():
     return revision_delta
 
 
-def dir(full_path=''):
+def dir_files(file_name='', full_path='', full_filename=''):
     """
     Run a OS dir command.
 
@@ -796,12 +796,6 @@ def dir(full_path=''):
         full_path {str or WindowsPath object} -- contains the path for which to get a directory listing
         default: {''})
     """
-     # full_path is passed by parse_input() as a WindowsPath object
-    full_path = str(full_path)
-    # remove quotes from full_path, if present
-    full_path = full_path.replace('"', '')
-    full_path = full_path.replace("'", '')
-
     try:
         # preserve the user's current directory
         current_directory = os.getcwd()
@@ -809,7 +803,6 @@ def dir(full_path=''):
         if full_path:
             # if user enteres "dir subfolder", next line
             # provides the whole path
-            full_path = Path(full_path).absolute()
             os.chdir(full_path)
         output = str(check_output('dir', shell=True))
         out = output.split('\\r\\n')
@@ -825,6 +818,8 @@ def dir(full_path=''):
     except:
         print('The system cannot find the path specified: ', full_path)
     print()
+
+    return file_name, full_path, full_filename
 
 
 def cd(cmd='', switch='', full_path=''):
@@ -955,7 +950,7 @@ def parse_input(entry):
         cd(cmd, switch, full_path)
 
     elif cmd[:3] == 'DIR':
-        dir(full_path)
+        file_name, full_path, full_filename = dir_files(file_name, full_path, full_filename)
 
     elif cmd in ['CLS', 'CLEAR']:
         clear()
@@ -1061,7 +1056,8 @@ def sub_menu(file_name, full_path, full_filename):
                     full_path = user_choice[4:]
             except:
                 full_path = ''
-            dir(full_path)
+            file_name, full_path, full_filename = dir_files(
+                file_name, full_path, full_filename)
 
         elif user_choice == 'A' or user_choice == 'ADD':
             file_name, full_path, full_filename = add_files(
