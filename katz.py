@@ -446,48 +446,49 @@ def extract_file(file_name, full_path, full_filename):
     if user_selection_isNumbers:
 
         # selected_files will contain all the files we want to extract
-        # if user_selection="ALL", then generate a list of all file numbers
-        if user_selection.strip().upper() == 'ALL':
-            selected_files = file_list
-
-        else:
-            selected_files = []
-            selected_files = get_chosen_files(
-                selected_files, user_selection, file_list, file_name, full_path, full_filename)
-    # otherwise, process "user_selection" as a folder
+        selected_files = []
+        user_selection = user_selection.replace('/', '\\')
+        selected_files = get_chosen_files(
+            selected_files, user_selection, file_list, file_name, full_path, full_filename)
+    # otherwise, process "user_selection" as a folder or 'all'
     else:
         # deny ability to delete root/ folder
         if 'ROOT' in user_selection.upper():
             msg = '\nOperation cannot be completed.\nFor help, type: "extract /?".\n'
             print('='*52, msg, '='*52, sep='')
             return file_name, full_path, full_filename
+
         user_selection = user_selection.replace('/', '\\')
 
-        # confirm the user's selection of a folder to remove by
-        # looking for it within file_list
-        for ndx, file in enumerate(file_list):
-            # if "file" contains the path in "user_selection"
-            file_path = str(Path(file).parent)
-            if user_selection.upper() == file_path.upper():
-                confirmed = input('Extract folder: ' +
-                                    user_selection + ' (Y/N) ').upper()
-                break
-            if ndx == num_files-1:
-                msg = '\nCould not find the folder "' + user_selection + '" in the archive.\n'
-                print('='*52, msg, '='*52, sep='')
-                confirmed = 'N'
-                continue
-        if confirmed == 'Y':
+        # if user_selection="ALL", then generate a list of all file numbers
+        if user_selection.strip().upper() == 'ALL':
             # add all files in user_selected folder to selected_files
-            selected_files = []
-            for file in file_list:
-                if str(Path(file).parent).upper() == user_selection.upper():
-                    selected_files.append(file)
+            selected_files = file_list
+            # for file in file_list:
+            #     if str(Path(file).parent).upper() == user_selection.upper():
+            #         selected_files.append(file)
+        else:
+            # confirm the user's selection of a folder to remove by
+            # looking for it within file_list
+            for ndx, file in enumerate(file_list):
+                # if "file" contains the path in "user_selection"
+                file_path = str(Path(file).parent)
+                if user_selection.upper() == file_path.upper():
+                    confirmed = input('Extract folder: ' +
+                                        user_selection + ' (Y/N) ').upper()
+                    break
+                if ndx == num_files-1:
+                    msg = '\nCould not find the folder "' + user_selection + '" in the archive.\n'
+                    print('='*52, msg, '='*52, sep='')
+                    confirmed = 'N'
+                    continue
 
     # ==============================================
     # EXTRACT THE FILES THE USER HAS CHOSEN AND
     #       PRINT FILE NAMES ON SCREEN
     # ==============================================
+
+# fixme: may need to chdir() here; selected_files may not have the correct relative path
 
     with zipfile.ZipFile(full_filename, 'r') as f:
         print('\nExtracting...')
