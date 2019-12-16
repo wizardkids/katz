@@ -24,7 +24,6 @@ from datetime import datetime
 from pathlib import Path
 from subprocess import check_output
 
-# ! NOT SURE IF THIS IS VALID ANYMORE:
 # the following if... prevents a warning being issued to user if they try to add a duplicate file to an archive; this warning is handled in add_file()
 if not sys.warnoptions:
     import warnings
@@ -54,7 +53,7 @@ shell_cmds = {
     'N': 'Create a new zip file. Optionally include a path.\n',
     'LIST': '<L>ist all the files in the archive. <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.\n',
     'ADD': '-- <A>dd provides a list of files that you can <A>dd to the archive.\n\n-- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to a folder with the same name as the folder holding the zip file.\n\n-- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
-    'EXTRACT': '-- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.\n-- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of using numbers to identify individual files:\n(1) 1, 2, 8, 4  [order does not matter]\n(2) 3-8, 11, 14  [mix a range and individual numbers]\n(3) all  [extracts all files]\nSYMLINKS:\n"katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.\n',
+    'EXTRACT': '-- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.\n-- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of different ways of identifying files for extraction:\n(1) 1, 2, 8, 4  [order does not matter]\n(2) 3-8, 11, 14  [mix a range and individual numbers]\n(3) enter a folder name\n(4) all  [extracts all files]\nSYMLINKS:\n"katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.\n',
     'REMOVE': '<R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders.\nRemoving all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.\n',
     'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!\n',
     'EXIT': 'Quits the shell and the current script.\n',
@@ -407,6 +406,7 @@ def extract_file(file_name, full_path, full_filename):
         # file_list contains relative paths of files in archive
         file_list = f.namelist()
         file_list = sorted(file_list, reverse=True)
+        num_files = len(file_list)
 
     file_name, full_path, full_filename = list_files(
         file_name, full_path, full_filename)
@@ -417,7 +417,7 @@ def extract_file(file_name, full_path, full_filename):
 
     # sample user input: 1, 3-5, 28, 52-68, 70
     print(
-        '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to extract\n  -- a hyphenated list of sequential numbers\n  -- or enter "all" to extract all files\n')
+        '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to extract\n  -- a hyphenated list of sequential numbers\n  -- a folder name\n  -- or enter "all" to extract all files\n')
     user_selection = input("File number(s) to extract: ")
 
     # ==============================================
@@ -428,15 +428,55 @@ def extract_file(file_name, full_path, full_filename):
     if not user_selection.strip():
         return file_name, full_path, full_filename
 
-    # selected_files will contain all the files we want to extract
-    # if user_selection="ALL", then generate a list of all file numbers
-    if user_selection.strip().upper() == 'ALL':
-        selected_files = file_list
+    # determine if "user_selection" is an integer/range or a folder
+    for c in user_selection:
+        # if the entire string comprises digits or contains '-'
+        if c in string.digits or c in [',', ' ', '-']:
+            user_selection_isNumbers = True
+        else:
+            user_selection_isNumbers = False
+            break
 
+    if user_selection_isNumbers:
+
+        # selected_files will contain all the files we want to extract
+        # if user_selection="ALL", then generate a list of all file numbers
+        if user_selection.strip().upper() == 'ALL':
+            selected_files = file_list
+
+        else:
+            selected_files = []
+            selected_files = get_chosen_files(
+                selected_files, user_selection, file_list, file_name, full_path, full_filename)
+    # otherwise, process "user_selection" as a folder
     else:
-        selected_files = []
-        selected_files = get_chosen_files(
-            selected_files, user_selection, file_list, file_name, full_path, full_filename)
+        # deny ability to delete root/ folder
+        if 'ROOT' in user_selection.upper():
+            msg = '\nOperation cannot be completed.\nFor help, type: "extract /?".\n'
+            print('='*52, msg, '='*52, sep='')
+            return file_name, full_path, full_filename
+        user_selection = user_selection.replace('/', '\\')
+
+        # confirm the user's selection of a folder to remove by
+        # looking for it within file_list
+        for ndx, file in enumerate(file_list):
+            # if "file" contains the path in "user_selection"
+            file_path = str(Path(file).parent)
+            if user_selection.upper() == file_path.upper():
+                confirmed = input('Extract folder: ' +
+                                    user_selection + ' (Y/N) ').upper()
+                break
+            if ndx == num_files-1:
+                msg = '\nCould not find the folder "' + user_selection + '" in the archive.\n'
+                print('='*52, msg, '='*52, sep='')
+                confirmed = 'N'
+                continue
+        if confirmed == 'Y':
+            # add all files in user_selected folder to selected_files
+            selected_files = []
+            for file in file_list:
+                if str(Path(file).parent).upper() == user_selection.upper():
+                    selected_files.append(file)
 
     # ==============================================
     # EXTRACT THE FILES THE USER HAS CHOSEN AND
