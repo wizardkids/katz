@@ -94,41 +94,82 @@ translate = {
     'TEST': 'TEST'}
 
 # the following list is used in sub_menu() to filter zip-file commands
-command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', 'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..',  'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
+command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', \
+                'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..', \
+                'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
+
+def parse_full_filename(path):
+    """
+    Takes a full path (path, including a file name) and parses it into a file name and a path (without the filename).
+
+    Arguments:
+        path {str} -- a full path including a file name
+
+    Returns:
+        three str - file name, path only, path plus file name
+    """
+    return Path(path).name, str(Path(path).parent), path
 
 
-def create_new(switch):
+def valid_path(path):
+    """
+    Is the given path a valid OS path?
+
+    Arguments:
+        path {str} -- a proposed path/filename, to be tested
+
+    Returns:
+        [bool] -- [True if (1) the path/file exists; (2) it's a valid OS path and (3) it must include a file name]
+    """
+    try:
+        with zipfile.ZipFile('path', 'r') as f:
+            pass
+        if Path(path).name[-4:].upper() == '.ZIP':
+            return True
+        else:
+            return False
+    except FileNotFoundError:
+        return False
+
+
+def new(switch):
     """
     Create a new zip file.
+
+    Paths entered by users can contain a plethora of errors including spelling errors, non-existant paths, and file names that don't meet OS requirements. Also, the python zipfile module does not require that zip files have a .zip extension, but such an extension makes life easier for the user and is required by this program.
+
+    A simple testing strategy is employed: see if the path/file can be opened. A multitude of errors are tested all at once.
+
+    Arguments:
+        switch {[str]} -- [assumed to be path/filename, stripped of leading and trailing spaces]
+
+    Returns:
+        [str] -- [a validated path/filename or an empty string]
     """
-    # if the user included a path/file on the command line...
-    if switch:
-        file_name = Path(switch).name
-        full_path = str(Path(switch).parent.absolute())
-        full_filename = str(Path(Path(full_path) / file_name))
-    # otherwise, get a filename from the user
+    # "cmd switch" pattern may be entered the command line. "cmd" is assumed to be "new";"switch", if present, is assumed to be a path/file.
+    # if "switch" is an empty string, get a [path]/filename from the user
+    if not switch:
+        full_filename = input("\nName of archive: ").strip()
+
+        file_name, full_path, full_filename = parse_full_filename(switch)
+
+    # if user entered a "switch", test it, then parse it
     else:
-        full_path = input("\nName of archive: ").strip()
-        file_name = Path(full_path).name
-        full_path = str(Path(full_path).parent.absolute())
-        full_filename = str(Path(Path(full_path) / file_name))
-        print()
+        # if user did not enter an extension, add .zip
+        switch = switch + '.zip' if switch[-4].upper() != '.ZIP' else switch
 
-    # if there's no full_path, return to the menu
+        if valid_path(switch):
+            file_name, full_path, full_filename = parse_full_filename(switch)
+
+        else:
+            print('The system cannot find the path specified.')
+            return ''
+
+    # if user entered an empty string or parse_full_filename() returned an empty string, return to the menu
     if not file_name:
-        return '', '', ''
-    # if a file was entered, but not a zip file...
-    if Path(full_filename).suffix.upper() != '.ZIP':
-        print('File is not a zip file.\n')
-        return '', '', ''
+        return ''
 
-    try:
-        os.chdir(full_path)
-    except:
-        print('The system cannot find the path specified.')
-        return '', '', ''
-
-    # if file already exists, issue "overwrite" warning
+    # if file already exists, overwrite only is user agrees
     try:
         with zipfile.ZipFile(full_filename, 'r') as f:
             msg = file_name + ' already exists. Overwrite? (Y/N) '
@@ -137,18 +178,18 @@ def create_new(switch):
             if overwrite == 'Y':
                 with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
                     print('\n', file_name, 'created as new archive.\n')
-                return file_name, full_path, full_filename
+                return full_filename
 
             else:
                 print(file_name, 'not created.\n')
-                return '', '', ''
+                return ''
 
     # if file_name was not found, then we can create it!
     except FileNotFoundError:
         with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
             print('\n', file_name, 'created as new archive.\n')
 
-        return file_name, full_path, full_filename
+        return full_filename
 
 
 def open_archive(switch):
@@ -1013,7 +1054,7 @@ def parse_input(entry):
 
     elif cmd == 'N':
         open_file, new_file = False, True
-        file_name, full_path, full_filename = create_new(switch)
+        full_filename = new(switch)
         if file_name:
             sub_menu(file_name, full_path, full_filename)
 
