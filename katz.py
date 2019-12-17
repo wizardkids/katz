@@ -408,14 +408,15 @@ def extract_file(file_name, full_path, full_filename):
     # ==============================================
     # GET A LIST FILES IN THE ARCHIVE AND PRINT IT
     # ==============================================
+    file_name, full_path, full_filename = list_files(
+        file_name, full_path, full_filename)
+
     with zipfile.ZipFile(full_filename, 'r') as f:
         # file_list contains relative paths of files in archive
         file_list = f.namelist()
         file_list = sorted(file_list, reverse=True)
         num_files = len(file_list)
 
-    file_name, full_path, full_filename = list_files(
-        file_name, full_path, full_filename)
 
     # ==============================================
     # LET USER CHOOSE WHICH FILE(S) TO EXTRACT
@@ -450,6 +451,7 @@ def extract_file(file_name, full_path, full_filename):
         user_selection = user_selection.replace('/', '\\')
         selected_files = get_chosen_files(
             selected_files, user_selection, file_list, file_name, full_path, full_filename)
+
     # otherwise, process "user_selection" as a folder or 'all'
     else:
         # deny ability to delete root/ folder
@@ -468,27 +470,31 @@ def extract_file(file_name, full_path, full_filename):
             #     if str(Path(file).parent).upper() == user_selection.upper():
             #         selected_files.append(file)
         else:
-            # confirm the user's selection of a folder to remove by
+            # confirm the user's selection of a folder to extracty by
             # looking for it within file_list
+            selected_files = []
             for ndx, file in enumerate(file_list):
                 # if "file" contains the path in "user_selection"
                 file_path = str(Path(file).parent)
                 if user_selection.upper() == file_path.upper():
-                    confirmed = input('Extract folder: ' +
-                                        user_selection + ' (Y/N) ').upper()
-                    break
-                if ndx == num_files-1:
-                    msg = '\nCould not find the folder "' + user_selection + '" in the archive.\n'
-                    print('='*52, msg, '='*52, sep='')
-                    confirmed = 'N'
-                    continue
+                    selected_files.append(file)
+            if not selected_files:
+                print('File not found.')
+
+    # ==============================================
+    # CONFIRM THE SELECTION OF FILES
+    # ==============================================
+    for ndx, file in enumerate(selected_files):
+        print(ndx+1, '. ', file, sep='')
+
+    confirm = input('\nExtract files (Y/N) ').upper()
+    if confirm != 'Y':
+        return file_name, full_path, full_filename
 
     # ==============================================
     # EXTRACT THE FILES THE USER HAS CHOSEN AND
     #       PRINT FILE NAMES ON SCREEN
     # ==============================================
-
-# fixme: may need to chdir() here; selected_files may not have the correct relative path
 
     with zipfile.ZipFile(full_filename, 'r') as f:
         print('\nExtracting...')
