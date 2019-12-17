@@ -103,7 +103,7 @@ def parse_full_filename(path):
     Takes a full path (path, including a file name) and parses it into a file name and a path (without the filename).
 
     Arguments:
-        path {str} -- a full path including a file name
+        path {str} -- an absolute path plus a file name
 
     Returns:
         three str - file name, path only, path plus file name
@@ -116,13 +116,13 @@ def valid_path(path):
     Is the given path a valid OS path?
 
     Arguments:
-        path {str} -- a proposed path/filename, to be tested
+        path {str} -- a proposed absolute path plus a file name, to be tested
 
     Returns:
         [bool] -- [True if (1) the path/file exists; (2) it's a valid OS path and (3) it must include a file name]
     """
     try:
-        with zipfile.ZipFile('path', 'r') as f:
+        with zipfile.ZipFile(path, 'r') as f:
             pass
         if Path(path).name[-4:].upper() == '.ZIP':
             return True
@@ -162,7 +162,7 @@ def new(switch):
             file_name, full_path, full_filename = parse_full_filename(switch)
 
         else:
-            print('The system cannot find the path specified.')
+            print('The system cannot find the path specified.\n')
             return ''
 
     # if user entered an empty string or parse_full_filename() returned an empty string, return to the menu
@@ -192,49 +192,44 @@ def new(switch):
         return full_filename
 
 
-def open_archive(switch):
+def open(switch):
     """
-    Open an archive and list the files in the archive. If a path is entered, chdir() to that path and then save the filename as file_name.
-    """
-    # if a path/file was entered, then use the path to chdir()
-    if switch and Path(switch).is_file():
-        file_name = Path(switch).name
-        full_path = str(Path(switch).parent.absolute())
-        full_filename = str(Path(Path(full_path) / file_name))
-        os.chdir(full_path)
+    Open an archive. If a path is entered, chdir() to that path.
 
-    # if an only a path was entered, or not argument was entered...
+    Paths entered by users can contain a plethora of errors including spelling errors, non-existant paths, and file names that don't meet OS requirements. A simple testing strategy is employed: see if the path/file can be opened. A multitude of errors are tested all at once.
+
+    Arguments:
+        switch {str} -- [path]/file
+
+    Returns:
+        str -- path/file
+    """
+
+    # if no "switch" was entered, get user input
+    if not switch:
+        f = input("\nName of archive: ").strip()
+
+        # if no path was entered (only a file name), get full path
+        if '\\' not in f:
+            switch = str(Path(f).absolute())
+
+    # if user entered only path at the command line, get the absolute path
     else:
-        print('File not found.')
-        full_path = input("\nName of archive: ").strip()
-        print()
-        file_name = Path(full_path).name
-        full_path = str(Path(full_path).parent.absolute())
-        full_filename = str(Path(Path(full_path) / file_name))
-        os.chdir(full_path)
+        if '\\' not in switch:
+            switch = str(Path(switch).absolute())
 
-    # if no file_name was entered, return to menu
-    if not file_name:
-        return '', '', ''
+    # test validity of what the user entered either at the command line or at input()
+    if valid_path(switch):
+        full_filename = switch
+    else:
+        print('The system cannot find the path specified.\n')
+        return ''
 
-    # sort out possible errors in file_name
-    try:
-        with zipfile.ZipFile(full_filename, 'r') as f:
-            pass
-    except FileNotFoundError:
-        print('File not found.\n')
-        return '', '', ''
-    except OSError:
-        print('Invalid file name.\n')
-        return '', '', ''
-    except zipfile.BadZipFile:
-        print('File is not a zip file.\n')
-        return '', '', ''
-    except:
-        print('Encountered an unpredicable error.\n')
-        return '', '', ''
+    # change the working directory to directory containing the zip file
+    file_name, full_path, full_filename = parse_full_filename(full_filename)
+    os.chdir(full_path)
 
-    return file_name, full_path, full_filename
+    return full_filename
 
 
 def list_files(file_name, full_path, full_filename):
@@ -967,6 +962,9 @@ def parse_input(entry):
         cmd, switch = entry.upper(), ''
 
     # command + space + switch
+
+# fixme: getting this error: line 996, in parse_input "if full_path.is_dir():" The error message is: "OSError: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'c:\\temp\\one\\tem>.zip' and I get it when I enter a bad path"
+
     else:
         space_ndx = entry.find(' ')
         cmd, switch = entry[:space_ndx].upper(), entry[space_ndx+1:]
@@ -1048,12 +1046,15 @@ def parse_input(entry):
 
     elif cmd == 'O' or cmd == 'OPEN':
         open_file, new_file = True, False
-        file_name, full_path, full_filename = open_archive(switch)
-        if file_name:
+        full_filename = open(switch)
+        if full_filename:
             sub_menu(file_name, full_path, full_filename)
 
     elif cmd == 'N':
         open_file, new_file = False, True
+
+# fixme: when i opened an non-existant zipfile, i go tothe submenu (which is inappropritae) and when I go back to main menu, I get "line 1133, in sub_menu if switch == '/?': UnboundLocalError: local variable 'switch' referenced before assignment"
+
         full_filename = new(switch)
         if file_name:
             sub_menu(file_name, full_path, full_filename)
@@ -1131,6 +1132,7 @@ def sub_menu(file_name, full_path, full_filename):
             print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
         # fix user_choice in case user just types <ENTER>
+
         if user_choice == '':
             user_choice = ' '
         else:
@@ -1141,6 +1143,9 @@ def sub_menu(file_name, full_path, full_filename):
                 switch = ''
 
         # actions to take on choosing a menu item
+
+# fixme: switch is being reference before it's assigned
+
         if switch == '/?':
                 try:
                     help_text = shell_cmds[translate[cmd]]
