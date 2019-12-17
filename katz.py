@@ -106,9 +106,13 @@ def parse_full_filename(path):
         path {str} -- an absolute path plus a file name
 
     Returns:
-        three str - file name, path only, path plus file name
+        three {str} - file name, path only, path plus file name
     """
-    return Path(path).name, str(Path(path).parent), path
+    file_name = Path(path).name
+    full_path = str(Path(path).parent.absolute())
+    full_filename = str(Path(path).absolute())
+
+    return file_name, full_path, full_filename
 
 
 def valid_path(path):
@@ -128,7 +132,7 @@ def valid_path(path):
             return True
         else:
             return False
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError, OSError):
         return False
 
 
@@ -192,7 +196,7 @@ def new(switch):
         return full_filename
 
 
-def open(switch):
+def open(full_filename):
     """
     Open an archive. If a path is entered, chdir() to that path.
 
@@ -205,8 +209,8 @@ def open(switch):
         str -- path/file
     """
 
-    # if no "switch" was entered, get user input
-    if not switch:
+    # if no "full_filename" was entered, get user input
+    if not full_filename:
         f = input("\nName of archive: ").strip()
 
         # if no path was entered (only a file name), get full path
@@ -215,13 +219,11 @@ def open(switch):
 
     # if user entered only path at the command line, get the absolute path
     else:
-        if '\\' not in switch:
-            switch = str(Path(switch).absolute())
+        if '\\' not in full_filename:
+            full_filename = str(Path(full_filename).absolute())
 
     # test validity of what the user entered either at the command line or at input()
-    if valid_path(switch):
-        full_filename = switch
-    else:
+    if not valid_path(full_filename):
         print('The system cannot find the path specified.\n')
         return ''
 
@@ -877,61 +879,80 @@ def get_revision_number():
     return revision_delta
 
 
-def dir_files(file_name='', full_path='', full_filename=''):
+def dir(switch=''):
     """
-    Run a OS dir command.
+    Perform an OS dir command for the current path or the path designated by "switch". Path may be an absolute path, a relative path. or ".."
 
     Keyword Arguments:
-        full_path {str or WindowsPath object} -- contains the path for which to get a directory listing
-        default: {''})
+        switch {str} -- an OS path (default: {''})
+
+    Returns: None
     """
+    # preserve the user's current directory
+    current_directory = os.getcwd()
+
+    # make sure "switch" is an absolute path, especially is
+    # user entered ".."  or a subfolder
+    file_name, full_path, full_filename = parse_full_filename(switch)
+
     try:
-        # preserve the user's current directory
-        current_directory = os.getcwd()
-        # change the cwd if a path was entered
-        if full_path:
-            # if user enteres "dir subfolder", next line
-            # provides the whole path
-            os.chdir(full_path)
+        # if user entered a path, change the cwd to path
+        if switch:
+            os.chdir(full_filename)
         output = str(check_output('dir', shell=True))
         out = output.split('\\r\\n')
-        # print the output of 'dir'
+        # print the output
         print()
         for ndx, i in enumerate(out[:-1]):
             if ndx == 0:
                 print(i[2:])
             else:
                 print(i)
+
         # restore the user's current directory
         os.chdir(current_directory)
+
+    # if the path in "switch" can't be found, issue an error message
     except:
-        print('The system cannot find the path specified: ', full_path)
+        print('The system cannot find the path specified: ', full_filename)
     print()
 
     return file_name, full_path, full_filename
 
 
-def cd(cmd='', switch='', full_path=''):
+def cd(switch=''):
     """
-    Run an OS cd (change directory) command.
+    Run an OS cd (change directory) command using the path contained in "switch". The path will be validated since the user may have entered "garbage". The path may be an absolute path or a relative path. "CD.." is a valid command and, in this case, "switch" will be "..". This function will handle that.
 
     Keyword Arguments:
-        cmd {str} -- the command to run (cd) (default: {''})
-        switch {str} -- the path to cd to; may be .. (default: {''})
-        full_path {WindowsPath object} -- the path to cd to; needed in case cd.. is entered (default: {''})
+        switch {str} -- expected to be a path, a relative path, or '..' (default: {''})
     """
+    # if user didn't enter a valid cmd or path, there's nothing to do
+    if switch == '':
+        return None
+
     try:
-        if cmd[2:] == '..' or switch == '..':
-            os.chdir(full_path.absolute().parent)
+        # cd .. --> go "up" one directory level
+        if switch == '..':
+            p = Path(os.getcwd())
+            os.chdir(p.parent)
+
+        # else a path was entered: go wherever "switch" directs;
         else:
+            # change the directory as directed
             try:
-                full_path = Path(switch).absolute()
-                os.chdir(full_path)
+                p = Path(switch).absolute()
+                os.chdir(p)
+            # if "switch" is not a real path, or contains a file name,
+            # print an error message
             except:
                 print('The system cannot find the path specified.')
+
     except:
         print('The system cannot find the path specified.')
     print()
+
+    return None
 
 
 def clear():
@@ -940,15 +961,26 @@ def clear():
     """
     os.system('cls' if os.name == 'nt' else 'clear')
 
+    return None
+
 
 def parse_input(entry):
     """
-    This function takes whatever the user entered at the command line and divides it into a command and then whatever follows. Then it uses the command portion to figure out what to do.
+    "entry"is whatever the user entered at the command line and the expected format is:
 
-    Once a zip file is opened, or a new zip file is created, submenu commands (zip file commands) become available.
+            cmd [switch]
+
+    where:
+        "cmd" is a recognized command (listed in [translation])
+        "switch" is whatever follows cmd. "switch" is expected to be one of:
+            (1) path
+            (2) [path]/filename
+            (3) /?  -- a request for help
+
+    Invalid cmd and unrecognized switch are rejected. Once a zip file is opened, or a new zip file is created, submenu commands (zip file commands) become available.
 
     Arguments:
-        entry {str} -- takes whatever the user entered at the command line
+        entry {str} -- whatever the user types; must be parsed for sanity
     """
     # ===============================================
     # PROCESS THE USER'S ENTRY, WHICH WILL BE EITHER:
@@ -968,47 +1000,29 @@ def parse_input(entry):
     else:
         space_ndx = entry.find(' ')
         cmd, switch = entry[:space_ndx].upper(), entry[space_ndx+1:]
-        # remove quotes from switch, if present
+        # remove quotes from switch, if present; not required by katz
         switch = switch.replace('"', '')
         switch = switch.replace("'", '')
 
+    # if a cmd was entered, and it's not recognized, generate error msg
     if cmd and cmd not in translate.keys():
         msg = cmd + ' is not recognized as a valid command.\n'
         print(msg)
 
-    # Windows OS understands "CD.."" and "CD .."" as equivalent
-    # commands, but it's better to process only one version...
-    if cmd == 'CD' and switch == '..':
-        cmd, switch = 'CD..', ''
+    # Windows OS understands "CD.."" and "CD .."" OR "DIR.."
+    # and "DIR .." as equivalent commands, and Unix only understands
+    # "CD .." and "DIR .." ("LS .."). It's easier to process
+    # only one version...
+    if cmd == 'CD..':
+        cmd, switch = 'CD', '..'
+    if cmd == 'DIR..':
+        cmd, switch = 'DIR', '..'
 
-    # ===============================================
-    # FIRST PART OF ENTRY IS A COMMAND
-    # SECOND PART OF ENTRY WILL BE EITHER:
-    #   1. A PATH[/FILE]
-    #   2 /? (REQUEST FOR HELP)
-    #   3. UNRECOGNIZABLE
-    # ===============================================
-
-    # get path and, potentially, file name
-    if switch == '/?':
-        file_name, full_path = '', ''
-    else:
-        full_path = Path(switch)
-
-        # if it's a directory, then there's no file name
-        if full_path.is_dir():
-            file_name = ''
-        # if there's a file, then the "parent" is the path
-        else:
-            file_name = full_path.name
-            full_path = full_path.parent.absolute()
-
-        # if full_path is not a directory,
-        # then full_filename is path\file_name
-        if not full_path.is_dir():
-            full_filename = Path(full_path / file_name)
-        else:
-            full_filename = full_path
+    # we expect "switch" to be only a request for help or a path
+    # ! if switch == '/?':
+    # !     full_filename = ''
+    # ! else:
+    # !     full_filename = parse_full_filename(switch)
 
     # ===============================================
     # PROCESS THE USER'S COMMAND
@@ -1022,26 +1036,28 @@ def parse_input(entry):
                 i = '     ' + i
                 print(fold(i, '        '))
 
-            # if cmd == 'EXIT', then add switch so that the program
+            # if cmd == 'EXIT', then add switch so that main_menu()
             # won't quit when cmd is passed back to parse_input()
             cmd += ' /?'
         except:
             print(cmd, 'is not recognized as a valid shell command.\n')
 
-    elif cmd[:4] in ['EXIT', 'QUIT'] or cmd[0:] == 'Q':
+    elif cmd[:4] in ['EXIT', 'QUIT'] or cmd[0] == 'Q':
         pass
 
     elif (cmd == 'HELP' or cmd == 'H') and not switch:
         clear()
         base_help()
 
-    elif cmd[:2] == 'CD' or cmd[:4] == 'CD..' or cmd[:5] == 'CD ..':
-        cd(cmd, switch, full_path)
+    elif cmd == 'CD':
+        cd(switch)
 
     elif cmd[:3] == 'DIR':
-        file_name, full_path, full_filename = dir_files(file_name, full_path, full_filename)
+        dir(switch)
 
-    elif cmd in ['CLS', 'CLEAR']:
+    elif cmd[:3] == 'CLS' or cmd[5] == 'CLEAR':
+        # Windows does not generate an error with 'cls..' or 'cls ..'
+        # so elif... discards everything after 'cls' or 'clear'
         clear()
 
     elif cmd == 'O' or cmd == 'OPEN':
@@ -1080,7 +1096,7 @@ def main_menu():
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
     """
     # INITIALIZE VARIABLES
-    file_name, full_path, full_filename = '', '', ''
+    # ! file_name, full_path, full_filename = '', '', ''
 
     # ===============================================
     # PRINT THE PROGRAM HEADER... JUST ONCE
@@ -1172,8 +1188,7 @@ def sub_menu(file_name, full_path, full_filename):
                     full_path = user_choice[4:]
             except:
                 full_path = ''
-            file_name, full_path, full_filename = dir_files(
-                file_name, full_path, full_filename)
+            dir(switch)
 
         elif user_choice == 'A' or user_choice == 'ADD':
             file_name, full_path, full_filename = add_files(
