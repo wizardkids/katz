@@ -234,49 +234,58 @@ def open(full_filename):
     return full_filename
 
 
-def list_files(file_name, full_path, full_filename):
+def list(full_filename):
     """
-    Generate a numbered list of all the files and folders in the archive.
+    Print a numbered list of all the files and folders in the archive.
+
+    Arguments:
+        full_filename {str} -- full path/file name of the open archive file
+
+    Returns:
+        str -- full path/file name of the open archive file
     """
+    # get the list of files from the archive
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
         zip_files = sorted(zip_files, reverse=True)
 
-        # get the directory of the first item in zip_files
-        try:
-            current_directory = Path(zip_files[0]).parent
-        except:
-            current_directory = ''
-            if len(zip_files) == 0:
-                print('No files in archive.')
-                return file_name, full_path, full_filename
+    # if there are no files in the archive, print a notice, then return
+    if len(zip_files) == 0:
+        print('No files found in archive.')
+        return
 
-        # print a list of files in the archive
-        for ndx, file in enumerate(zip_files):
-            # when the directory changes, print it (left-justified)
-            if current_directory != os.path.dirname(file):
-                current_directory = os.path.dirname(file)
-                if current_directory:
-                    print(current_directory)
-                else:
-                    print('root/')
+    # before printing the list, get and print the first
+    # folder name in the archive
+    current_directory = str(Path(zip_files[0]).parent)
+    print(current_directory)
 
-            # print files indented 5 spaces
-            this_directory, this_file = os.path.split(file)
-            print(' '*3, ndx+1, '. ', this_file, sep='')
+    # print a list of files in the archive
+    for ndx, file in enumerate(zip_files):
+        # when the directory changes, print it (left-justified)
+        # by 5 spaces, along with a sequential number
+        if current_directory != str(Path(file).parent):
+            current_directory = str(Path(file).parent)
+            if current_directory:
+                print(current_directory)
+            else:
+                print('root/')
 
-            # pause after every 25 files
-            cnt = ndx+1
-            if len(zip_files) >= 25 and cnt >= 25 and cnt % 25 == 0:
-                more = input(
-                    '--ENTER to continue; Q to quit--').strip().upper()
-                if more == 'Q':
-                    break
+        # print files indented 5 spaces
+        this_file = Path(file).name
+        print(' '*3, ndx+1, '. ', this_file, sep='')
 
-    return file_name, full_path, full_filename
+        # for convenience, pause after every 25 files
+        cnt = ndx+1
+        if len(zip_files) >= 25 and cnt >= 25 and cnt % 25 == 0:
+            more = input(
+                '--ENTER to continue; Q to quit--').strip().upper()
+            if more == 'Q':
+                break
+
+    return
 
 
-def add_files(file_name, full_path, full_filename):
+def add_files(full_filename):
     """
     Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
     """
@@ -446,7 +455,7 @@ def extract_file(file_name, full_path, full_filename):
     # ==============================================
     # GET A LIST FILES IN THE ARCHIVE AND PRINT IT
     # ==============================================
-    file_name, full_path, full_filename = list_files(
+    file_name, full_path, full_filename = list(
         file_name, full_path, full_filename)
 
     with zipfile.ZipFile(full_filename, 'r') as f:
@@ -554,12 +563,14 @@ def extract_file(file_name, full_path, full_filename):
     return file_name, full_path, full_filename
 
 
-def remove_files(file_name, full_path, full_filename):
+def remove_files(full_filename):
     """
     Removes files/folders from the archive.
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
+    file_name, full_path, full_filename = parse_full_filename(full_filename)
+
     # make sure you are in the same directory as the zip file
     os.chdir(full_path)
 
@@ -588,8 +599,7 @@ def remove_files(file_name, full_path, full_filename):
             num_files = len(file_list)
 
         # for the user, print a list of files and folders in the archive
-        file_name, full_path, full_filename = list_files(
-            file_name, full_path, full_filename)
+        list(full_filename)
 
         # get from the user the file or folder that should be removed
         print("\nEnter file number(s) or range(s) to")
@@ -994,9 +1004,6 @@ def parse_input(entry):
         cmd, switch = entry.upper(), ''
 
     # command + space + switch
-
-# fixme: getting this error: line 996, in parse_input "if full_path.is_dir():" The error message is: "OSError: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'c:\\temp\\one\\tem>.zip' and I get it when I enter a bad path"
-
     else:
         space_ndx = entry.find(' ')
         cmd, switch = entry[:space_ndx].upper(), entry[space_ndx+1:]
@@ -1009,20 +1016,14 @@ def parse_input(entry):
         msg = cmd + ' is not recognized as a valid command.\n'
         print(msg)
 
-    # Windows OS understands "CD.."" and "CD .."" OR "DIR.."
-    # and "DIR .." as equivalent commands, and Unix only understands
-    # "CD .." and "DIR .." ("LS .."). It's easier to process
-    # only one version...
+    # Format of some commands varies depending on OS.
+    # It's easier to process only one version...
     if cmd == 'CD..':
         cmd, switch = 'CD', '..'
     if cmd == 'DIR..':
         cmd, switch = 'DIR', '..'
-
-    # we expect "switch" to be only a request for help or a path
-    # ! if switch == '/?':
-    # !     full_filename = ''
-    # ! else:
-    # !     full_filename = parse_full_filename(switch)
+    if cmd in ['CLS', 'CLS.', 'CLS..', 'CLEAR', 'CLEAR.', 'CLEAR..']:
+        cmd = 'CLS'
 
     # ===============================================
     # PROCESS THE USER'S COMMAND
@@ -1042,7 +1043,7 @@ def parse_input(entry):
         except:
             print(cmd, 'is not recognized as a valid shell command.\n')
 
-    elif cmd[:4] in ['EXIT', 'QUIT'] or cmd[0] == 'Q':
+    elif cmd in ['EXIT', 'QUIT', 'Q']:
         pass
 
     elif (cmd == 'HELP' or cmd == 'H') and not switch:
@@ -1055,25 +1056,20 @@ def parse_input(entry):
     elif cmd[:3] == 'DIR':
         dir(switch)
 
-    elif cmd[:3] == 'CLS' or cmd[5] == 'CLEAR':
-        # Windows does not generate an error with 'cls..' or 'cls ..'
-        # so elif... discards everything after 'cls' or 'clear'
+    elif cmd == 'CLS':
         clear()
 
     elif cmd == 'O' or cmd == 'OPEN':
         open_file, new_file = True, False
         full_filename = open(switch)
         if full_filename:
-            sub_menu(file_name, full_path, full_filename)
+            sub_menu(full_filename)
 
     elif cmd == 'N':
         open_file, new_file = False, True
-
-# fixme: when i opened an non-existant zipfile, i go tothe submenu (which is inappropritae) and when I go back to main menu, I get "line 1133, in sub_menu if switch == '/?': UnboundLocalError: local variable 'switch' referenced before assignment"
-
         full_filename = new(switch)
-        if file_name:
-            sub_menu(file_name, full_path, full_filename)
+        if full_filename:
+            sub_menu(full_filename)
 
     elif cmd == 'A':
         about()
@@ -1125,7 +1121,7 @@ def main_menu():
             break
 
 
-def sub_menu(file_name, full_path, full_filename):
+def sub_menu(full_filename):
     """
     Menu of actions on the zip file that the user has opened or created.
     """
@@ -1159,9 +1155,6 @@ def sub_menu(file_name, full_path, full_filename):
                 switch = ''
 
         # actions to take on choosing a menu item
-
-# fixme: switch is being reference before it's assigned
-
         if switch == '/?':
                 try:
                     help_text = shell_cmds[translate[cmd]]
@@ -1170,15 +1163,11 @@ def sub_menu(file_name, full_path, full_filename):
                         i = '     ' + i
                         print(fold(i, '        '))
 
-                    # if cmd == 'EXIT', then add switch so that the program
-                    # won't quit when cmd is passed back to parse_input()
-                    cmd += ' /?'
                 except:
                     print(cmd, 'is not recognized as a valid shell command.\n')
 
         elif user_choice == 'L' or user_choice == 'LIST':
-            file_name, full_path, full_filename = list_files(
-                file_name, full_path, full_filename)
+            list(full_filename)
 
         elif user_choice[0] == 'D':
             try:
@@ -1199,8 +1188,7 @@ def sub_menu(file_name, full_path, full_filename):
                 file_name, full_path, full_filename)
 
         elif user_choice == 'R' or user_choice == 'REMOVE':
-            file_name, full_path, full_filename = remove_files(
-                file_name, full_path, full_filename)
+            full_filename = remove_files(full_filename)
 
         elif user_choice == 'T' or user_choice == 'TEST':
             file_name, full_path, full_filename = test_archive(
