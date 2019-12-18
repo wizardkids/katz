@@ -870,7 +870,7 @@ def fold(txt, ndnt='     ', w=52):
 def base_help():
     msg = '/'*23 + ' HELP ' + '/'*23
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
-    print('Usage: cmd /? (example: dir /?)')
+    print('For help: cmd /? (example:  d /?)')
     print('\n', 'AVAILABLE SHELL COMMANDS:', sep='')
     for k, v in shell_cmds.items():
         if k == 'O' or k == 'N' or k == 'M':
@@ -884,7 +884,7 @@ def base_help():
                 else:
                     print(k)
 
-    print('\nAll commands are case insensitive.')
+    print('\nAll commands are case insensitive. Most can use one\nletter (e.g., "o" instead of "open")')
     print( dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
     print()
 
