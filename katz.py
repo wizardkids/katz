@@ -52,6 +52,7 @@ shell_cmds = {
     'REMOVE': '-- <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders from the archive.\n\n-- Generally, "katz" retains folder structure when <A>dding files. Files in the same directory as the archive file are placed in a folder of the same name holding the archive file. However, some archive files may have files in the "root"directory. <L>ist will designate the "folder" for these files with a ".". To remove these files, use "." as the folder name. \n',
     'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted! Presumably, it was archived perfectly well as a corrupted file!\n',
     'MENU': '<M>enu shows a formatted menu of available commands.\n',
+    'HELP': 'HELP is helpless.\n',
     'EXIT': 'Quits the shell and the current script.\n',
     'QUIT': 'Quits the shell and the current script.\n',
 }
@@ -161,8 +162,14 @@ def new(switch):
     # if user entered a "switch", test it, then parse it
     else:
         # if user did not enter an extension, add .zip
+        # if user entered the wrong extension, change it
         try:
-            full_name = switch + '.zip' if switch[-4:].upper() != '.ZIP' else switch
+            if Path(switch).suffix == '':
+                switch = switch + '.zip'
+            elif len(switch) >= 4:
+                if switch[-4:].upper() != '.ZIP':
+                    switch = switch[:-4] + '.zip'
+
         except:
             # This exception will be raised if user entered an extension contains less than 3 characters, such as zipfile.?/ or zipfile.zp
             print('The system cannot find the path specified.\n')
