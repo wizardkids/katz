@@ -252,7 +252,11 @@ def list(full_filename):
     # if there are no files in the archive, print a notice, then return
     if len(zip_files) == 0:
         print('No files found in archive.')
+<<<<<<< HEAD
         return
+=======
+        return full_filename
+>>>>>>> 22c37c0e3e8783473ce106862af3d8f0731fe58e
 
     # before printing the list, get and print the first
     # folder name in the archive
@@ -282,7 +286,11 @@ def list(full_filename):
             if more == 'Q':
                 break
 
+<<<<<<< HEAD
     return
+=======
+    return full_filename
+>>>>>>> 22c37c0e3e8783473ce106862af3d8f0731fe58e
 
 
 def add(full_filename):
@@ -560,7 +568,11 @@ def remove_files(full_filename):
             num_files = len(file_list)
 
         # for the user, print a list of files and folders in the archive
+<<<<<<< HEAD
         list(full_filename)
+=======
+        full_filename = list(full_filename)
+>>>>>>> 22c37c0e3e8783473ce106862af3d8f0731fe58e
 
         # get from the user the file or folder that should be removed
         print("\nEnter file number(s) or range(s) to")
@@ -1128,7 +1140,11 @@ def sub_menu(full_filename):
                     print(cmd, 'is not recognized as a valid shell command.\n')
 
         elif user_choice == 'L' or user_choice == 'LIST':
+<<<<<<< HEAD
             list(full_filename)
+=======
+            full_filename = list(full_filename)
+>>>>>>> 22c37c0e3e8783473ce106862af3d8f0731fe58e
 
         elif user_choice[0] == 'D':
             try:
