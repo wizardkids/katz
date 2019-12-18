@@ -252,7 +252,7 @@ def list(full_filename):
     # if there are no files in the archive, print a notice, then return
     if len(zip_files) == 0:
         print('No files found in archive.')
-        return
+        return full_filename
 
     # before printing the list, get and print the first
     # folder name in the archive
@@ -282,7 +282,7 @@ def list(full_filename):
             if more == 'Q':
                 break
 
-    return
+    return full_filename
 
 
 def add(full_filename):
@@ -935,7 +935,7 @@ def clear():
     return None
 
 
-def parse_input(entry):
+def parse_input(entry, full_filename):
     """
     "entry"is whatever the user entered at the command line and the expected format is:
 
@@ -1020,40 +1020,45 @@ def parse_input(entry):
     elif cmd == 'CLS':
         clear()
 
+    elif cmd == 'N' or cmd == 'NEW':
+        open_file, new_file = False, True
+        full_filename = new(switch)
+
     elif cmd == 'O' or cmd == 'OPEN':
         open_file, new_file = True, False
         full_filename = open(switch)
-        if full_filename:
-            sub_menu(full_filename)
 
-    elif cmd == 'N':
-        open_file, new_file = False, True
-        full_filename = new(switch)
-        if full_filename:
-            sub_menu(full_filename)
+    elif cmd == 'L' or cmd == 'LIST':
+        full_filename = list(full_filename)
 
-    elif cmd == 'A':
+    elif cmd == 'A' or cmd == 'ADD':
+        full_filename = add(full_filename)
+
+    elif cmd == 'E' or cmd == 'EXTRACT':
+        full_filename = extract_file(full_filename)
+
+    elif cmd == 'R' or cmd == 'REMOVE':
+        full_filename = remove_files(full_filename)
+
+    elif cmd == 'T' or cmd == 'TEST':
+        full_filename = test_archive(full_filename)
+
+    elif cmd == 'B':
         about()
-
-    elif cmd == 'H':
-        clear()
-        base_help()
-
-    elif cmd and cmd in 'LERT':
-        print('Command available only in the submenu. Open or create a file first.\n')
 
     elif not cmd:
         pass
 
-    return cmd
+    print()
+
+    return cmd, full_filename
 
 
 def main_menu():
     """
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
     """
-    # INITIALIZE VARIABLES
-    # ! file_name, full_path, full_filename = '', '', ''
+    full_filename = ''
 
     # ===============================================
     # PRINT THE PROGRAM HEADER... JUST ONCE
@@ -1061,7 +1066,7 @@ def main_menu():
     version_num = "2.0"
     revision_number = get_revision_number()
     print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-    print('\n<O>pen file   <N>ew file\n<A>bout       <H>elp')
+    print('\n<O>pen file  <N>ew file  <L>ist    <A>dd\n<dir>ectory  <E>xtract   <R>emove  <T>est\n<H>elp       A<b>out')
     print('')
 
     # ===============================================
@@ -1076,104 +1081,10 @@ def main_menu():
         prompt = "(katz) " + os.getcwd() + ">"
         entry = input(prompt).strip()
 
-        parsed = parse_input(entry)
+        cmd, full_filename = parse_input(entry, full_filename)
 
-        if parsed in ['EXIT', 'QUIT', 'Q']:
+        if cmd in ['EXIT', 'QUIT', 'Q']:
             break
-
-
-def sub_menu(full_filename):
-    """
-    Menu of actions on the zip file that the user has opened or created.
-    """
-    zip_commands = ['L', 'LIST', 'D', 'DIR', 'CD', 'A', 'ADD', 'E', 'EXTRACT',
-        'R' 'REMOVE', 'T', 'TEST', 'H', 'HELP' 'Q', 'QUIT', 'CLS', 'CLEAR', '']
-    # use the following to delimit output from sequential commands
-    msg = '...' + full_filename[-49:] if len(full_filename.__str__()) >= 49 else full_filename
-    print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
-
-    while True:
-        # generate the sub-menu
-        print('\n<L>ist     <A>dd     <dir>ectory\n<E>xtract  <R>emove  <T>est\n<H>elp')
-        user_choice = input('\nzip-file command> ').strip().upper()
-
-        # if user_choice.split(' ')[0] in command_list[3:13]:
-        #     print('Return to shell to use shell commands, except dir and cls.')
-
-        # show the delimiter, but not if we're returning to the "command prompt"
-        # if user_choice in zip_commands[:13]:
-        #     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
-
-        # fix user_choice in case user just types <ENTER>
-
-        if user_choice == '':
-            user_choice = ' '
-        else:
-            cmd = user_choice.split(' ')[0]
-            try:
-                switch = user_choice.split(' ')[1]
-            except:
-                switch = ''
-
-        # actions to take on choosing a menu item
-        if switch == '/?':
-                try:
-                    help_text = shell_cmds[translate[cmd]]
-                    help_text = help_text.split('\n')
-                    for i in help_text:
-                        i = '     ' + i
-                        print(fold(i, '        '))
-
-                except:
-                    print(cmd, 'is not recognized as a valid shell command.\n')
-
-        elif user_choice == 'L' or user_choice == 'LIST':
-            list(full_filename)
-
-        elif user_choice[0] == 'D':
-            try:
-                if user_choice[0] == 'D' and user_choice[1] == ' ':
-                    full_path = user_choice[2:]
-                if user_choice[:3] == 'DIR' and user_choice[3] == ' ':
-                    full_path = user_choice[4:]
-            except:
-                full_path = ''
-            dir(switch)
-
-        elif user_choice == 'A' or user_choice == 'ADD':
-            full_filename = add(full_filename)
-
-        elif user_choice == 'E' or user_choice == 'EXTRACT':
-            file_name, full_path, full_filename = extract_file(
-                file_name, full_path, full_filename)
-
-        elif user_choice == 'R' or user_choice == 'REMOVE':
-            full_filename = remove_files(full_filename)
-
-        elif user_choice == 'T' or user_choice == 'TEST':
-            file_name, full_path, full_filename = test_archive(
-                file_name, full_path, full_filename)
-
-        elif user_choice[0] == 'H':
-            if user_choice.find(' ') == 4:
-                zip_help(user_choice[5:])
-            elif user_choice.find(' ') == 1:
-                zip_help(user_choice[2:])
-            else:
-                clear()
-                base_help()
-
-        elif user_choice in ['CLS', 'CLS..', 'CLEAR', 'CLEAR..']:
-            clear()
-
-        elif user_choice in ['Q', 'QUIT', ' ']:
-            clear()
-            return
-
-        else:
-            continue
-
-    return
 
 
 if __name__ == '__main__':
