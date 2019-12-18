@@ -52,10 +52,11 @@ shell_cmds = {
     'NEW': 'katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
     'N': 'Create a new zip file. Optionally include a path.\n',
     'LIST': '<L>ist all the files in the archive. <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.\n',
-    'ADD': '-- <A>dd provides a list of files that you can <A>dd to the archive.\n\n-- Enter a "." to get a list of files from the same directory holding the zip file, or enter a path to another directory. Files in the same directory as the zip file will be added to a folder with the same name as the folder holding the zip file.\n\n-- You can optionally include files in all subdirectories. The subdirectory structure containing the files you want to add will be preserved in the archive file. Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
+    'ADD': '-- <A>dd provides a list of files that you can <A>dd to the archive.\n\n-- Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
     'EXTRACT': '-- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.\n-- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of different ways of identifying files for extraction:\n(1) 1, 2, 8, 4  [order does not matter]\n(2) 3-8, 11, 14  [mix a range and individual numbers]\n(3) enter a folder name\n(4) all  [extracts all files]\nSYMLINKS:\n"katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.\n',
     'REMOVE': '<R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders.\nRemoving all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.\n',
     'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!\n',
+    'MENU': '<M>enu shows a formatted menu of available commands.\n',
     'EXIT': 'Quits the shell and the current script.\n',
     'QUIT': 'Quits the shell and the current script.\n',
 }
@@ -91,12 +92,16 @@ translate = {
     'R': 'REMOVE',
     'REMOVE': 'REMOVE',
     'T': 'TEST',
-    'TEST': 'TEST'}
+    'TEST': 'TEST',
+    'M': 'MENU',
+    'MENU': 'MENU',
+    'B': 'ABOUT',
+    'ABOUT': 'ABOUT'}
 
 # the following list is used in sub_menu() to filter zip-file commands
 command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', \
                 'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..', \
-                'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T']
+                'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T', 'M', "MENU"]
 
 def parse_full_filename(path):
     """
@@ -211,16 +216,11 @@ def open(full_filename):
 
     # if no "full_filename" was entered, get user input
     if not full_filename:
-        f = input("\nName of archive: ").strip()
+        full_filename = input("\nName of archive: ").strip()
 
-        # if no path was entered (only a file name), get full path
-        if '\\' not in f:
-            switch = str(Path(f).absolute())
-
-    # if user entered only path at the command line, get the absolute path
-    else:
-        if '\\' not in full_filename:
-            full_filename = str(Path(full_filename).absolute())
+    # if only a string was entered, get the full path
+    if '\\' not in full_filename:
+        full_filename = str(Path(full_filename).absolute())
 
     # test validity of what the user entered either at the command line or at input()
     if not valid_path(full_filename):
@@ -244,6 +244,11 @@ def list(full_filename):
     Returns:
         str -- full path/file name of the open archive file
     """
+    # prevent user from <list>ing an archive when one isn't open
+    if not full_filename:
+        print("No archive file is open.")
+        return full_filename
+
     # get the list of files from the archive
     with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
@@ -302,6 +307,11 @@ def add(full_filename):
     Returns:
         str -- path/file name of archive file
     """
+    # prevent user from <add>ing to an archive when one isn't open
+    if not full_filename:
+        print("No archive file is open.")
+        return full_filename
+
     file_name, full_path, full_filename = parse_full_filename(full_filename)
 
     cwd = os.getcwd()
@@ -380,15 +390,22 @@ def add(full_filename):
     return full_filename
 
 
-def extract_file(file_name, full_path, full_filename):
+def extract_file(full_filename):
     """
     Extract one or more files from an archive.
     """
+    # prevent user from <extract>ing from an archive when one isn't open
+    if not full_filename:
+        print("No archive file is open.")
+        return full_filename
+
+    file_name, full_path, full_filename = parse_full_filename(full_filename)
+
     # ==============================================
     # GET A LIST FILES IN THE ARCHIVE AND PRINT IT
     # ==============================================
-    file_name, full_path, full_filename = list(
-        file_name, full_path, full_filename)
+
+    full_filename = list(full_filename)
 
     with zipfile.ZipFile(full_filename, 'r') as f:
         # file_list contains relative paths of files in archive
@@ -501,6 +518,11 @@ def remove_files(full_filename):
 
     Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
     """
+    # prevent user from <remove>ing from an archive when one isn't open
+    if not full_filename:
+        print("No archive file is open.")
+        return full_filename
+
     file_name, full_path, full_filename = parse_full_filename(full_filename)
 
     # make sure you are in the same directory as the zip file
@@ -514,7 +536,7 @@ def remove_files(full_filename):
         msg = '\nCannot remove files from archive, since ' + temporary_path + ' directory exists.\n'
         print('='*52, msg, '='*52, sep='')
 
-        return file_name, full_path, full_filename
+        return full_filename
 
     # ===================================================
     # 1. GET AND PRINT A NUMBERED LIST OF FILES IN THE ARCHIVE
@@ -540,7 +562,7 @@ def remove_files(full_filename):
 
         # if no file name is entered, return to menu
         if not user_selection.strip():
-            return file_name, full_path, full_filename
+            return full_filename
 
         # determine if "user_selection" is an integer/range or a folder
         for c in user_selection:
@@ -683,7 +705,7 @@ def remove_files(full_filename):
                 msg = '\nCannot complete operation. A file or folder in ' + temporary_path + ' is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
 
-    return file_name, full_path, full_filename
+    return full_filename
 
 
 def get_chosen_files(user_selection, full_filename, file_list=[], dir_list=[]):
@@ -766,14 +788,19 @@ def get_chosen_files(user_selection, full_filename, file_list=[], dir_list=[]):
     return selected_files
 
 
-def test_archive(file_name, full_path, full_filename):
+def test_archive(full_filename):
     """
     Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
     """
+    # prevent user from <test>ing an archive when one isn't open
+    if not full_filename:
+        print("No archive file is open.")
+        return full_filename
+
     # first, test if it is a valid zip file
     if not zipfile.is_zipfile(full_filename):
         print('\nNot a valid zip file.')
-        return full_path, file_name
+        return file_name
 
     # open the archive and test it using testzip()
     with zipfile.ZipFile(full_filename, 'r') as f:
@@ -786,7 +813,7 @@ def test_archive(file_name, full_path, full_filename):
         print('\nTested ', num_files, ' files:  ',
               num_files, ' OK.  0 failed.', sep='')
 
-    return file_name, full_path, full_filename
+    return full_filename
 
 
 def about():
@@ -814,7 +841,7 @@ def base_help():
     print('Usage: cmd /? (example: dir /?)')
     print('\n', 'AVAILABLE SHELL COMMANDS:', sep='')
     for k, v in shell_cmds.items():
-        if k == 'O' or k == 'N':
+        if k == 'O' or k == 'N' or k == 'M':
             pass
         else:
             if k in ['QUIT', 'Q']:
@@ -1038,10 +1065,13 @@ def parse_input(entry, full_filename):
         full_filename = remove_files(full_filename)
 
     elif cmd == 'T' or cmd == 'TEST':
-        full_filename = test_archive(full_filename)
+            full_filename = test_archive(full_filename)
 
     elif cmd == 'B':
         about()
+
+    elif cmd == 'M' or cmd == 'MENU':
+        show_menu()
 
     elif not cmd:
         pass
@@ -1049,6 +1079,16 @@ def parse_input(entry, full_filename):
     print()
 
     return cmd, full_filename
+
+
+def show_menu():
+    """
+    Display a formatted menu of available commands.
+    """
+    print(
+        '\n<O>pen file   <N>ew file   <L>ist  <A>dd\n<E>xtract     <R>emove     <T>est\n<M>enu        <H>elp       a<B>out\n\n<DIR [path]>  <CD [path]>  <CLS>')
+    print('')
+    return None
 
 
 def main_menu():
@@ -1063,8 +1103,8 @@ def main_menu():
     version_num = "2.0"
     revision_number = get_revision_number()
     print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-    print('\n<O>pen file  <N>ew file  <L>ist    <A>dd\n<dir>ectory  <E>xtract   <R>emove  <T>est\n<H>elp       A<b>out')
-    print('')
+    show_menu()
+
 
     # ===============================================
     # GENERATE THE MAIN MENU IN A LOOP
