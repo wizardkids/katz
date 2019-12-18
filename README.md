@@ -3,20 +3,16 @@ a command-line archiving utility
 
 Most GUI archiving utilities have many wonderful features that I never use and a plethora of settings that I never change. "katz" eliminates all this hassle and delivers a minimalist archiving utility that will meet the needs of 99% of users. From the command-line!
 
-## **CAUTION:**
-- This branch is currently under development
-- The following information is largely still correct, but not guaranteed
-- The goal is to create a shell-like command window that allows the user to interact with the window as if it were a command shell, albeit with a limited list of shell commands, but with special commands that allow (fast) manipulation of zip files.
-
 #
 
 ## **Features**
 
-1. list all files, including files in subfolders, within the archive
-2. add one, many, or all files, optionally including subfolders
-3. extract one, many, or all files from the archive, including subfolders
-4. remove one file at a time from the archive
+1. list all files within the archive
+2. add file(s), optionally including subfolders, from any directory on disk
+3. extract all or selected file(s) from the archive
+4. remove file(s) or folders from the archive
 5. test the integrity of the archive
+6. perform shell commands including dir, cls, and cd
 
 Files are compressed by default.
 
@@ -27,11 +23,8 @@ If you have python 3.7+ installed, you can download `katz.py` and, assuming pyth
 
     `python katz.py`
 
-To _download_ one file, click on the file name. On the next screen, click the "Download" button.
-
-
 ## **Usage**
-- The program is menu driven, and includes only essential capabilities as noted under *Features*. There are no options or preferences.
+- The program interface is based on the Windows command shell, but valid commmands include only those useful for manipulating zip files as noted under *Features*. There are no options or preferences.
 - See *Recommended setup* below for creating a shortcut.
 - python 3 must be in the PATH environment variable.
 
@@ -40,10 +33,10 @@ To _download_ one file, click on the file name. On the next screen, click the "D
 If you want to run "katz" from your desktop, here is what you need to do:
 1. Put all of the files in this repository in a directory of your choice.
 2. Modify katz.bat as noted within the .bat file.
-3. Create a shortcut on your desktop.
+3. Create a shortcut to the .bat file on your desktop.
 4. In the properties dialog for the shortcut
    - change "TARGET" to the full path, including the filename, for katz.bat.
-   - change "START IN" to the path for the directory that holds katz.bat
+   - change "START IN" to any path that you desire, but usually this will be the path for the directory that holds katz.bat
 
 ## **Required python modules:**
 - datetime
@@ -51,5 +44,10 @@ If you want to run "katz" from your desktop, here is what you need to do:
 - os
 - pathlib
 - shutil
+- string
+- subprocess
+- sys
 - textwrap
 - zipfile
+
+All modules are included in the python standard library.

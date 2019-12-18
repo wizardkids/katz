@@ -5,12 +5,12 @@ Richard E. Rawson
 2019-12-10
 
 command-line zip archiving utility
-    1. list all files, including files in subfolders, within the archive
-    2. print a directory listing for a directory on disk
-    3. add one, many, or all files, optionally including subfolders from any directory on disk
-    4. extract one, many, or all files from the archive, including subfolders
-    5. remove one file at a time from the archive
+    1. list all files within the archive
+    3. add file(s), optionally including subfolders, from any directory on disk
+    4. extract all or selected file(s) from the archive
+    5. remove file(s) or folders from the archive
     6. test the integrity of the archive
+    7. perform shell commands including dir, cls, and cd
 """
 
 import glob
@@ -1184,5 +1184,4 @@ def main_menu():
 
 
 if __name__ == '__main__':
-    os.chdir('c:\\temp\\one')
     main_menu()
