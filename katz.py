@@ -356,8 +356,11 @@ def addFiles(full_filename):
     # will get a list of files from disk, so set
     # source_list = dir_list
     source_list = dir_list.copy()
+
+    # designate that addFiles() should not be able to reference folders
+    folder_fnx = False
     selected_files = get_chosen_files(
-        user_selection, full_filename, source_list)
+        user_selection, full_filename, source_list, folder_fxn=False)
 
     # if selected_files returns empty, then there's no sense continuing
     if not selected_files:
@@ -477,8 +480,12 @@ def extractFiles(full_filename):
     # will get a list of files from the archive, so set
     # source_list = file_list
     source_list = file_list.copy()
+
+    # designate that extractFiles() can reference folders
+    folder_fxn = True
+
     selected_files = get_chosen_files(
-        user_selection, full_filename, source_list)
+        user_selection, full_filename, source_list, folder_fxn)
 
 
     # ==============================================
@@ -493,8 +500,10 @@ def extractFiles(full_filename):
         return full_filename
 
     confirm = input('\nExtract files (Y/N) ').upper()
+
+    # return to the command line if user enters anything but "Y"
     if confirm != 'Y':
-        return file_name, full_path, full_filename
+        return full_filename
 
 
     # ==============================================
@@ -585,12 +594,17 @@ def removeFiles(full_filename):
     # get_chosen_files will work on a different list of files
     # depending on the function. For extractFiles(), get_chosen_files
     # will get a list of files from the archive, so set
-    # source_list = file_list
+    # source_list = file_list and set remove=True so get_chosen_files knows
+    # that removeFiles() is calling it
     source_list = file_list.copy()
-    selected_files = get_chosen_files(
-        user_selection, full_filename, source_list)
 
-    # if selected_files returns empty, then there's no sense continuing
+    # designate that removeFiles() can reference folders
+    folder_fnx = True
+    selected_files = get_chosen_files(
+        user_selection, full_filename, source_list, folder_fxn=True)
+
+    # if selected_files returns empty, then either the user
+    # selected nothing valid or selected a folder
     if not selected_files:
         print('No files selected.')
         return full_filename
@@ -685,7 +699,7 @@ def removeFiles(full_filename):
     return full_filename
 
 
-def get_chosen_files(user_selection, full_filename, source_list):
+def get_chosen_files(user_selection, full_filename, source_list, folder_fxn='False'):
     """
     Create a list of all the files selected by the user to add, extract, or remove. User enters one of the following, and all are handled differently:
         -- 'all'
@@ -762,14 +776,21 @@ def get_chosen_files(user_selection, full_filename, source_list):
     # process files if user entered a folder name
     elif folder_name:
 
-        # addFiles() cannot write() relative paths to an archive, and since
-        # tentative_selected_files contains relative paths, we have to
-        # disallow creation of selected_files if the user erroneously
-        # chooses to addFiles() a folder
-        if ':' in Path(tentative_selected_files[0]).parts[0]:
+        # removeFiles() works properly with the relative paths that
+        # are stored in an archive; addFiles() MUST have absolute paths
+        # the boolean "folder_fxn" flags that using a folder is ok
+        if folder_fxn:
             selected_files = tentative_selected_files.copy()
+
         else:
-            selected_files = []
+            # addFiles() cannot write() relative paths to an archive, and since
+            # tentative_selected_files contains relative paths, we have to
+            # disallow creation of selected_files if the user erroneously
+            # chooses to addFiles() a folder
+            if ':' in Path(tentative_selected_files[0]).parts[0]:
+                selected_files = tentative_selected_files.copy()
+            else:
+                selected_files = []
 
     # if user is selecting files using their "file number", find those files
     # in "source_file"
