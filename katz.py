@@ -326,51 +326,20 @@ def add(full_filename):
     # GET FROM USER THE FILES TO ADD TO THE ARCHIVE
     # ==================================================
 
-    while True:
-        # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
-        print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*, ?) to designate files')
+    # example user input: 1, 3-5, 28, 52-68, 70 or *.t?t
+    print('\nEnter:\n(1) a comma-separated combination of:\n    -- the number of the file(s) to add\n    -- a hyphenated list of sequential numbers\n(2) enter "all" to add all files\n(3) use wildcard characters (*, ?) to designate files')
 
-        user_selection = input("\nFile(s) to add: ").strip()
+    user_selection = input("\nFile(s) to add: ").strip()
 
-        # if nothing is entered, return to menu
-        if not user_selection:
-            return full_filename
+    # if nothing is entered, return to menu
+    if not user_selection:
+        return full_filename
 
-        # ========================================================
-        # BASED ON USER'S CHOICES, CREATE A LIST OF THE ELIGIBLE FILES
-        # ========================================================
+    # ========================================================
+    # BASED ON USER'S CHOICES, CREATE A LIST OF THE ELIGIBLE FILES
+    # ========================================================
 
-        selected_files = []
-        if user_selection.upper() == 'ALL':
-            which_files = [str(x) for x in range(1, len(dir_list)+1)]
-            for file_number in which_files:
-                selected_files.append(str(dir_list[int(file_number)-1]))
-
-        # see https://pymotw.com/2/glob/
-        elif '*' in user_selection or '?' in user_selection:
-            folders = set()
-
-            # generate a list of all folders in dir_list
-            for file in dir_list:
-                folders.add(str(Path(file).parent))
-
-            # get all files in folders/subfolders that match "user_selection"
-            for folder in folders:
-                os.chdir(folder)
-                f = glob.glob(user_selection)
-                for i in f:
-                    file = Path(folder, i)
-                    selected_files.append(file)
-                    print(i)
-
-        # create a list of the user's chosen files
-        else:
-            selected_files = get_chosen_files(
-                selected_files, user_selection, dir_list, file_name, full_path, full_filename)
-
-        break
-
-    os.chdir(current_directory)
+    selected_files = get_chosen_files(user_selection, full_filename, [], dir_list)
 
     # ==================================================
     # ADD THE FILES:
@@ -384,27 +353,29 @@ def add(full_filename):
 
     # namelist() formats paths as: foo/bar/bar.txt
     # need to change"/" into "\\""
-    zip_files_temp = zip_files.copy()
-    for ndx, file in enumerate(zip_files_temp):
+    zip_files_temp_ = zip_files.copy()
+    for ndx, file in enumerate(zip_files_temp_):
         file = file.replace('/', '\\')
         zip_files[ndx] = file
 
+    # add files in selected_files to the archive
+    # we want files in archive to appear in folders relative to the current working directory
+    # to do this, write the file as: path/filename
+    # but, using "arcname", "rename" the file using a relative path
     with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
         for file in selected_files:
-            # this code finds the relative folder name
-            file_parts = Path(file).parts
-            for ndx, i in enumerate(file_parts):
-                if i not in Path(user_dir).parent.parts:
-                    loc = ndx
-                    break
-            # rel_folder is the relative path to the current file (in selected_files)
-            rel_folder = '\\'.join(file_parts[loc:-1])
-            rel_folder = Path(rel_folder, Path(file).name)
-
-            if Path(file).name.upper() != file_name.upper():  # katz won't add the zip to itself
-                # if the current file (in selected_files) is already in zip file, skip adding it
-                if str(rel_folder) not in zip_files:
-                    f.write(file, arcname=rel_folder)
+            # get the folder name relative to the cwd
+            rel_path = os.path.relpath(Path(file).parent, Path(cwd).parent)
+            # add the current file name to the relative path
+            this_file = Path(rel_path, Path(file).name)
+            # if the current file is not the archive file, itself,
+            # add it to the archive
+            if Path(file).name.upper() != file_name.upper():
+                # if the current file is already in zip file, skip adding it
+                if str(this_file) not in zip_files:
+                    # archive will store the file not as the original
+                    # file name, but as arcname
+                    f.write(str(file), arcname=this_file)
 
     return full_filename
 
@@ -715,54 +686,82 @@ def remove_files(full_filename):
     return file_name, full_path, full_filename
 
 
-def get_chosen_files(selected_files, user_selection, file_list, file_name, full_path, full_filename):
+def get_chosen_files(user_selection, full_filename, file_list=[], dir_list=[]):
     """
-    User enters one of these and all are handled differently:
+    Create a list of all the files selected by the user to add, extract, or remove. User enters one of these, and all are handled differently:
         -- 'all'
         -- 1, 3-5, 28, 52-68, 70
         -- *.t?t
 
     Arguments:
-        selected_files {[list]} -- [will contain rel_path/filename of user-selected files]
         user_selection {[str]} -- [user-selected files... see above]
+        dir_list {[list]} -- list of files in the cwd and subfolders
         file_list {[list of str]} -- [path/filenames of all files in archive]
-        file_name {[str]} -- [name of the archive file]
-        full_path {[str]} -- [path to the archive file]
         full_filename {[str]} -- [path+filename of archive file]
 
     Returns:
-        [list] -- [rel_path/filename of user-selected files]
+        selected_files {[list]} -- [rel_path/filename of user-selected files]
     """
 
     # split user's entry at commas
     # list now contains integers &/or ranges
     user_files = user_selection.split(',')
 
-    which_files = []
-    for i in user_files:
-        # treating ranges, i.e., 2-8
-        if '-' in i:
-            r = i.split('-')
-            try:
-                n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
-                for x in n:
-                    which_files.append(x)
-            except:
-                print(
-                    '\nInvalid range of numbers was excluded. Did you comma-separate values?')
-                return file_name, full_path, full_filename
-        # treating all other single digits
-        else:
-            try:
-                n = int(i)
-                which_files.append(str(n))
-            except:
-                print(
-                    '\nInvalid number(s) excluded. Did you comma-separate values?')
-                return file_name, full_path, full_filename
+    selected_files = []
 
-    for file_number in which_files:
-        selected_files.append(file_list[int(file_number)-1])
+    # user_selection='ALL', selected_files contains all files in cwd
+    if user_selection.upper() == 'ALL':
+        which_files = [str(x) for x in range(1, len(dir_list)+1)]
+        for file_number in which_files:
+            selected_files.append(str(dir_list[int(file_number)-1]))
+
+    # if user_selection has wildcards, then filter the list of files
+    # see https://pymotw.com/2/glob/
+    elif '*' in user_selection or '?' in user_selection:
+        folders = set()
+
+        # generate a list of all folders in dir_list
+        for file in dir_list:
+            folders.add(str(Path(file).parent))
+
+        # get all files in folders/subfolders that match "user_selection"
+        for folder in folders:
+            os.chdir(folder)
+            f = glob.glob(user_selection)
+            for i in f:
+                file = Path(folder, i)
+                selected_files.append(file)
+                print(i)
+
+    # if user is selecting files using their "file number"
+    else:
+        which_files = []
+        for i in user_files:
+            # treating ranges, i.e., 2-8
+            if '-' in i:
+                r = i.split('-')
+                try:
+                    n = [str(x) for x in range(int(r[0]), (int(r[1]))+1)]
+                    for x in n:
+                        which_files.append(x)
+                except:
+                    print(
+                        '\nInvalid range of numbers was excluded. Did you comma-separate values?')
+                    return []
+            # treating all other single digits
+            else:
+                try:
+                    n = int(i)
+                    which_files.append(str(n))
+                except:
+                    print(
+                        '\nInvalid number(s) excluded. Did you comma-separate values?')
+                    return []
+
+        for file_number in which_files:
+            selected_files.append(dir_list[int(file_number)-1])
+
+    print()
 
     return selected_files
 
@@ -1021,11 +1020,9 @@ def parse_input(entry, full_filename):
         clear()
 
     elif cmd == 'N' or cmd == 'NEW':
-        open_file, new_file = False, True
         full_filename = new(switch)
 
     elif cmd == 'O' or cmd == 'OPEN':
-        open_file, new_file = True, False
         full_filename = open(switch)
 
     elif cmd == 'L' or cmd == 'LIST':
