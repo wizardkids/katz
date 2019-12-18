@@ -29,11 +29,8 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- review all the functions in this program and see if you can make them more efficient
-
-# todo -- version 2: Create an interface that behaves largely like a Windows command window (cmd.exe) with special (but limited) capabilities regarding management of zip files.
-
-# todo -- Version 3: Add support for other archiving formats, including tar and gzip
+# todo -- Version 3:
+#       -- Add support for other archiving formats, including tar and gzip
 
 # todo -- Version 4:
 #       -- 1. Write katz so it can be used as an importable module.
@@ -715,11 +712,11 @@ def get_chosen_files(user_selection, full_filename, source_list, folder_fxn='Fal
             - if coming from addFiles(), list of files in the cwd and subfolders (dir_list)
             - if coming from extractFiles() or removeFiles(), list of path/filenames of all files in archive (file_list)
         full_filename {[str]} -- [path+filename of archive file]
+        folder_fxn {[boolean]} -- if True, this function will allow selected_files to be populated with relative paths, otherwise, selected_folders will be returned empty
 
     Returns:
-        selected_files {[list]} -- [rel_path/filename of user-selected files]
+        selected_files {[list]} -- [relative path]/filename of user-selected files]
     """
-
 
     # if user entered numbers, splitting creates a [list] of integers
     # &/or ranges; otherwise, it creates a [list] containing "all" or
@@ -776,21 +773,21 @@ def get_chosen_files(user_selection, full_filename, source_list, folder_fxn='Fal
     # process files if user entered a folder name
     elif folder_name:
 
-        # removeFiles() works properly with the relative paths that
-        # are stored in an archive; addFiles() MUST have absolute paths
-        # the boolean "folder_fxn" flags that using a folder is ok
+        # removeFiles() and extractFiles() work properly with the relative
+        # paths that are stored in an archive; addFiles() MUST have absolute
+        # paths. The boolean "folder_fxn" flags that using relative paths is ok.
         if folder_fxn:
             selected_files = tentative_selected_files.copy()
 
         else:
-            # addFiles() cannot write() relative paths to an archive, and since
-            # tentative_selected_files contains relative paths, we have to
-            # disallow creation of selected_files if the user erroneously
-            # chooses to addFiles() a folder
-            if ':' in Path(tentative_selected_files[0]).parts[0]:
-                selected_files = tentative_selected_files.copy()
-            else:
-                selected_files = []
+            selected_files = []
+
+        # else:
+        #     # addFiles() cannot write() relative paths to an archive, and since
+        #     # tentative_selected_files contains relative paths, we have to
+        #     # disallow creation of selected_files if the user erroneously
+        #     # chooses to addFiles() a folder
+        #     if ':' in Path(tentative_selected_files[0]).parts[0]:
 
     # if user is selecting files using their "file number", find those files
     # in "source_file"
@@ -838,12 +835,17 @@ def testFiles(full_filename):
     # first, test if it is a valid zip file
     if not zipfile.is_zipfile(full_filename):
         print('\nNot a valid zip file.')
-        return file_name
+        return full_filename
 
     # open the archive and test it using testzip()
-    with zipfile.ZipFile(full_filename, 'r') as f:
-        tested_files = f.testzip()
-        num_files = len(f.infolist())
+    try:
+        with zipfile.ZipFile(full_filename, 'r') as f:
+            tested_files = f.testzip()
+            num_files = len(f.infolist())
+    except:
+        # if the file can't even be opened, then set tested_file to True
+        # which is the same result as if testzip() found bad files in the archive
+        tested_files = True
 
     if tested_files:
         print('Bad file found:', tested_files)
@@ -858,8 +860,7 @@ def about():
     """
     Provide a very little history behing the name "katz".
     """
-    about = '''"katz" is a command-line zip file utility named after Phil Katz, the founder of PKWARE in 1989, the company that originated the ZIP file format that is still widely used today.
-'''
+    about = '''"katz" is a command-line zip file utility named after Phil Katz, the founder of PKWARE in 1989, the company that originated the ZIP file format that is still widely used today.'''
 
     print('\n', dsh*52, '\n', slsh*52, '\n', dsh*52, sep='')
     print(fold(about, '', 52), '\n')
@@ -872,6 +873,7 @@ def fold(txt, ndnt='     ', w=52):
     Textwraps 'txt'; used by help() to wrap help text at column 52.
     """
     return textwrap.fill(txt, subsequent_indent=ndnt, width=w)
+
 
 def base_help():
     msg = '/'*23 + ' HELP ' + '/'*23
@@ -1163,5 +1165,4 @@ def main_menu():
 
 
 if __name__ == '__main__':
-    os.chdir('c:\\temp\\one')
     main_menu()
