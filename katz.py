@@ -44,12 +44,11 @@ shell_cmds = {
     'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]\n',
     'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.\n',
     'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)\n',
-    'OPEN': 'Open an existing zip file. Optionally include a path.\n',
-    'O': 'Open an existing zip file. Optionally include a path.\n',
-    'NEW': 'katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
-    'N': 'Create a new zip file. Optionally include a path.\n',
+    'OPEN': 'Open an existing zip file. Optionally include a path. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
+    'NEW': 'Create a new zip file in the current directory or, if a path is supplied, in another directory. katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic.\n',
     'LIST': '<L>ist all the files in the archive. <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.\n',
-    'ADD': '-- <A>dd provides a list of files that you can <A>dd to the archive.\n\n-- Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
+    'ADD': '-- Use the "cd" command to navigate to the directory holding files you want to add.\n\n-- Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
+    'ADD': '-- Use the "cd" command to navigate to the directory holding files you want to add.\n\n-- Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. See the second item under <E>xtract, below, for details.\n',
     'EXTRACT': '-- Files are extracted to a subfolder with the same name as the archive file. This location is not configurable.\n-- <E>xtract provides a numbered list of files to <E>xtract. To select files for extraction, you can mix individual "file numbers" and ranges. Examples of different ways of identifying files for extraction:\n(1) 1, 2, 8, 4  [order does not matter]\n(2) 3-8, 11, 14  [mix a range and individual numbers]\n(3) enter a folder name\n(4) all  [extracts all files]\nSYMLINKS:\n"katz" will archive file and folder symlinks. When extracted, files/folders will not extract as a symlinks but as the original files/folders.\n',
     'REMOVE': '<R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders.\nRemoving all files in the archive by attempting to remove the "root" folder is disallowed. To remove all files/folders, delete the zip file, instead.\n',
     'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted!\n',
@@ -371,7 +370,7 @@ def addFiles(full_filename):
     # ==================================================
 
     # get a list of all the files that are in the archive
-    with zipfile.ZipFile(full_filename) as f:
+    with zipfile.ZipFile(full_filename, 'r') as f:
         zip_files = f.namelist()
         zip_files = sorted(zip_files, reverse=True)
 
@@ -388,7 +387,7 @@ def addFiles(full_filename):
     # current working directory. To do this, write the file as:
     #   path/filename
     # but, using "arcname", "rename" the file using a relative path
-    with zipfile.ZipFile(file_name, 'a', compression=zipfile.ZIP_DEFLATED) as f:
+    with zipfile.ZipFile(full_filename, 'a', compression=zipfile.ZIP_DEFLATED) as f:
 
         for file in selected_files:
 
