@@ -234,7 +234,7 @@ def open(full_filename):
     return full_filename
 
 
-def list(full_filename):
+def listFiles(full_filename):
     """
     Print a numbered list of all the files and folders in the archive.
 
@@ -291,7 +291,7 @@ def list(full_filename):
     return full_filename
 
 
-def add(full_filename):
+def addFiles(full_filename):
     """
     Add file(s) from the user-designated folder [and subfolders]
 
@@ -352,7 +352,7 @@ def add(full_filename):
     # ========================================================
 
     # get_chosen_files will work on a different list of files
-    # depending on the function. For add(), get_chosen_files
+    # depending on the function. For addFiles(), get_chosen_files
     # will get a list of files from disk, so set
     # source_list = dir_list
     source_list = dir_list.copy()
@@ -412,7 +412,7 @@ def add(full_filename):
     return full_filename
 
 
-def extract_file(full_filename):
+def extractFiles(full_filename):
     """
     Extract one or more files from an archive.
 
@@ -439,7 +439,7 @@ def extract_file(full_filename):
     # GET A LIST FILES IN THE ARCHIVE AND PRINT IT
     # ==============================================
 
-    full_filename = list(full_filename)
+    full_filename = listFiles(full_filename)
 
     # generate a [list] of files in the archive
     with zipfile.ZipFile(full_filename, 'r') as f:
@@ -473,7 +473,7 @@ def extract_file(full_filename):
         return full_filename
 
     # get_chosen_files will work on a different list of files
-    # depending on the function. For extract(), get_chosen_files
+    # depending on the function. For extractFiles(), get_chosen_files
     # will get a list of files from the archive, so set
     # source_list = file_list
     source_list = file_list.copy()
@@ -522,11 +522,20 @@ def extract_file(full_filename):
     return full_filename
 
 
-def remove_files(full_filename):
+def removeFiles(full_filename):
     """
     Removes files/folders from the archive.
 
-    Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one targeted for removal. The temporary archive is tested for integrity; the original archive is deleted; the temporary archive is renamed as the original.
+    Technical info: To remove a file, this function first create a temporary archive that holds all the original files except the one(s) targeted for removal. Then:
+            (1) the temporary archive is tested for integrity
+            (2) the original archive is deleted
+            (3) the temporary archive is renamed as the original
+
+    Arguments:
+        full_filename {str} -- path/filename of the opened archive file
+
+    Returns:
+        str -- full_filename
     """
     # prevent user from <remove>ing from an archive when one isn't open
     if not full_filename:
@@ -538,10 +547,10 @@ def remove_files(full_filename):
     # make sure you are in the same directory as the zip file
     os.chdir(full_path)
 
-    # unlikely, but... abort if "temporary" directory already exists
     temporary_path = '_temp_' + file_name[:-4] + '_'
     temp_dir = str(Path(full_path, temporary_path))
 
+    # unlikely, but... abort if "temporary" directory already exists
     if os.path.isdir(temporary_path):
         msg = '\nCannot remove files from archive, since ' + temporary_path + ' directory exists.\n'
         print('='*52, msg, '='*52, sep='')
@@ -555,87 +564,42 @@ def remove_files(full_filename):
     #       B. THE NAME OF THE FOLDER TO REMOVE
     # ===================================================
 
-    while True:
-        # get a list of files in the archive and their total number
-        with zipfile.ZipFile(full_filename, 'r') as f:
-            file_list = f.namelist()
-            file_list = sorted(file_list, reverse=True)
-            num_files = len(file_list)
+    # get a list of files in the archive and their total number
+    with zipfile.ZipFile(full_filename, 'r') as f:
+        file_list = f.namelist()
+        file_list = sorted(file_list, reverse=True)
+        num_files = len(file_list)
 
-        # for the user, print a list of files and folders in the archive
-        list(full_filename)
+    # for the user, print a list of files and folders in the archive
+    listFiles(full_filename)
 
-        # get from the user the file or folder that should be removed
-        print("\nEnter file number(s) or range(s) to")
-        print('remove or, to remove a whole folder,')
-        user_selection = input("type the name of the folder: ").strip()
+    # get from the user the file or folder that should be removed
+    print("\nEnter file number(s) or range(s) to")
+    print('remove or, to remove a whole folder,')
+    user_selection = input("type the name of the folder: ").strip()
 
-        # if no file name is entered, return to menu
-        if not user_selection.strip():
-            return full_filename
+    # if no file name is entered, return to menu
+    if not user_selection.strip():
+        return full_filename
 
-        # determine if "user_selection" is an integer/range or a folder
-        for c in user_selection:
-            # if the entire string comprises digits or contains '-'
-            if c in string.digits or c in [',', ' ', '-']:
-                user_selection_isNumbers = True
-            else:
-                user_selection_isNumbers = False
-                break
+    # get_chosen_files will work on a different list of files
+    # depending on the function. For extractFiles(), get_chosen_files
+    # will get a list of files from the archive, so set
+    # source_list = file_list
+    source_list = file_list.copy()
+    selected_files = get_chosen_files(
+        user_selection, full_filename, source_list)
 
-        # if user_selection is an integer or range, get a list of integers
-        if user_selection_isNumbers:
-            selected_files = []
+    # if selected_files returns empty, then there's no sense continuing
+    if not selected_files:
+        print('No files selected.')
+        return full_filename
 
-# fixme: this won't work since I changed the arguments for get_chosen_files
+    # print a list of files destined for removal
+    for file in selected_files:
+        print(file)
 
-            selected_files = get_chosen_files(
-            selected_files, user_selection, file_list, file_name, full_path, full_filename)
-            # if get_chosen_files returns an empty selected_files, then
-            # something went wrong
-            if not selected_files:
-                msg = '\nInvalid entry. Try again.\n'
-                print('='*52, msg, '='*52, sep='')
-                continue
-
-            # otherwise print a list of files destined for removal
-            else:
-                print()
-                for ndx, file in enumerate(selected_files):
-                    print(ndx+1, '. ', file, sep='')
-                confirmed = input('\nRemove these files from the archive? (Y/N) ').strip().upper()
-                if confirmed == 'Y':
-                    break
-
-        # otherwise, process "user_selection" as a folder
-        else:
-            # deny ability to delete root/ folder
-            if 'ROOT' in user_selection.upper():
-                msg = '\nOperation cannot be completed.\nFor help, type: "remove /?".\n'
-                print('='*52, msg, '='*52, sep='')
-                continue
-            user_selection = user_selection.replace('/', '\\')
-
-            # confirm the user's selection of a folder to remove by
-            # looking for it within file_list
-            for ndx, file in enumerate(file_list):
-                # if "file" contains the path in "user_selection"
-                file_path = str(Path(file).parent)
-                if user_selection.upper() == file_path.upper():
-                    confirmed = input('\nRemove folder: ' + user_selection + ' (Y/N) ').upper()
-                    break
-                if ndx == num_files-1:
-                    msg = '\nCould not find the folder "' + user_selection + '" in the archive.\n'
-                    print('='*52, msg, '='*52, sep='')
-                    confirmed = 'N'
-                    continue
-            if confirmed == 'Y':
-                # add all files in user_selected folder to selected_files
-                selected_files = []
-                for file in file_list:
-                    if str(Path(file).parent).upper() == user_selection.upper():
-                        selected_files.append(file)
-                break
+    confirmed = input('\nRemove these files from the archive? (Y/N) ').strip().upper()
 
     # ===============================================
     # REMOVE THE FILES DESIGNATED BY THE USER
@@ -729,13 +693,13 @@ def get_chosen_files(user_selection, full_filename, source_list):
         -- *.t?t
         -- a folder name
 
-    This function must meet the needs of add(), extract(), and remove(), where in add(), we look in a list of files on disk to find selected files, and in extract() and remove() we look in a list of files in the archive to find selected files.
+    This function must meet the needs of addFiles(), extractFiles(), and removeFiles(), where in addFiles(), we look in a list of files on disk to find selected files, and in extractFiles() and removeFiles() we look in a list of files in the archive to find selected files.
 
     Arguments:
         user_selection {[str]} -- [user-selected files... see above]
         source_list {[list]}
-            - if coming from add(), list of files in the cwd and subfolders (dir_list)
-            - if coming from extract() or remove(), list of path/filenames of all files in archive (file_list)
+            - if coming from addFiles(), list of files in the cwd and subfolders (dir_list)
+            - if coming from extractFiles() or removeFiles(), list of path/filenames of all files in archive (file_list)
         full_filename {[str]} -- [path+filename of archive file]
 
     Returns:
@@ -754,9 +718,9 @@ def get_chosen_files(user_selection, full_filename, source_list):
     # entered a folder name; otherwise "folder_name" will remain False
     folder_name = False
 
-    # extract() and remove() get its files from the archive content
-    # look for folders there; add() will also execute this code, but the
-    # result is not used since add() does not use folders
+    # extractFiles() and removeFiles() get its files from the archive content
+    # look for folders there; addFiles() will also execute this code, but the
+    # result is not used since addFiles() does not use folders
     with zipfile.ZipFile(full_filename, 'r') as f:
 
         file_list = f.namelist()
@@ -798,10 +762,10 @@ def get_chosen_files(user_selection, full_filename, source_list):
     # process files if user entered a folder name
     elif folder_name:
 
-        # add() cannot write() relative paths to an archive, and since
+        # addFiles() cannot write() relative paths to an archive, and since
         # tentative_selected_files contains relative paths, we have to
         # disallow creation of selected_files if the user erroneously
-        # chooses to add() a folder
+        # chooses to addFiles() a folder
         if ':' in Path(tentative_selected_files[0]).parts[0]:
             selected_files = tentative_selected_files.copy()
         else:
@@ -841,7 +805,7 @@ def get_chosen_files(user_selection, full_filename, source_list):
     return selected_files
 
 
-def test_archive(full_filename):
+def testFiles(full_filename):
     """
     Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
     """
@@ -1106,19 +1070,19 @@ def parse_input(entry, full_filename):
         full_filename = open(switch)
 
     elif cmd == 'L' or cmd == 'LIST':
-        full_filename = list(full_filename)
+        full_filename = listFiles(full_filename)
 
     elif cmd == 'A' or cmd == 'ADD':
-        full_filename = add(full_filename)
+        full_filename = addFiles(full_filename)
 
     elif cmd == 'E' or cmd == 'EXTRACT':
-        full_filename = extract_file(full_filename)
+        full_filename = extractFiles(full_filename)
 
     elif cmd == 'R' or cmd == 'REMOVE':
-        full_filename = remove_files(full_filename)
+        full_filename = removeFiles(full_filename)
 
     elif cmd == 'T' or cmd == 'TEST':
-            full_filename = test_archive(full_filename)
+            full_filename = testFiles(full_filename)
 
     elif cmd == 'B':
         about()
