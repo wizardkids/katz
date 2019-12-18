@@ -285,80 +285,41 @@ def list(full_filename):
     return
 
 
-def add_files(full_filename):
+def add(full_filename):
     """
-    Add one, many, or all files from the user-designated folder, and optionally include subfolders of that folder. Uses various methods for choosing files to add, optimized for speed of selection.
+    Add file(s) from the user-designated folder [and subfolders]
+
+    Tasks:
+        (1) user should already have cd'ed to the folder containing files
+    to be added
+        (2) Print a numbered list of files in the user-selected folder.
+        (3) Allow user to select files to add
+        (4) Add the files to the archive, preserving the relative folder structure of the files/folders on disk
+
+    Arguments:
+        full_filename {str} -- path/file name of archive file
+
+    Returns:
+        str -- path/file name of archive file
     """
-    current_directory = os.getcwd()
+    file_name, full_path, full_filename = parse_full_filename(full_filename)
 
-    # ==================================================
-    # GET THE SOURCE DIRECTORY FROM THE USER
-    # ==================================================
-
-    while True:
-        print('\nEnter "." to use current directory.')
-        user_dir = input("Directory containing files to add: ").strip()
-
-        # if user enters nothing, return to the menu
-        if not user_dir:
-            return file_name, full_path, full_filename
-
-        if user_dir == '.':
-            user_dir = str(Path(full_path).absolute())
-
-        # confirm that user's entry is valid
-        msg = 'The system cannot find the path specified.'
-        if '*' in user_dir or '?' in user_dir:
-            if Path(user_dir).parent.exists():
-                msg = ''
-        elif Path(user_dir).exists():
-            if Path(user_dir).is_file():
-                msg = ''
-            else:
-                msg = ''
-        if not msg:
-            subs = input('Include subdirectories (Y/N): ').strip().upper()
-            subs = True if subs == 'Y' else False
-            print()
-            break
+    cwd = os.getcwd()
 
     # ==================================================
     # GENERATE A NUMBERED LIST OF ALL FILES IN THE USER-CHOSEN FOLDER
     #       AND PRINT THE LIST ON SCREEN
     # ==================================================
 
-    if subs:
-        # dir_list contains subfolders
-        if '*' in user_dir or '?' in user_dir:
-            dir_filter = '**/' + str(Path(user_dir).name)
-            dir_list = sorted(Path(user_dir).parent.glob(dir_filter))
-            user_dir = str(Path(user_dir).parent)
-        else:
-            dir_filter = '**/*.*'
-            dir_list = sorted(Path(user_dir).glob(dir_filter))
-            user_dir = str(Path(user_dir))
-
-    else:
-        # dir_list contains contents of only the "dir" folder
-        if '*' in user_dir or '?' in user_dir:
-            dir_filter = Path(user_dir).name
-            dir_list = sorted(Path(user_dir).parent.glob(dir_filter))
-        else:
-            dir_filter = '*.*'
-            dir_list = sorted(Path(user_dir).glob(dir_filter))
+    dir_list = sorted(Path(cwd).glob('**/*.*'))
 
     cnt = 1
     for file in dir_list:
-        # this code finds the relative folder name
-        file_parts = Path(file).parts
-        for ndx, i in enumerate(file_parts):
-            if i not in Path(user_dir).parent.parts:
-                loc = ndx
-                break
-        # rel_folder is the relative path to the current file (in selected_files)
-        rel_folder = '\\'.join(file_parts[loc:-1])
-        rel_folder = Path(rel_folder, Path(file).name)
-        print(cnt, '. ', rel_folder, sep='')
+        # get the folder name relative to the cwd
+        rel_path = os.path.relpath(Path(file).parent, Path(cwd).parent)
+        # add the current file name to the relative path
+        this_file = Path(rel_path, Path(file).name)
+        print(cnt, '. ', str(this_file), sep='')
         cnt += 1
 
     # ==================================================
@@ -373,7 +334,7 @@ def add_files(full_filename):
 
         # if nothing is entered, return to menu
         if not user_selection:
-            return file_name, full_path, full_filename
+            return full_filename
 
         # ========================================================
         # BASED ON USER'S CHOICES, CREATE A LIST OF THE ELIGIBLE FILES
@@ -445,7 +406,7 @@ def add_files(full_filename):
                 if str(rel_folder) not in zip_files:
                     f.write(file, arcname=rel_folder)
 
-    return file_name, full_path, full_filename
+    return full_filename
 
 
 def extract_file(file_name, full_path, full_filename):
@@ -1125,7 +1086,7 @@ def sub_menu(full_filename):
     """
     Menu of actions on the zip file that the user has opened or created.
     """
-    zip_commands = ['L', 'LIST', 'D', 'DIR', 'A', 'ADD', 'E', 'EXTRACT',
+    zip_commands = ['L', 'LIST', 'D', 'DIR', 'CD', 'A', 'ADD', 'E', 'EXTRACT',
         'R' 'REMOVE', 'T', 'TEST', 'H', 'HELP' 'Q', 'QUIT', 'CLS', 'CLEAR', '']
     # use the following to delimit output from sequential commands
     msg = '...' + full_filename[-49:] if len(full_filename.__str__()) >= 49 else full_filename
@@ -1136,12 +1097,12 @@ def sub_menu(full_filename):
         print('\n<L>ist     <A>dd     <dir>ectory\n<E>xtract  <R>emove  <T>est\n<H>elp')
         user_choice = input('\nzip-file command> ').strip().upper()
 
-        if user_choice.split(' ')[0] in command_list[3:13]:
-            print('Return to shell to use shell commands, except dir and cls.')
+        # if user_choice.split(' ')[0] in command_list[3:13]:
+        #     print('Return to shell to use shell commands, except dir and cls.')
 
         # show the delimiter, but not if we're returning to the "command prompt"
-        if user_choice in zip_commands[:13]:
-            print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
+        # if user_choice in zip_commands[:13]:
+        #     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
 
         # fix user_choice in case user just types <ENTER>
 
@@ -1180,8 +1141,7 @@ def sub_menu(full_filename):
             dir(switch)
 
         elif user_choice == 'A' or user_choice == 'ADD':
-            file_name, full_path, full_filename = add_files(
-                file_name, full_path, full_filename)
+            full_filename = add(full_filename)
 
         elif user_choice == 'E' or user_choice == 'EXTRACT':
             file_name, full_path, full_filename = extract_file(
@@ -1203,7 +1163,7 @@ def sub_menu(full_filename):
                 clear()
                 base_help()
 
-        elif user_choice in ['CLS', 'CLEAR']:
+        elif user_choice in ['CLS', 'CLS..', 'CLEAR', 'CLEAR..']:
             clear()
 
         elif user_choice in ['Q', 'QUIT', ' ']:
