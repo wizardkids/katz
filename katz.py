@@ -549,6 +549,9 @@ def removeFiles(full_filename):
 
     file_name, full_path, full_filename = parse_full_filename(full_filename)
 
+    # store the user's current working directory so it can be restored later
+    cwd = os.getcwd()
+
     # make sure you are in the same directory as the zip file
     os.chdir(full_path)
 
@@ -559,6 +562,9 @@ def removeFiles(full_filename):
     if os.path.isdir(temporary_path):
         msg = '\nCannot remove files from archive, since ' + temporary_path + ' directory exists.\n'
         print('='*52, msg, '='*52, sep='')
+
+        # return user to original working directory
+        os.chdir(cwd)
 
         return full_filename
 
@@ -585,6 +591,10 @@ def removeFiles(full_filename):
 
     # if no file name is entered, return to menu
     if not user_selection.strip():
+
+        # return user to original working directory
+        os.chdir(cwd)
+
         return full_filename
 
     # get_chosen_files will work on a different list of files
@@ -603,6 +613,9 @@ def removeFiles(full_filename):
     # selected nothing valid or selected a folder
     if not selected_files:
         print('No files selected.')
+
+        # return user to original working directory
+        os.chdir(cwd)
         return full_filename
 
     # print a list of files destined for removal
@@ -691,6 +704,9 @@ def removeFiles(full_filename):
             except PermissionError:
                 msg = '\nCannot complete operation. A file or folder in ' + temporary_path + ' is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
+
+    # return user to original working directory
+    os.chdir(cwd)
 
     return full_filename
 
