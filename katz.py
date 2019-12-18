@@ -782,13 +782,6 @@ def get_chosen_files(user_selection, full_filename, source_list, folder_fxn='Fal
         else:
             selected_files = []
 
-        # else:
-        #     # addFiles() cannot write() relative paths to an archive, and since
-        #     # tentative_selected_files contains relative paths, we have to
-        #     # disallow creation of selected_files if the user erroneously
-        #     # chooses to addFiles() a folder
-        #     if ':' in Path(tentative_selected_files[0]).parts[0]:
-
     # if user is selecting files using their "file number", find those files
     # in "source_file"
     else:
