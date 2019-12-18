@@ -1,16 +1,53 @@
-# katz
+# katz v2.0
 a command-line archiving utility
 
 Most GUI archiving utilities have many wonderful features that I never use and a plethora of settings that I never change. "katz" eliminates all this hassle and delivers a minimalist archiving utility that will meet the needs of 99% of users. From the command-line!
 
-## Branches
-**v1.0** -- this is the first, fully functional version of "katz" and is located in the branch "v1.0"
+#
 
-**dev** -- v2.0, under development; at any point in time, probably contains bugs, but mostly works fine
+## **Features**
 
-## Future plans
-- v2.0 -- create an interface that works like a standard Windows command window that will have a familiar "feel" for users
+1. list all files within the archive
+2. add file(s), optionally including subfolders, from any directory on disk
+3. extract all or selected file(s) from the archive
+4. remove file(s) or folders from the archive
+5. test the integrity of the archive
+6. perform shell commands including dir, cls, and cd
 
-- v3.0 -- add support for other archiving formats, including tar and gzip
+Files are compressed by default.
 
-- v4.0 -- add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
+## **Installation**
+**_katz_** requires only one file: katz.py. Using katz.bat is optional. See below.
+
+If you have python 3.7+ installed, you can download `katz.py` and, assuming python.exe is in your PATH, run:
+
+    `python katz.py`
+
+## **Usage**
+- The program interface is based on the Windows command shell, but valid commmands include only those useful for manipulating zip files as noted under *Features*. There are no options or preferences.
+- See *Recommended setup* below for creating a shortcut.
+- python 3 must be in the PATH environment variable.
+
+
+## **Recommended setup**
+If you want to run "katz" from your desktop, here is what you need to do:
+1. Put all of the files in this repository in a directory of your choice.
+2. Modify katz.bat as noted within the .bat file.
+3. Create a shortcut to the .bat file on your desktop.
+4. In the properties dialog for the shortcut
+   - change "TARGET" to the full path, including the filename, for katz.bat.
+   - change "START IN" to any path that you desire, but usually this will be the path for the directory that holds katz.bat
+
+## **Required python modules:**
+- datetime
+- glob
+- os
+- pathlib
+- shutil
+- string
+- subprocess
+- sys
+- textwrap
+- zipfile
+
+All modules are included in the python standard library.
