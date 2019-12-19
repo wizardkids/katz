@@ -29,12 +29,19 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- Version 3:
-#       -- Add support for other archiving formats, including tar and gzip
 
-# todo -- Version 4:
+# feature: add a config file that, among possibly other things, configures a starting directory
+
+# feature: add ability to save last os.getcwd()
+
+
+# feature: -- Version 3:
 #       -- 1. Write katz so it can be used as an importable module.
 #       -- 2. Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
+
+# feature: -- Version 4:
+#       -- Add support for other archiving formats, including tar and gzip
+
 
 # declare global variables
 dsh, slsh = '=', '/'
@@ -1202,4 +1209,5 @@ def main_menu():
 
 
 if __name__ == '__main__':
+    os.chdir("c:\\temp\\one")
     main_menu()
