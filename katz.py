@@ -939,23 +939,33 @@ def dir(switch=''):
     """
     Perform an OS dir command for the current path or the path designated by "switch". Path may be an absolute path, a relative path. or ".."
 
+    dir can also be issued with wildcard characters, such as:
+        dir *.txt
+        dir c:\mydata\*.xl?
+
     Keyword Arguments:
         switch {str} -- an OS path (default: {''})
 
     Returns: None
     """
     # preserve the user's current directory
-    current_directory = os.getcwd()
+    cwd = os.getcwd()
 
     # make sure "switch" is an absolute path, especially is
     # user entered ".."  or a subfolder
     file_name, full_path, full_filename = parse_full_filename(switch)
 
     try:
+        # user might use wildcards to filter dir
+        if '*' in switch or '?' in switch:
+            os.chdir(full_path)
+            d = 'dir ' + switch
+            output = str(check_output(d, shell=True))
+
         # if user entered a path, change the cwd to path
-        if switch:
+        else:
             os.chdir(full_filename)
-        output = str(check_output('dir', shell=True))
+            output = str(check_output('dir', shell=True))
         out = output.split('\\r\\n')
         # print the output
         print()
@@ -966,7 +976,7 @@ def dir(switch=''):
                 print(i)
 
         # restore the user's current directory
-        os.chdir(current_directory)
+        os.chdir(cwd)
 
     # if the path in "switch" can't be found, issue an error message
     except:
@@ -1184,4 +1194,5 @@ def main_menu():
 
 
 if __name__ == '__main__':
+    os.chdir("c:\\temp\\one")
     main_menu()
