@@ -24,7 +24,7 @@ If you have python 3 installed, you can download `katz.py` and, assuming python.
 `python katz.py`
 
 ## **Usage**
-- The program interface is fashioned after the Windows command shell (terminal), but valid commmands include only those useful for manipulating zip files as noted under *Features*. There are no options or preferences.
+- The program interface is fashioned after the Windows command shell (terminal), but valid commands include only those useful for manipulating zip files as noted under *Features*. There are no options or preferences.
 - See *Recommended setup* below for creating a shortcut.
 - python 3 must be in the PATH environment variable.
 
