@@ -29,6 +29,10 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+# ! feature request:
+# todo -- make it possible to open a zip file without the extension:
+#       -- o temp
+
 # todo -- Version 3:
 #       -- Add support for other archiving formats, including tar and gzip
 
@@ -44,7 +48,7 @@ shell_cmds = {
     'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]\n',
     'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.\n',
     'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)\n',
-    'OPEN': 'Open an existing zip file. Optionally include a path. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
+    'OPEN': '-- Open an existing zip file. Optionally include a path. The zip extension does need to be entered:\n         prompt> o data    # opens data.zip.\n\n-- For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
     'NEW': 'Create a new zip file in the current directory or, if a path is supplied, in another directory. katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic.\n',
     'LIST': '<L>ist all the files in the archive. In contrast, <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.\n',
     'ADD': '-- Use the "cd" command to navigate to the directory holding files you want to add.\n\n-- Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. Examples:\n     (1) a comma-separated list of numbers or ranges\n     (2) "all" to add all files\n     (3) wildcard characters (*, ?) details.\n\n--<A>dding folders by naming a folder is not permitted.',
@@ -225,9 +229,17 @@ def open(full_filename):
     if not full_filename:
         full_filename = input("\nName of archive: ").strip()
 
-    # if only a string was entered, get the full path
+    # if only a filename was entered, get the full path
     if '\\' not in full_filename:
         full_filename = str(Path(full_filename).absolute())
+
+        # if only a filename without an extention was entered, add .zip
+        # we'll have to make sure it's a zip file, though
+        if Path(full_filename).suffix == '':
+            full_filename += '.zip'
+            if not valid_path(full_filename):
+                print('File not a zip file.')
+                return ''
 
     # test validity of what the user entered either at the command line or at input()
     if not valid_path(full_filename):
