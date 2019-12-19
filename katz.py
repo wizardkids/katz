@@ -963,7 +963,7 @@ def dir(switch=''):
             output = str(check_output(d, shell=True))
 
         # if user entered a path, change the cwd to path
-        elif switch:
+        else:
             os.chdir(full_filename)
             output = str(check_output('dir', shell=True))
         out = output.split('\\r\\n')
