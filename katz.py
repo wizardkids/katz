@@ -1233,6 +1233,6 @@ def main_menu():
 if __name__ == '__main__':
     # ===== For developer use =====
     # print(get_revision_number())
-    os.chdir("c:\\temp\\one")
+    # os.chdir("c:\\temp\\one")
 
     main_menu()
