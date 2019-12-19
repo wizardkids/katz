@@ -29,12 +29,18 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- Version 3:
-#       -- Add support for other archiving formats, including tar and gzip
+# feature: add a config file that, among possibly other things, configures a starting directory
 
-# todo -- Version 4:
+# feature: add ability to save last os.getcwd()
+
+
+# feature: -- Version 3:
 #       -- 1. Write katz so it can be used as an importable module.
 #       -- 2. Add support for importing into other scripts so that, for example, downloaded archives are extracted automatically
+
+# feature: -- Version 4:
+#       -- Add support for other archiving formats, including tar and gzip
+
 
 # declare global variables
 dsh, slsh = '=', '/'
@@ -44,7 +50,7 @@ shell_cmds = {
     'DIR': 'Displays a list of files and subdirectories in a directory.\n\nDIR [drive:][path][filename]\n',
     'CD': 'Displays the name of or changes the current directory.\n\nCD [/D][drive:][path]\n\n".." changes to the parent directory.\n',
     'CLS': 'Clears the screen. ("CLEAR" on Unix systems.)\n',
-    'OPEN': 'Open an existing zip file. Optionally include a path. For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
+    'OPEN': '-- Open an existing zip file. Optionally include a path. The zip extension does need to be entered:\n         prompt> o data    # opens data.zip.\n\n-- For easiest usage, use the "cd" command to change the current directory to the directory containing the zip file that you want to work with.\n',
     'NEW': 'Create a new zip file in the current directory or, if a path is supplied, in another directory. katz 1.0 archives files using only the zip file format (not gzip or tar). File compression is automatic.\n',
     'LIST': '<L>ist all the files in the archive. In contrast, <DIR> lists files in a directory on disk, while <L>ist produces a list of files in the archive.\n',
     'ADD': '-- Use the "cd" command to navigate to the directory holding files you want to add.\n\n-- Even if you include the name of your archive in the list of files to <A>dd, "katz" cannot add a zip file to itself.\n\n-- For speed, three methods are provided for identifying files that you want to <A>dd. Don\'t mix methods! You can mix numbers and ranges, though. Examples:\n     (1) a comma-separated list of numbers or ranges\n     (2) "all" to add all files\n     (3) wildcard characters (*, ?) details.\n\n--<A>dding folders by naming a folder is not permitted.',
@@ -101,13 +107,13 @@ command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', \
 
 def parse_full_filename(path):
     """
-    Takes a full path (path, including a file name) and parses it into a file name and a path (without the filename).
+    Takes a fully qualified path (path, including a file name) and parses it into a file name and a path (without the filename).
 
     Arguments:
-        path {str} -- an absolute path plus a file name
+        path {str} -- a fully qualified path (includes filename.ext)
 
     Returns:
-        three {str} - file name, path only, path plus file name
+        file name, path only, path plus file name -- each is a {str}
     """
     file_name = Path(path).name
     full_path = str(Path(path).parent.absolute())
@@ -121,7 +127,7 @@ def valid_path(path):
     Is the given path a valid OS path?
 
     Arguments:
-        path {str} -- a proposed absolute path plus a file name, to be tested
+        path {str} -- a proposed full qualified path to a zip file, to be tested
 
     Returns:
         [bool] -- [True if (1) the path/file exists; (2) it's a valid OS path and (3) it must include a file name]
@@ -137,45 +143,46 @@ def valid_path(path):
         return False
 
 
-def new(switch):
+def newFile(file):
     """
-    Create a new zip file.
+    Create a new zip file. If a path is included, the current directory will be changed to that path. If "file" does not include an extension, ".zip" is added to "file".
 
-    Paths entered by users can contain a plethora of errors including spelling errors, non-existant paths, and file names that don't meet OS requirements. Also, the python zipfile module does not require that zip files have a .zip extension, but such an extension makes life easier for the user and is required by this program.
+    Paths entered by users can contain a plethora of errors including spelling errors, non-existant paths, and names that don't meet OS requirements. Also, the python zipfile module does not require that zip files have a .zip extension, but such an extension makes life easier for the user and is required by this program.
 
-    A simple testing strategy is employed: see if the path/file can be opened. A multitude of errors are tested all at once.
+    A simple testing strategy is employed: see if the new file can be opened. A multitude of errors are tested all at once.
 
     Arguments:
-        switch {[str]} -- [assumed to be path/filename, stripped of leading and trailing spaces]
+        file {str} -- assumed to be [path/]filename
 
     Returns:
-        [str] -- [a validated path/filename or an empty string]
+        full_filename {str} -- a validated fully qualified path to a zip file
+                               or an empty string
     """
 
-    # "cmd switch" pattern may be entered at the command line. In this
-    # function, "cmd" is assumed to be "new";"switch", if present,
-    # is assumed to be a path/file. if "switch" is an empty string,
-    # get a [path]/filename from the user
-    if not switch:
-        full_filename = input("\nName of archive: ").strip()
+    # "cmd file" pattern may be entered at the command line. In this
+    # function, "cmd" is assumed to be "new"
+    # "file", if present, is assumed to be a [path/]file.
+    # if "file" is an empty string, get a [path/]filename from the user
+    if not file:
+        file = input("\nName of archive: ").strip()
 
-    # if user entered a "switch", test it, then parse it
+    # if user entered a "file", test it, then parse it
     else:
         # if user did not enter an extension, add .zip
         # if user entered the wrong extension, change it
         try:
-            if Path(switch).suffix == '':
-                switch = switch + '.zip'
-            elif len(switch) >= 4:
-                if switch[-4:].upper() != '.ZIP':
-                    switch = switch[:-4] + '.zip'
+            if Path(file).suffix == '':
+                file = file + '.zip'
+            elif len(file) >= 4:
+                if file[-4:].upper() != '.ZIP':
+                    file = file[:-4] + '.zip'
 
         except:
             # This exception will be raised if user entered an extension contains less than 3 characters, such as zipfile.?/ or zipfile.zp
             print('The system cannot find the path specified.\n')
             return ''
 
-    file_name, full_path, full_filename = parse_full_filename(switch)
+    file_name, full_path, full_filename = parse_full_filename(file)
 
     # if user entered an empty string or parse_full_filename() returned an empty string, return to the menu
     if not file_name:
@@ -189,8 +196,7 @@ def new(switch):
 
             if overwrite == 'Y':
                 with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
-                    print('\n', file_name, 'created as new archive.\n')
-                return full_filename
+                    print('\n', full_filename, 'created as new archive.\n')
 
             else:
                 print(file_name, 'not created.\n')
@@ -200,42 +206,54 @@ def new(switch):
     except (FileNotFoundError, OSError):
         try:
             with zipfile.ZipFile(full_filename, 'w', compression=zipfile.ZIP_DEFLATED) as f:
-                print('\n', file_name, 'created as new archive.\n')
+                print('\n', full_filename, 'created as new archive.\n')
 
-            return full_filename
         except:
             print(file_name, 'not created.\n')
             return ''
 
+    os.chdir(full_path)
 
-def open(full_filename):
+    return full_filename
+
+
+def openFile(file):
     """
-    Open an archive. If a path is entered, chdir() to that path.
+    Open the archive "file". If a path is included, the current directory will be changed to that path. If "file" does not include an extension, ".zip" is added to "file" and the result is tested for validity to assure that a zip file is being opened.
 
-    Paths entered by users can contain a plethora of errors including spelling errors, non-existant paths, and file names that don't meet OS requirements. A simple testing strategy is employed: see if the path/file can be opened. A multitude of errors are tested all at once.
+    Paths entered by users can contain a plethora of errors including spelling errors, non-existant paths, and names that don't meet OS requirements. A simple testing strategy is employed: see if the file can be opened. A multitude of errors are tested all at once.
 
     Arguments:
-        switch {str} -- [path]/file
+        file {str} -- [path/]filename
 
     Returns:
-        str -- path/file
+        full_filename {str} -- fully qualified path to a zip file
+                               (e.g., c:\\mydata\\foo.zip)
     """
 
-    # if no "full_filename" was entered, get user input
-    if not full_filename:
-        full_filename = input("\nName of archive: ").strip()
+    # if no "file" was entered, get user input
+    if not file:
+        file = input("\nName of archive: ").strip()
 
-    # if only a string was entered, get the full path
-    if '\\' not in full_filename:
-        full_filename = str(Path(full_filename).absolute())
+    # if only a file.ext was entered, get the full path
+    if '\\' not in file:
+        file = str(Path(file).absolute())
 
-    # test validity of what the user entered either at the command line or at input()
-    if not valid_path(full_filename):
+        # if only a filename without an extention was entered, add .zip
+        # we'll have to make sure it's a zip file, though
+        if Path(file).suffix == '':
+            file += '.zip'
+            if not valid_path(file):
+                print('File not a zip file.')
+                return ''
+
+    # test validity of what the user entered
+    if not valid_path(file):
         print('The system cannot find the path specified.\n')
         return ''
 
     # change the working directory to directory containing the zip file
-    file_name, full_path, full_filename = parse_full_filename(full_filename)
+    file_name, full_path, full_filename = parse_full_filename(file)
     os.chdir(full_path)
 
     return full_filename
@@ -246,10 +264,10 @@ def listFiles(full_filename):
     Print a numbered list of all the files and folders in the archive.
 
     Arguments:
-        full_filename {str} -- full path/file name of the open archive file
+        full_filename {str} -- full qualified path to an open archive file
 
     Returns:
-        str -- full path/file name of the open archive file
+        full_filename
     """
     # prevent user from <list>ing an archive when one isn't open
     if not full_filename:
@@ -300,7 +318,7 @@ def listFiles(full_filename):
 
 def addFiles(full_filename):
     """
-    Add file(s) from the user-designated folder [and subfolders]
+    Add file(s) to the open archive from the selected directory and sub-directories.
 
     Tasks:
         (1) user should already have cd'ed to the folder containing files
@@ -310,12 +328,12 @@ def addFiles(full_filename):
         (4) Add the files to the archive, preserving the relative folder structure of the files/folders on disk
 
     Arguments:
-        full_filename {str} -- path/file name of archive file
+        full_filename {str} -- fully qualified path to an archive file
 
     Returns:
-        str -- path/file name of archive file
+        full_filename
     """
-    # prevent user from <add>ing to an archive when one isn't open
+    # prevent user from <A>dding to an archive when one isn't open
     if not full_filename:
         print("No archive file is open.")
         return full_filename
@@ -429,13 +447,13 @@ def extractFiles(full_filename):
     Tasks:
         (1) Provide a numbered list of archive contents
         (2) Provide various ways for user to select files to extract
-        (3) Extract the files
+        (3) Extract the files to a subdirectory with the same name as the archive
 
     Arguments:
-        full_filename {str} -- path/filename of the opened archive file
+        full_filename {str} -- full qualified path to the opened archive file
 
     Returns:
-        str -- full_filename
+        full_filename
     """
     # prevent user from <extract>ing from an archive when one isn't open
     if not full_filename:
@@ -548,10 +566,10 @@ def removeFiles(full_filename):
             (3) the temporary archive is renamed as the original
 
     Arguments:
-        full_filename {str} -- path/filename of the opened archive file
+        full_filename {str} -- fully qualified path to the opened archive file
 
     Returns:
-        str -- full_filename
+        full_filename
     """
     # prevent user from <remove>ing from an archive when one isn't open
     if not full_filename:
@@ -844,7 +862,7 @@ def get_chosen_files(user_selection, full_filename, source_list, folder_fxn='Fal
 
 def testFiles(full_filename):
     """
-    Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testzip() will not detect a problem and you will extract a corrupted file.
+    Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testing will not identify the fact that it is corrupted! Presumably, it was archived perfectly well as a corrupted file!
     """
     # prevent user from <test>ing an archive when one isn't open
     if not full_filename:
@@ -889,12 +907,15 @@ def about():
 
 def fold(txt, ndnt='     ', w=52):
     """
-    Textwraps 'txt'; used by help() to wrap help text at column 52.
+    Textwraps 'txt'; used by katzHelp() to wrap help text at column 52.
     """
     return textwrap.fill(txt, subsequent_indent=ndnt, width=w)
 
 
-def base_help():
+def katzHelp():
+    """
+    Provide basic information about shell commands used in "katz".
+    """
     msg = '/'*23 + ' HELP ' + '/'*23
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
     print('For help: cmd /? (example:  d /?)')
@@ -937,21 +958,21 @@ def get_revision_number():
 
 def dir(switch=''):
     """
-    Perform an OS dir command for the current path or the path designated by "switch". Path may be an absolute path, a relative path. or ".."
+    Perform an OS dir command for the current path or the path designated by "switch". "switch" may be an absolute path, a relative path. or ".."
 
     dir can also be issued with wildcard characters, such as:
         dir *.txt
         dir c:\mydata\*.xl?
 
-    Keyword Arguments:
-        switch {str} -- an OS path (default: {''})
+    Arguments:
+        switch {str} -- an OS path (default: '')
 
     Returns: None
     """
     # preserve the user's current directory
     cwd = os.getcwd()
 
-    # make sure "switch" is an absolute path, especially is
+    # make sure "switch" is an absolute path, especially if
     # user entered ".."  or a subfolder
     file_name, full_path, full_filename = parse_full_filename(switch)
 
@@ -988,10 +1009,12 @@ def dir(switch=''):
 
 def cd(switch=''):
     """
-    Run an OS cd (change directory) command using the path contained in "switch". The path will be validated since the user may have entered "garbage". The path may be an absolute path or a relative path. "CD.." is a valid command and, in this case, "switch" will be "..". This function will handle that.
+    Run an OS cd (change directory) command using the path denoted by "switch". The path will be validated since the user may have entered a path considered invalid by the OS. The path may be an absolute path, a relative path, or '..'.
 
-    Keyword Arguments:
-        switch {str} -- expected to be a path, a relative path, or '..' (default: {''})
+    Arguments:
+        switch {str} -- an OS path (default: {''})
+
+    Returns: None
     """
     # if user didn't enter a valid cmd or path, there's nothing to do
     if switch == '':
@@ -1024,6 +1047,10 @@ def cd(switch=''):
 def clear():
     """
     Run a cls or clear command to clear the terminal.
+
+    Arguments: none
+
+    Returns: None
     """
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -1032,7 +1059,10 @@ def clear():
 
 def parse_input(entry, full_filename):
     """
-    "entry"is whatever the user entered at the command line and the expected format is:
+    Takes two arguments:
+        "full_filename" is the fully qualified path for a zip file
+
+        "entry"is whatever the user entered at the command line and the expected format is:
 
             cmd [switch]
 
@@ -1047,6 +1077,11 @@ def parse_input(entry, full_filename):
 
     Arguments:
         entry {str} -- whatever the user types; must be parsed for sanity
+        full_filename {str} -- fully qualified path for a zip file
+
+    Returns:
+        cmd {str} -- a shell command, even if invalid
+        full_filename
     """
     # ===============================================
     # PROCESS THE USER'S ENTRY, WHICH WILL BE EITHER:
@@ -1104,7 +1139,7 @@ def parse_input(entry, full_filename):
 
     elif (cmd == 'HELP' or cmd == 'H') and not switch:
         clear()
-        base_help()
+        katzHelp()
 
     elif cmd == 'CD':
         cd(switch)
@@ -1116,10 +1151,10 @@ def parse_input(entry, full_filename):
         clear()
 
     elif cmd == 'N' or cmd == 'NEW':
-        full_filename = new(switch)
+        full_filename = newFile(switch)
 
     elif cmd == 'O' or cmd == 'OPEN':
-        full_filename = open(switch)
+        full_filename = openFile(switch)
 
     elif cmd == 'L' or cmd == 'LIST':
         full_filename = listFiles(full_filename)
@@ -1140,7 +1175,7 @@ def parse_input(entry, full_filename):
         about()
 
     elif cmd == 'M' or cmd == 'MENU':
-        show_menu()
+        showMenu()
 
     elif not cmd:
         pass
@@ -1150,9 +1185,9 @@ def parse_input(entry, full_filename):
     return cmd, full_filename
 
 
-def show_menu():
+def showMenu():
     """
-    Display a formatted menu of available commands.
+    Display a formatted menu of available commands. Shown, by default, at startup of the program. Available on demand by typing: m or menu
     """
     print(
         '\n<O>pen file   <N>ew file   <L>ist  <A>dd\n<E>xtract     <R>emove     <T>est\n<M>enu        <H>elp       a<B>out\n\n<DIR [path]>  <CD [path]>  <CLS>')
@@ -1163,6 +1198,10 @@ def show_menu():
 def main_menu():
     """
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
+
+    Arguments: none
+
+    Returns: None
     """
     full_filename = ''
 
@@ -1170,10 +1209,8 @@ def main_menu():
     # PRINT THE PROGRAM HEADER... JUST ONCE
     # ===============================================
     version_num = "2.0"
-    revision_number = get_revision_number()
-    print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-    show_menu()
-
+    print("\nkatz ", version_num, ' - a command-line archiving utility', sep='')
+    showMenu()
 
     # ===============================================
     # GENERATE THE MAIN MENU IN A LOOP
@@ -1194,5 +1231,8 @@ def main_menu():
 
 
 if __name__ == '__main__':
-    os.chdir("c:\\temp\\one")
+    # ===== For developer use =====
+    # print(get_revision_number())
+    # os.chdir("c:\\temp\\one")
+
     main_menu()
