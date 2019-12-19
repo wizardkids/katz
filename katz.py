@@ -29,9 +29,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# todo -- Change all docstrings to that the information in them is useful
-# todo -- for someone who wants to use these functions in another script
-
 # feature: add a config file that, among possibly other things, configures a starting directory
 
 # feature: add ability to save last os.getcwd()
@@ -110,13 +107,13 @@ command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', \
 
 def parse_full_filename(path):
     """
-    Takes a full path (path, including a file name) and parses it into a file name and a path (without the filename).
+    Takes a fully qualified path (path, including a file name) and parses it into a file name and a path (without the filename).
 
     Arguments:
-        path {str} -- an absolute path plus a file name
+        path {str} -- a fully qualified path (includes filename.ext)
 
     Returns:
-        three {str} - file name, path only, path plus file name
+        file name, path only, path plus file name -- each is a {str}
     """
     file_name = Path(path).name
     full_path = str(Path(path).parent.absolute())
@@ -130,7 +127,7 @@ def valid_path(path):
     Is the given path a valid OS path?
 
     Arguments:
-        path {str} -- a proposed absolute path plus a file name, to be tested
+        path {str} -- a proposed full qualified path to a zip file, to be tested
 
     Returns:
         [bool] -- [True if (1) the path/file exists; (2) it's a valid OS path and (3) it must include a file name]
@@ -158,7 +155,7 @@ def newFile(file):
         file {str} -- assumed to be [path/]filename
 
     Returns:
-        full_filename {str} -- a validated absolute path/filename.zip
+        full_filename {str} -- a validated fully qualified path to a zip file
                                or an empty string
     """
 
@@ -230,7 +227,7 @@ def openFile(file):
         file {str} -- [path/]filename
 
     Returns:
-        full_filename {str} -- absolute path/filename.zip
+        full_filename {str} -- fully qualified path to a zip file
                                (e.g., c:\\mydata\\foo.zip)
     """
 
@@ -267,7 +264,7 @@ def listFiles(full_filename):
     Print a numbered list of all the files and folders in the archive.
 
     Arguments:
-        full_filename {str} -- absolute path/file name of the open archive file
+        full_filename {str} -- full qualified path to an open archive file
 
     Returns:
         full_filename
@@ -331,7 +328,7 @@ def addFiles(full_filename):
         (4) Add the files to the archive, preserving the relative folder structure of the files/folders on disk
 
     Arguments:
-        full_filename {str} -- absolute path/filename of archive file
+        full_filename {str} -- fully qualified path to an archive file
 
     Returns:
         full_filename
@@ -453,7 +450,7 @@ def extractFiles(full_filename):
         (3) Extract the files to a subdirectory with the same name as the archive
 
     Arguments:
-        full_filename {str} -- absolute path/filename of the opened archive file
+        full_filename {str} -- full qualified path to the opened archive file
 
     Returns:
         full_filename
@@ -569,7 +566,7 @@ def removeFiles(full_filename):
             (3) the temporary archive is renamed as the original
 
     Arguments:
-        full_filename {str} -- absolute path/filename of the opened archive file
+        full_filename {str} -- fully qualified path to the opened archive file
 
     Returns:
         full_filename
@@ -961,21 +958,21 @@ def get_revision_number():
 
 def dir(switch=''):
     """
-    Perform an OS dir command for the current path or the path designated by "switch". Path may be an absolute path, a relative path. or ".."
+    Perform an OS dir command for the current path or the path designated by "switch". "switch" may be an absolute path, a relative path. or ".."
 
     dir can also be issued with wildcard characters, such as:
         dir *.txt
         dir c:\mydata\*.xl?
 
-    Keyword Arguments:
-        switch {str} -- an OS path (default: {''})
+    Arguments:
+        switch {str} -- an OS path (default: '')
 
     Returns: None
     """
     # preserve the user's current directory
     cwd = os.getcwd()
 
-    # make sure "switch" is an absolute path, especially is
+    # make sure "switch" is an absolute path, especially if
     # user entered ".."  or a subfolder
     file_name, full_path, full_filename = parse_full_filename(switch)
 
@@ -1012,10 +1009,12 @@ def dir(switch=''):
 
 def cd(switch=''):
     """
-    Run an OS cd (change directory) command using the path contained in "switch". The path will be validated since the user may have entered "garbage". The path may be an absolute path or a relative path. "CD.." is a valid command and, in this case, "switch" will be "..". This function will handle that.
+    Run an OS cd (change directory) command using the path denoted by "switch". The path will be validated since the user may have entered a path considered invalid by the OS. The path may be an absolute path, a relative path, or '..'.
 
-    Keyword Arguments:
-        switch {str} -- expected to be a path, a relative path, or '..' (default: {''})
+    Arguments:
+        switch {str} -- an OS path (default: {''})
+
+    Returns: None
     """
     # if user didn't enter a valid cmd or path, there's nothing to do
     if switch == '':
@@ -1048,6 +1047,10 @@ def cd(switch=''):
 def clear():
     """
     Run a cls or clear command to clear the terminal.
+
+    Arguments: none
+
+    Returns: None
     """
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -1056,7 +1059,10 @@ def clear():
 
 def parse_input(entry, full_filename):
     """
-    "entry"is whatever the user entered at the command line and the expected format is:
+    Takes two arguments:
+        "full_filename" is the fully qualified path for a zip file
+
+        "entry"is whatever the user entered at the command line and the expected format is:
 
             cmd [switch]
 
@@ -1071,6 +1077,11 @@ def parse_input(entry, full_filename):
 
     Arguments:
         entry {str} -- whatever the user types; must be parsed for sanity
+        full_filename {str} -- fully qualified path for a zip file
+
+    Returns:
+        cmd {str} -- a shell command, even if invalid
+        full_filename
     """
     # ===============================================
     # PROCESS THE USER'S ENTRY, WHICH WILL BE EITHER:
@@ -1164,7 +1175,7 @@ def parse_input(entry, full_filename):
         about()
 
     elif cmd == 'M' or cmd == 'MENU':
-        show_menu()
+        showMenu()
 
     elif not cmd:
         pass
@@ -1174,9 +1185,9 @@ def parse_input(entry, full_filename):
     return cmd, full_filename
 
 
-def show_menu():
+def showMenu():
     """
-    Display a formatted menu of available commands.
+    Display a formatted menu of available commands. Shown, by default, at startup of the program. Available on demand by typing: m or menu
     """
     print(
         '\n<O>pen file   <N>ew file   <L>ist  <A>dd\n<E>xtract     <R>emove     <T>est\n<M>enu        <H>elp       a<B>out\n\n<DIR [path]>  <CD [path]>  <CLS>')
@@ -1187,6 +1198,10 @@ def show_menu():
 def main_menu():
     """
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
+
+    Arguments: none
+
+    Returns: None
     """
     full_filename = ''
 
@@ -1194,10 +1209,8 @@ def main_menu():
     # PRINT THE PROGRAM HEADER... JUST ONCE
     # ===============================================
     version_num = "2.0"
-    revision_number = get_revision_number()
-    print("\nkatz ", version_num, '.', revision_number, " - a command-line archiving utility", sep='')
-    show_menu()
-
+    print("\nkatz ", version_num, ' - a command-line archiving utility', sep='')
+    showMenu()
 
     # ===============================================
     # GENERATE THE MAIN MENU IN A LOOP
@@ -1218,5 +1231,8 @@ def main_menu():
 
 
 if __name__ == '__main__':
+    # ===== For developer use =====
+    # print(get_revision_number())
     os.chdir("c:\\temp\\one")
+
     main_menu()
