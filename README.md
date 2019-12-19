@@ -1,4 +1,4 @@
-# katz v2.0
+# katz v2.0 (rev.212)
 a command-line archiving utility
 
 Most GUI archiving utilities have many wonderful features that I never use and a plethora of settings that I never change. "katz" eliminates all this hassle and delivers a minimalist archiving utility that will meet the needs of 99% of users. From the command-line!
