@@ -29,10 +29,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# ! feature request:
-# todo -- make it possible to open a zip file without the extension:
-#       -- o temp
-
 # todo -- Version 3:
 #       -- Add support for other archiving formats, including tar and gzip
 
@@ -1206,5 +1202,4 @@ def main_menu():
 
 
 if __name__ == '__main__':
-    os.chdir("c:\\temp\\one")
     main_menu()
