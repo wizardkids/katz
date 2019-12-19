@@ -945,7 +945,7 @@ def dir(switch=''):
     Returns: None
     """
     # preserve the user's current directory
-    current_directory = os.getcwd()
+    cwd = os.getcwd()
 
     # make sure "switch" is an absolute path, especially is
     # user entered ".."  or a subfolder
@@ -966,7 +966,7 @@ def dir(switch=''):
                 print(i)
 
         # restore the user's current directory
-        os.chdir(current_directory)
+        os.chdir(cwd)
 
     # if the path in "switch" can't be found, issue an error message
     except:
