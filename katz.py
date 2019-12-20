@@ -1198,30 +1198,6 @@ def showMenu():
     print('')
     return None
 
-def get_start_dir():
-    # read the configuration file
-    try:
-        # find the installation path for this script (katz.py)
-        katz_file_path = Path(os.path.realpath(__file__))
-        install_path = katz_file_path.parent
-        config_file_path = Path(install_path, 'katz.config')
-
-        # open the config file and find the setting for startup_directory
-        with open(config_file_path, 'r') as cfg:
-            line = cfg.readline().strip('\n')
-            while line:
-                if len(line) >= 17:
-                    if line[:17] == 'startup_directory':
-                        # if there is no setting, use current working directory
-                        if not line[18:]:
-                            return os.getcwd()
-                        else:
-                            return line[18:]
-                line = cfg.readline().strip('\n')
-    except:
-        return os.getcwd()
-
-
 def main_menu():
     """
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
@@ -1263,33 +1239,23 @@ def main_menu():
 def setup():
     """
     Configuration settings include:
-            -- the installation directory
+            -- the installation directory (not configurable)
             -- user's choice of a startup directory
 
-    This function is run if katz.config is not found in the install directory. It is valid to edit this file manually.
+    It is valid to edit this file manually.
     """
-    # find the installation path for this script (katz.py)
-    katz_file_path = Path(os.path.realpath(__file__))
-    install_path = katz_file_path.parent
+    # find the installation path for katz.config
+    install_path = Path(os.path.realpath(__file__)).parent
     config_file_path = Path(install_path, 'katz.config')
 
-    # if there's no config file, create it and pre-populate the variables
-    if not config_file_path.exists():
-        with open(str(config_file_path), 'w') as file:
-            line = 'install_directory=' + str(install_path) + '\n'
-            file.write(line)
-            line = 'startup_directory=' + '\n'
-            file.write(line)
-
     while True:
-        # get lines of .config as a list
+        # get lines of katz.config as a list
         with open(str(config_file_path), 'r') as file:
-            all_lines = file.readlines()
+           all_lines = [line.strip('\n') for line in file.readlines()]
 
         # This next section of code:
         #   (1) converts each line into dict key:value
         #   (2) prints the contents of the config file
-        all_lines = [line.strip('\n') for line in all_lines]
         config = {}
         print('\nCURRENT SETTINGS:')
         for line in all_lines:
@@ -1313,7 +1279,7 @@ def setup():
         else:
             pass
 
-        # validate and format the user's entry for a setting
+        # validate and then delete or format the user's entry for a setting
         if v:
             v = v.split('=')
             if len(v) != 2:
@@ -1327,9 +1293,9 @@ def setup():
                         print('Setting not found.')
                         return
                 elif v[0] != 'install_directory':
-                        config.update({v[0]: v[1]})
+                        config.update({v[0].strip(): v[1].strip()})
                 else:
-                    print('install_directory not configurable.')
+                    print('install_directory not configurable.\n')
 
         # write the {config} dict to katz.config
         with open(str(config_file_path), 'w') as file:
@@ -1337,18 +1303,72 @@ def setup():
                 line = k + '=' + v
                 file.write(line + '\n')
 
+        # open the re-written file and print its contents
         with open(str(config_file_path), 'r') as file:
-            all_lines = file.readlines()
-        all_lines = [line.strip('\n') for line in all_lines]
+            all_lines = [line.strip('\n') for line in file.readlines()]
+
         for ndx, i in enumerate(all_lines):
             print(ndx, '. ', i, sep='')
 
     return
 
 
+def get_start_dir():
+
+    # find the installation path for katz.config
+    install_path = Path(os.path.realpath(__file__)).parent
+    config_file_path = Path(install_path, 'katz.config')
+
+    # if there's no config file or config file is -0- bytes,
+    # create it and pre-populate the variables
+    if os.stat(str(config_file_path)).st_size == 0 \
+        or not config_file_path.exists():
+
+        with open(str(config_file_path), 'w') as file:
+
+            line = 'install_directory=' + str(install_path) + '\n'
+            file.write(line)
+            line = 'startup_directory=' + '\n'
+            file.write(line)
+
+    # otherwise, if there is a config file, check its contents
+    # if startup_directory is missing, add it
+    else:
+        with open(str(config_file_path), 'a+') as file:
+            file.seek(0)
+            sd = False
+            line = file.readline()
+            while line:
+                if len(line) >= 17:
+                    if line[:17] == 'startup_directory':
+                        sd = True
+                line = file.readline()
+            if not sd:
+                file.write('startup_directory=' + '\n')
+
+    # read the configuration file
+    try:
+        # open the config file and find the setting for startup_directory
+        # return the setting's string; return getcwd() if empty string
+        with open(config_file_path, 'r') as cfg:
+            line = cfg.readline().strip('\n')
+            while line:
+                if len(line) >= 17:
+                    if line[:17] == 'startup_directory':
+                        # if there is no setting, use current working directory
+                        if not line[18:]:
+                            return os.getcwd()
+                        else:
+                            return line[18:]
+                line = cfg.readline().strip('\n')
+
+    # if the config file is unreadable or startup_directory is absent...
+    except:
+        return os.getcwd()
+
+
 if __name__ == '__main__':
     # ===== For developer use =====
     # print(get_revision_number())
-    # os.chdir("c:\\temp\\one")
 
     main_menu()
