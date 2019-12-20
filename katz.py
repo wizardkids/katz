@@ -1208,7 +1208,7 @@ def main_menu():
     """
     full_filename = ''
 
-    # os.chdir(get_start_dir())
+    os.chdir(get_start_dir())
 
 
     # ===============================================
@@ -1244,6 +1244,9 @@ def setup():
 
     It is valid to edit this file manually.
     """
+    # preserve the cwd()
+    cwd = os.getcwd()
+
     # find the installation path for katz.config
     install_path = Path(os.path.realpath(__file__)).parent
     config_file_path = Path(install_path, 'katz.config')
@@ -1266,6 +1269,16 @@ def setup():
     if not 'startup_directory' in [x[:17] for x in config_list]:
         config_list.insert(0, 'startup_directory=')
 
+    # get the currently stored startup_directory, if it exists
+    else:
+        try:
+            startup_id = [ndx for ndx, x in enumerate(
+            config_list) if x[:18] == 'startup_directory=']
+            startup_id = startup_id[0]
+            previous_startup_location = config_list[startup_id].split('=')[1]
+        except:
+            previous_startup_location = ''
+
     # regardless of file contents, recreate the install_directory setting
     install_id = [ndx for ndx,x in enumerate(config_list) if x[:18] == 'install_directory=']
     try:
@@ -1281,11 +1294,18 @@ def setup():
     # ============================================
 
     while True:
+        # clear the screen, for readability
+        clear()
+
         # delete empty config_list items
         config_list = [x for x in config_list if x]
         # print the contents of the config file
         print('\nCURRENT SETTINGS:')
+
         for line in config_list:
+            if len(line) >= 52:
+                print('...', line[-49:], sep='')
+            else:
                 print(line)
         print()
 
@@ -1339,6 +1359,21 @@ def setup():
         with open(str(config_file_path), 'r') as file:
             all_lines = [line.strip('\n') for line in file.readlines()]
 
+    # confirm that the startup_directory is a valid
+    startup_id = [ndx for ndx, x in enumerate(config_list) if x[:18] == 'startup_directory=']
+    # startup_id may be empty, so try...except
+    try:
+        if startup_id:
+            startup_id = startup_id[0]
+            startup_location = config_list[startup_id].split('=')[1]
+            os.chdir(startup_location) # raises exception if bad directory
+        else:
+            config_list.append('startup_directory=')
+    except:
+        config_list[startup_id] = 'startup_directory=' + previous_startup_location
+
+    os.chdir(cwd)
+
     # before quitting, write config_list to katz.config
     with open(str(config_file_path), 'w') as file:
         for line in config_list:
@@ -1354,49 +1389,27 @@ def get_start_dir():
     config_file_path = Path(install_path, 'katz.config')
 
     # if there's no config file or config file is -0- bytes,
-    # create it and pre-populate the variables
+    # have user run setup()
     if os.stat(str(config_file_path)).st_size == 0 \
         or not config_file_path.exists():
+        print('katz.config not found. Run <s>etup.')
+        return os.getcwd()
 
-        with open(str(config_file_path), 'w') as file:
-
-            line = 'install_directory=' + str(install_path) + '\n'
-            file.write(line)
-            line = 'startup_directory=' + '\n'
-            file.write(line)
-
-    # otherwise, if there is a config file, check its contents
-    # if startup_directory is missing, add it
+    # otherwise, if there is a config file,
+    # get startup_directory, if it exists
     else:
-        with open(str(config_file_path), 'a+') as file:
-            file.seek(0)
-            sd = False
-            line = file.readline()
-            while line:
-                if len(line) >= 17:
-                    if line[:17] == 'startup_directory':
-                        sd = True
-                line = file.readline()
-            if not sd:
-                file.write('startup_directory=' + '\n')
+        # get lines, if any, of katz.config as a list
+        with open(str(config_file_path), 'r') as file:
+            config_list = [line.strip('\n') for line in file.readlines()]
 
-    # read the configuration file
+    # get the location of startup_directory
+    startup_id = [ndx for ndx, x in enumerate(config_list) if x[:18] == 'startup_directory=']
+
+    # if startup_directory does not exist, next line raises an exception
     try:
-        # open the config file and find the setting for startup_directory
-        # return the setting's string; return getcwd() if empty string
-        with open(config_file_path, 'r') as cfg:
-            line = cfg.readline().strip('\n')
-            while line:
-                if len(line) >= 17:
-                    if line[:17] == 'startup_directory':
-                        # if there is no setting, use current working directory
-                        if not line[18:]:
-                            return os.getcwd()
-                        else:
-                            return line[18:]
-                line = cfg.readline().strip('\n')
-
-    # if the config file is unreadable or startup_directory is absent...
+        startup_id = startup_id[0]
+        startup_location = config_list[startup_id].split('=')
+        return startup_location[1]
     except:
         return os.getcwd()
 
