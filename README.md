@@ -17,27 +17,32 @@ Most GUI archiving utilities have many wonderful features that I never use and a
 Files are compressed by default.
 
 ## **Installation**
-**`katz`** requires only one file: `katz.py`. Using `katz.bat` is optional. See below.
+**`katz`** requires only one file: `katz.py`.
 
 If you have python 3 installed, you can download `katz.py` and, assuming python.exe is in your PATH, run:
 
 `python katz.py`
 
 ## **Usage**
-- The program interface is fashioned after the Windows command shell (terminal), but valid commands include only those useful for manipulating zip files as noted under *Features*. There are no options or preferences.
+- The program interface is fashioned after the Windows command shell (terminal), but valid commands include only those useful for manipulating zip files as noted under *Features*.
 - See *Recommended setup* below for creating a shortcut.
-- python 3 must be in the PATH environment variable.
+
+
+## **Configuration**
+- Configuration is limited to setting a default startup directory.
 
 
 ## **Recommended setup**
 If you want to run `katz` from your desktop, here is what you need to do:
-1. Put all of the files in this repository in a directory of your choice.
-2. Create a shortcut to the .bat file on your desktop.
-3. In the properties dialog for the shortcut
-   - change "TARGET" to the full path, including the filename, for `katz.bat`.
-4. Determine a default starting path and then either:
-   - in the properties dialog, change "START IN" to that default path
-   - set the default path in `katz.bat`
+- Put all of the files in this repository in a directory of your choice.
+- Navigate to that directory, and from within a terminal (Windows shell)...
+- Start `katz` using...
+
+`python katz.py`
+- At the command prompt, enter 's' or 'setup'.
+- Create the following setting:
+    - startup_directory=[path of your choice]
+
 
 ## **Required python modules:**
 - datetime
