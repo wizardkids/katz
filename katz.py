@@ -29,10 +29,8 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# feature: add a config file that, among possibly other things, configures a starting directory
 
 # feature: add ability to save last os.getcwd()
-
 
 # feature: -- Version 3:
 #       -- 1. Write katz so it can be used as an importable module.
@@ -58,6 +56,7 @@ shell_cmds = {
     'REMOVE': '-- <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders from the archive.\n\n-- Generally, "katz" retains folder structure when <A>dding files. Files in the same directory as the archive file are placed in a folder of the same name holding the archive file. However, some archive files may have files in the "root"directory. <L>ist will designate the "folder" for these files with a ".". To remove these files, use "." as the folder name. \n',
     'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted! Presumably, it was archived perfectly well as a corrupted file!\n',
     'MENU': '<M>enu shows a formatted menu of available commands.\n',
+    'SETUP': '--<S>etup allows editing of the "katz" configuration file.\n\n--By default, configuration stores two variables:\n          install_directory\n          startup_directory\n\n--install_directory is not configurable\n',
     'HELP': 'HELP is helpless.\n',
     'EXIT': 'Quits the shell and the current script.\n',
     'QUIT': 'Quits the shell and the current script.\n',
@@ -98,7 +97,9 @@ translate = {
     'M': 'MENU',
     'MENU': 'MENU',
     'B': 'ABOUT',
-    'ABOUT': 'ABOUT'}
+    'ABOUT': 'ABOUT',
+    'S': 'SETUP',
+    'SETUP': 'SETUP'}
 
 # the following list is used in sub_menu() to filter zip-file commands
 command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', \
@@ -1169,7 +1170,10 @@ def parse_input(entry, full_filename):
         full_filename = removeFiles(full_filename)
 
     elif cmd == 'T' or cmd == 'TEST':
-            full_filename = testFiles(full_filename)
+        full_filename = testFiles(full_filename)
+
+    elif cmd == 'S' or cmd == 'SETUP':
+        setup()
 
     elif cmd == 'B':
         about()
@@ -1194,7 +1198,6 @@ def showMenu():
     print('')
     return None
 
-
 def main_menu():
     """
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
@@ -1204,6 +1207,9 @@ def main_menu():
     Returns: None
     """
     full_filename = ''
+
+    os.chdir(get_start_dir())
+
 
     # ===============================================
     # PRINT THE PROGRAM HEADER... JUST ONCE
@@ -1230,9 +1236,139 @@ def main_menu():
             break
 
 
+def setup():
+    """
+    Configuration settings include:
+            -- the installation directory (not configurable)
+            -- user's choice of a startup directory
+
+    It is valid to edit this file manually.
+    """
+    # find the installation path for katz.config
+    install_path = Path(os.path.realpath(__file__)).parent
+    config_file_path = Path(install_path, 'katz.config')
+
+    while True:
+        # get lines of katz.config as a list
+        with open(str(config_file_path), 'r') as file:
+           all_lines = [line.strip('\n') for line in file.readlines()]
+
+        # This next section of code:
+        #   (1) converts each line into dict key:value
+        #   (2) prints the contents of the config file
+        config = {}
+        print('\nCURRENT SETTINGS:')
+        for line in all_lines:
+            v = line.split('=')
+            config.update({v[0].strip(): v[1].strip()})
+            print(line)
+        print()
+
+        # make sure that the {config} dict contains at least the two required variables
+        config.update({'install_directory': str(install_path)})
+        if 'startup_directory' not in config.keys():
+            config.update({'startup_directory': ''})
+
+        # allow user to change or create any setting EXCEPT "install_directory"
+        v = input('setting: ').strip().lower()
+
+        if not v:
+            return
+        elif v[-1] == '=':
+            v += '_deleteMe_'
+        else:
+            pass
+
+        # validate and then delete or format the user's entry for a setting
+        if v:
+            v = v.split('=')
+            if len(v) != 2:
+                print('Setting in incorrect format.')
+                return
+            else:
+                if v[1] == '_deleteMe_':
+                    try:
+                        del config[v[0]]
+                    except:
+                        print('Setting not found.')
+                        return
+                elif v[0] != 'install_directory':
+                        config.update({v[0].strip(): v[1].strip()})
+                else:
+                    print('install_directory not configurable.\n')
+
+        # write the {config} dict to katz.config
+        with open(str(config_file_path), 'w') as file:
+            for k, v in config.items():
+                line = k + '=' + v
+                file.write(line + '\n')
+
+        # open the re-written file and print its contents
+        with open(str(config_file_path), 'r') as file:
+            all_lines = [line.strip('\n') for line in file.readlines()]
+
+        for ndx, i in enumerate(all_lines):
+            print(ndx, '. ', i, sep='')
+
+    return
+
+
+def get_start_dir():
+
+    # find the installation path for katz.config
+    install_path = Path(os.path.realpath(__file__)).parent
+    config_file_path = Path(install_path, 'katz.config')
+
+    # if there's no config file or config file is -0- bytes,
+    # create it and pre-populate the variables
+    if os.stat(str(config_file_path)).st_size == 0 \
+        or not config_file_path.exists():
+
+        with open(str(config_file_path), 'w') as file:
+
+            line = 'install_directory=' + str(install_path) + '\n'
+            file.write(line)
+            line = 'startup_directory=' + '\n'
+            file.write(line)
+
+    # otherwise, if there is a config file, check its contents
+    # if startup_directory is missing, add it
+    else:
+        with open(str(config_file_path), 'a+') as file:
+            file.seek(0)
+            sd = False
+            line = file.readline()
+            while line:
+                if len(line) >= 17:
+                    if line[:17] == 'startup_directory':
+                        sd = True
+                line = file.readline()
+            if not sd:
+                file.write('startup_directory=' + '\n')
+
+    # read the configuration file
+    try:
+        # open the config file and find the setting for startup_directory
+        # return the setting's string; return getcwd() if empty string
+        with open(config_file_path, 'r') as cfg:
+            line = cfg.readline().strip('\n')
+            while line:
+                if len(line) >= 17:
+                    if line[:17] == 'startup_directory':
+                        # if there is no setting, use current working directory
+                        if not line[18:]:
+                            return os.getcwd()
+                        else:
+                            return line[18:]
+                line = cfg.readline().strip('\n')
+
+    # if the config file is unreadable or startup_directory is absent...
+    except:
+        return os.getcwd()
+
+
 if __name__ == '__main__':
     # ===== For developer use =====
     # print(get_revision_number())
-    # os.chdir("c:\\temp\\one")
 
     main_menu()
