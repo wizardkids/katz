@@ -29,6 +29,8 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+# feature: allow opening a zip file just by entering the zip file name
+
 # fixme: prevent a problem in case user enters a path using quotes in setup()
 
 # feature: add ability to save last os.getcwd()
@@ -1317,6 +1319,10 @@ def setup():
         if not v:
             break
 
+        # in case user used quotes, which are counterproductive
+        v = v.replace('"', '')
+        v = v.replace("'", '')
+
         # look for user's entry in config_list
         user_input = v.split('=')
         try:
@@ -1384,6 +1390,12 @@ def setup():
 
 
 def get_start_dir():
+    """
+    Initializes current working directory from path stored in katz.config as startup_directory
+
+    Returns:
+        [str] -- starting path, obtained from katz.config
+    """
 
     # find the installation path for katz.config
     install_path = Path(os.path.realpath(__file__)).parent
