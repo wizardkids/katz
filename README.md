@@ -42,6 +42,7 @@ If you want to run `katz` from your desktop, here is what you need to do:
 - At the command prompt, enter 's' or 'setup'.
 - Create the following setting:
     - startup_directory=[path of your choice]
+    - NOTE: quotes around a path with spaces are NOT required
 
 
 ## **Required python modules:**
