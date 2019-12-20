@@ -29,9 +29,9 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# feature: allow opening a zip file just by entering the zip file name
+# fixme: after opening a file, provide a clear notice that this has happened
 
-# fixme: prevent a problem in case user enters a path using quotes in setup()
+# feature: allow opening a zip file just by entering the zip file name
 
 # feature: add ability to save last os.getcwd()
 
@@ -259,6 +259,8 @@ def openFile(file):
     # change the working directory to directory containing the zip file
     file_name, full_path, full_filename = parse_full_filename(file)
     os.chdir(full_path)
+
+    print('\n', dsh*52, '\n', full_filename, '\n', dsh*52, '\n', sep='')
 
     return full_filename
 
@@ -1232,6 +1234,16 @@ def main_menu():
         # ===============================================
         prompt = "(katz) " + os.getcwd() + ">"
         entry = input(prompt).strip()
+
+        # if user enters a valid zip file name, run openFile() directly
+        try:
+            with zipfile.ZipFile(entry) as f:
+                pass
+            file_name, full_path, full_filename = parse_full_filename(entry)
+            full_filename = openFile(full_filename)
+            continue
+        except:
+            pass
 
         cmd, full_filename = parse_input(entry, full_filename)
 
