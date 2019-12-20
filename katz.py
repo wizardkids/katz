@@ -29,9 +29,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# fixme: after opening a file, provide a clear notice that this has happened
-
-# feature: allow opening a zip file just by entering the zip file name
 
 # feature: add ability to save last os.getcwd()
 
