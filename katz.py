@@ -1208,7 +1208,7 @@ def main_menu():
     """
     full_filename = ''
 
-    os.chdir(get_start_dir())
+    # os.chdir(get_start_dir())
 
 
     # ===============================================
@@ -1248,67 +1248,101 @@ def setup():
     install_path = Path(os.path.realpath(__file__)).parent
     config_file_path = Path(install_path, 'katz.config')
 
+    # ============================================
+    # MAKE SURE KATZ.CONFIG EXISTS AND THAT IT IS
+    # POPULATED, AT LEAST, WITH STANDARD CONTENTS
+    # ============================================
+
+    # if katz.config does not exist, create it
+    if not config_file_path.exists():
+        with open(str(config_file_path), 'w') as file:
+            pass
+
+    # get lines, if any, of katz.config as a list
+    with open(str(config_file_path), 'r') as file:
+        config_list = [line.strip('\n') for line in file.readlines()]
+
+    # check if install_directory and startup_directory are part of katz.config and that install_directory is accurate
+    if not 'startup_directory' in [x[:17] for x in config_list]:
+        config_list.insert(0, 'startup_directory=')
+
+    # regardless of file contents, recreate the install_directory setting
+    install_id = [ndx for ndx,x in enumerate(config_list) if x[:18] == 'install_directory=']
+    try:
+        if install_id[0] >= 0:
+            del config_list[install_id[0]]
+    except:
+        pass
+    config_list.insert(0, 'install_directory=' + str(install_path))
+
+    # ============================================
+    # KATZ.CONFIG EXISTS WITH, AT LEAST, STANDARD CONTENTS
+    # NOW, LET THE USER EDIT IT
+    # ============================================
+
     while True:
-        # get lines of katz.config as a list
-        with open(str(config_file_path), 'r') as file:
-           all_lines = [line.strip('\n') for line in file.readlines()]
-
-        # This next section of code:
-        #   (1) converts each line into dict key:value
-        #   (2) prints the contents of the config file
-        config = {}
+        # delete empty config_list items
+        config_list = [x for x in config_list if x]
+        # print the contents of the config file
         print('\nCURRENT SETTINGS:')
-        for line in all_lines:
-            v = line.split('=')
-            config.update({v[0].strip(): v[1].strip()})
-            print(line)
+        for line in config_list:
+                print(line)
         print()
-
-        # make sure that the {config} dict contains at least the two required variables
-        config.update({'install_directory': str(install_path)})
-        if 'startup_directory' not in config.keys():
-            config.update({'startup_directory': ''})
 
         # allow user to change or create any setting EXCEPT "install_directory"
         v = input('setting: ').strip().lower()
 
+        # if user enters nothing, don't bother with the rest of this
         if not v:
-            return
-        elif v[-1] == '=':
-            v += '_deleteMe_'
-        else:
-            pass
+            break
+
+        # look for user's entry in config_list
+        user_input = v.split('=')
+        try:
+            user_var, user_value = user_input[0].strip(), user_input[1].strip()
+        except:
+            print('Incorrect formatting of setting.\nUsage: var=value')
+            continue
+
+        if user_var == 'install_directory':
+            print('install_directory not configurable.\n')
+            continue
+
+        ln = len(user_var)
+        user_id = [ndx for ndx, x in enumerate(
+            config_list) if x[:ln] == user_var]
+        # if user_var does not exist, next line raises an exception
+        # use that to add the variable to the list
+        try:
+            user_id = user_id[0]
+        except:
+            config_list.append(user_var + '=' + user_value)
+            user_id = [ndx for ndx, x in enumerate(
+            config_list) if x[:ln] == user_var]
+            user_id = user_id[0]
+
+        if user_value == '' and user_var != 'install_directory':
+            user_value = '_deleteMe_'
 
         # validate and then delete or format the user's entry for a setting
-        if v:
-            v = v.split('=')
-            if len(v) != 2:
-                print('Setting in incorrect format.')
-                return
+        if user_input:
+            if user_value == '_deleteMe_':
+                try:
+                    del config_list[user_id]
+                except:
+                    print('Setting not found.')
+                    return
             else:
-                if v[1] == '_deleteMe_':
-                    try:
-                        del config[v[0]]
-                    except:
-                        print('Setting not found.')
-                        return
-                elif v[0] != 'install_directory':
-                        config.update({v[0].strip(): v[1].strip()})
-                else:
-                    print('install_directory not configurable.\n')
+                config_list[user_id] = user_var + '=' + user_value
 
-        # write the {config} dict to katz.config
-        with open(str(config_file_path), 'w') as file:
-            for k, v in config.items():
-                line = k + '=' + v
-                file.write(line + '\n')
-
-        # open the re-written file and print its contents
+        # open the re-written file and get its contents
         with open(str(config_file_path), 'r') as file:
             all_lines = [line.strip('\n') for line in file.readlines()]
 
-        for ndx, i in enumerate(all_lines):
-            print(ndx, '. ', i, sep='')
+    # before quitting, write config_list to katz.config
+    with open(str(config_file_path), 'w') as file:
+        for line in config_list:
+            file.write(line + '\n')
 
     return
 
