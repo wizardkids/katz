@@ -29,6 +29,7 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+# fixme: prevent a problem in case user enters a path using quotes in setup()
 
 # feature: add ability to save last os.getcwd()
 
