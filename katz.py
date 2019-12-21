@@ -29,9 +29,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# fixme: prevent a problem in case user enters a path using quotes in setup()
-
-# feature: add ability to save last os.getcwd()
 
 # feature: -- Version 3:
 #       -- 1. Write katz so it can be used as an importable module.
@@ -57,7 +54,7 @@ shell_cmds = {
     'REMOVE': '-- <R>emoves files or a single folder from the archive. This operation cannot be reversed! If the specified folder has subfolders, only the files in the folder will be removed; subfolders (and contents) will be retained. "katz" will confirm before removing any files or folders from the archive.\n\n-- Generally, "katz" retains folder structure when <A>dding files. Files in the same directory as the archive file are placed in a folder of the same name holding the archive file. However, some archive files may have files in the "root"directory. <L>ist will designate the "folder" for these files with a ".". To remove these files, use "." as the folder name. \n',
     'TEST': '<T>est the integrity of the archive. SPECIAL NOTE: If you archive a corrupted file, testing will not identify the fact that it is corrupted! Presumably, it was archived perfectly well as a corrupted file!\n',
     'MENU': '<M>enu shows a formatted menu of available commands.\n',
-    'SETUP': '--<S>etup allows editing of the "katz" configuration file.\n\n--By default, configuration stores two variables:\n          install_directory\n          startup_directory\n\n--install_directory is not configurable\n',
+    'SETUP': '--<S>etup allows editing of the "katz" configuration file.\n\n--Two settings are configurable:\n      (1) startup_directory=[starting path when "katz" starts]\n\n      (2) use_last_location=[True or False]\n\n-- If use_last_location is set to "True", then the next time "katz" starts, it will start in the directory in use at the time the program was last closed, regardless of the setting for startup_directory.\n\n-- Paths do not need to be quoted.\n\n--Other variables can be saved in the .config file, but these will not be used by "katz."',
     'HELP': 'HELP is helpless.\n',
     'EXIT': 'Quits the shell and the current script.\n',
     'QUIT': 'Quits the shell and the current script.\n',
@@ -103,9 +100,10 @@ translate = {
     'SETUP': 'SETUP'}
 
 # the following list is used in sub_menu() to filter zip-file commands
-command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW', \
-                'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..', \
-                'H', 'HELP','Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T', 'M', "MENU"]
+command_list = ['DIR', 'CLS', 'CLEAR', 'EXIT', 'N', 'NEW',
+                'O', 'OPEN', 'CD', 'CD.', 'CD..', '.', '..',
+                'H', 'HELP', 'Q', 'QUIT', 'A', 'L', 'A', 'E', 'R', 'T', 'M', "MENU"]
+
 
 def parse_full_filename(path):
     """
@@ -258,6 +256,8 @@ def openFile(file):
     file_name, full_path, full_filename = parse_full_filename(file)
     os.chdir(full_path)
 
+    print('\n', dsh*52, '\n', full_filename, '\n', dsh*52, '\n', sep='')
+
     return full_filename
 
 
@@ -394,7 +394,6 @@ def addFiles(full_filename):
         print('No files selected.')
         return full_filename
 
-
     # ==================================================
     # ADD THE FILES:
     #   files ALWAYS go into named folders
@@ -464,7 +463,6 @@ def extractFiles(full_filename):
 
     file_name, full_path, full_filename = parse_full_filename(full_filename)
 
-
     # ==============================================
     # GET A LIST FILES IN THE ARCHIVE AND PRINT IT
     # ==============================================
@@ -478,7 +476,6 @@ def extractFiles(full_filename):
         file_list = sorted(file_list, reverse=True)
         num_files = len(file_list)
 
-
     # ==============================================
     # LET USER CHOOSE WHICH FILE(S) TO EXTRACT
     # ==============================================
@@ -487,7 +484,6 @@ def extractFiles(full_filename):
     print(
         '\nEnter a comma-separated combination of:\n  -- the number of the file(s) to extract\n  -- a hyphenated list of sequential numbers\n  -- a folder name\n  -- or enter "all" to extract all files\n')
     user_selection = input("File number(s) to extract: ")
-
 
     # ==============================================
     # GENERATE A LIST OF ALL FILES USER WANTS TO EXTRACT
@@ -514,7 +510,6 @@ def extractFiles(full_filename):
     selected_files = get_chosen_files(
         user_selection, full_filename, source_list, folder_fxn)
 
-
     # ==============================================
     # CONFIRM THE SELECTION OF FILES
     # ==============================================
@@ -531,7 +526,6 @@ def extractFiles(full_filename):
     # return to the command line if user enters anything but "Y"
     if confirm != 'Y':
         return full_filename
-
 
     # ==============================================
     # EXTRACT THE FILES THE USER HAS CHOSEN AND
@@ -591,7 +585,8 @@ def removeFiles(full_filename):
 
     # unlikely, but... abort if "temporary" directory already exists
     if os.path.isdir(temporary_path):
-        msg = '\nCannot remove files from archive, since ' + temporary_path + ' directory exists.\n'
+        msg = '\nCannot remove files from archive, since ' + \
+            temporary_path + ' directory exists.\n'
         print('='*52, msg, '='*52, sep='')
 
         # return user to original working directory
@@ -653,7 +648,8 @@ def removeFiles(full_filename):
     for file in selected_files:
         print(file)
 
-    confirmed = input('\nRemove these files from the archive? (Y/N) ').strip().upper()
+    confirmed = input(
+        '\nRemove these files from the archive? (Y/N) ').strip().upper()
 
     # ===============================================
     # REMOVE THE FILES DESIGNATED BY THE USER
@@ -690,7 +686,8 @@ def removeFiles(full_filename):
                 rel_folder = '\\'.join(file_parts[loc+1:-1])
                 rel_folder = Path(rel_folder, Path(file).name)
 
-                if Path(file).name.upper() != file_name.upper():  # katz won't add the zip to itself
+                # katz won't add the zip to itself
+                if Path(file).name.upper() != file_name.upper():
                     f.write(file, arcname=rel_folder)
 
         # ===============================================
@@ -731,9 +728,11 @@ def removeFiles(full_filename):
         # delete "temporary" dir even if exception was raised in previous line
         if Path(full_path, temporary_path).is_dir():
             try:
-                shutil.rmtree(Path(full_path, temporary_path), ignore_errors=False)
+                shutil.rmtree(Path(full_path, temporary_path),
+                              ignore_errors=False)
             except PermissionError:
-                msg = '\nCannot complete operation. A file or folder in ' + temporary_path + ' is being used by another process.\n'
+                msg = '\nCannot complete operation. A file or folder in ' + \
+                    temporary_path + ' is being used by another process.\n'
                 print('='*52, msg, '='*52, sep='')
 
     # return user to original working directory
@@ -935,7 +934,7 @@ def katzHelp():
                     print(k)
 
     print('\nAll commands are case insensitive. Most can use one\nletter (e.g., "o" instead of "open")')
-    print( dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
+    print(dsh*52, '\n', '/'*52, '\n', dsh*52, sep='')
     print()
 
 
@@ -1199,6 +1198,7 @@ def showMenu():
     print('')
     return None
 
+
 def main_menu():
     """
     Display initial "splash" screen, then expose "shell" that accepts shell commands.
@@ -1209,8 +1209,7 @@ def main_menu():
     """
     full_filename = ''
 
-    os.chdir(get_start_dir())
-
+    get_start_dir()
 
     # ===============================================
     # PRINT THE PROGRAM HEADER... JUST ONCE
@@ -1231,10 +1230,52 @@ def main_menu():
         prompt = "(katz) " + os.getcwd() + ">"
         entry = input(prompt).strip()
 
+        # if user enters a valid zip file name, run openFile() directly
+        try:
+            with zipfile.ZipFile(entry) as f:
+                pass
+            file_name, full_path, full_filename = parse_full_filename(entry)
+            full_filename = openFile(full_filename)
+            continue
+        except:
+            pass
+
         cmd, full_filename = parse_input(entry, full_filename)
 
         if cmd in ['EXIT', 'QUIT', 'Q']:
             break
+
+    save_last_location()
+
+
+def save_last_location():
+
+    # find the installation path for katz.py; use same location for katz.config
+    install_path = Path(os.path.realpath(__file__)).parent
+    config_file_path = Path(install_path, 'katz.config')
+
+    # get all non-empty lines in katz.config into a dict
+    with open(str(config_file_path), 'r') as file:
+        all_lines = file.readlines()
+
+    all_lines = [line.strip('\n') for line in all_lines if line.strip('\n')]
+    config_dict = {}
+    for line in all_lines:
+        this_line = line.split('=')
+        # try:except required for skipping junk entries
+        try:
+            if this_line:
+                config_dict.update({this_line[0]: this_line[1]})
+        except:
+            pass
+
+    # write back all lines, except changing last_location to cwd()
+    with open(str(config_file_path), 'w') as file:
+        for user_var, user_value in config_dict.items():
+            if user_var == 'last_location':
+                user_value = os.getcwd()
+            line = user_var + '=' + user_value + '\n'
+            file.write(line)
 
 
 def setup():
@@ -1248,7 +1289,7 @@ def setup():
     # preserve the cwd()
     cwd = os.getcwd()
 
-    # find the installation path for katz.config
+    # find the installation path for katz.py; use same location for katz.config
     install_path = Path(os.path.realpath(__file__)).parent
     config_file_path = Path(install_path, 'katz.config')
 
@@ -1257,162 +1298,192 @@ def setup():
     # POPULATED, AT LEAST, WITH STANDARD CONTENTS
     # ============================================
 
-    # if katz.config does not exist, create it
-    if not config_file_path.exists():
+    # use open() to test if katz.config exists and is readable
+    # if it does not exist, create it
+    try:
+        with open(str(config_file_path), 'r') as file:
+            pass
+    except:
         with open(str(config_file_path), 'w') as file:
             pass
 
-    # get lines, if any, of katz.config as a list
+    # ===============================================
+    # PUT THE CONTENTS OF KATZ.CONFIG INTO A DICT
+    # ===============================================
+
+    # get all non-empty lines in katz.config into a dict
     with open(str(config_file_path), 'r') as file:
-        config_list = [line.strip('\n') for line in file.readlines()]
+        all_lines = file.readlines()
 
-    # check if install_directory and startup_directory are part of katz.config and that install_directory is accurate
-    if not 'startup_directory' in [x[:17] for x in config_list]:
-        config_list.insert(0, 'startup_directory=')
-
-    # get the currently stored startup_directory, if it exists
-    else:
+    all_lines = [line.strip('\n') for line in all_lines if line.strip('\n')]
+    config_dict = {}
+    for line in all_lines:
+        this_line = line.split('=')
+        # try:except required for skipping junk entries
         try:
-            startup_id = [ndx for ndx, x in enumerate(
-            config_list) if x[:18] == 'startup_directory=']
-            startup_id = startup_id[0]
-            previous_startup_location = config_list[startup_id].split('=')[1]
+            if this_line:
+                config_dict.update({this_line[0]: this_line[1]})
         except:
-            previous_startup_location = ''
+            pass
+
+    for k, v in config_dict.items():
+        print(k, '=', v, sep='')
+
+    # ===============================================
+    # ASCERTAIN THAT CONFIG_DICT HAS AT LEAST THE 4 REQUIRED
+    # VARIABLES: install_directory, startup_directory, last_location, use_last_location
+    # ===============================================
 
     # regardless of file contents, recreate the install_directory setting
-    install_id = [ndx for ndx,x in enumerate(config_list) if x[:18] == 'install_directory=']
-    try:
-        if install_id[0] >= 0:
-            del config_list[install_id[0]]
-    except:
-        pass
-    config_list.insert(0, 'install_directory=' + str(install_path))
+    config_dict.update({'install_directory': str(install_path)})
+    # if the other three variables are missing, add them
+    if not 'startup_directory' in config_dict.keys():
+        config_dict.update({'startup_directory': ''})
+    if not 'last_location' in config_dict.keys():
+        config_dict.update({'last_location': ''})
+    if not 'use_last_location' in config_dict.keys():
+        config_dict.update({'use_last_location': False})
 
     # ============================================
-    # KATZ.CONFIG EXISTS WITH, AT LEAST, STANDARD CONTENTS
-    # NOW, LET THE USER EDIT IT
+    # PRINT THE CONTENTS OF CONFIG_DICT ON SCREEN
     # ============================================
 
+    # this while: loop works only with config_dict, not katz.config
     while True:
         # clear the screen, for readability
         clear()
-
-        # delete empty config_list items
-        config_list = [x for x in config_list if x]
-        # print the contents of the config file
         print('\nCURRENT SETTINGS:')
-
-        for line in config_list:
-            if len(line) >= 52:
-                print('...', line[-49:], sep='')
-            else:
-                print(line)
+        for user_var, user_value in config_dict.items():
+            print(user_var, '=', user_value, sep='')
         print()
 
+    # ============================================
+    # ALLOW THE USER TO ADD/EDIT A VARIABLE, EXCEPT install_directory
+    # ============================================
+
         # allow user to change or create any setting EXCEPT "install_directory"
-        v = input('setting: ').strip().lower()
+        user_input = input('Setting: ').strip().lower()
 
         # if user enters nothing, don't bother with the rest of this
-        if not v:
+        if not user_input:
             break
 
-        # look for user's entry in config_list
-        user_input = v.split('=')
+        # in case user used quotes, which are unnecessary
+        user_input = user_input.replace('"', '')
+        user_input = user_input.replace("'", '')
+
+        # format the user's input into a user_var and a user_value
+        user_input = user_input.split('=')
+
+        # try:except is used because user_input might not be
+        # in the form... user_var=user_value
         try:
             user_var, user_value = user_input[0].strip(), user_input[1].strip()
         except:
             print('Incorrect formatting of setting.\nUsage: var=value')
             continue
 
+        # prevent any further action on "install_directory"
         if user_var == 'install_directory':
             print('install_directory not configurable.\n')
             continue
 
-        ln = len(user_var)
-        user_id = [ndx for ndx, x in enumerate(
-            config_list) if x[:ln] == user_var]
-        # if user_var does not exist, next line raises an exception
-        # use that to add the variable to the list
-        try:
-            user_id = user_id[0]
-        except:
-            config_list.append(user_var + '=' + user_value)
-            user_id = [ndx for ndx, x in enumerate(
-            config_list) if x[:ln] == user_var]
-            user_id = user_id[0]
+        # if user_var exists, change its value; otherwise add user_var
 
-        if user_value == '' and user_var != 'install_directory':
-            user_value = '_deleteMe_'
+        # Since startup_directory and last_location involve paths, we
+        # need to save the current setting, so that if user enters an
+        # invalid path, the current setting can be restored
+        current_startup_directory = config_dict['startup_directory']
+        current_last_location = config_dict['last_location']
 
-        # validate and then delete or format the user's entry for a setting
-        if user_input:
-            if user_value == '_deleteMe_':
-                try:
-                    del config_list[user_id]
-                except:
-                    print('Setting not found.')
-                    return
-            else:
-                config_list[user_id] = user_var + '=' + user_value
+        # before putting a new value for startup_directory or last_location in config_dict,
+        # confirm that they refer to valid paths
+        if user_var in ['startup_directory', 'last_location']:
+            try:
+                if user_value:
+                    os.chdir(user_value)
+            except:
+                print(user_value, 'is not a valid path.')
+                continue
 
-        # open the re-written file and get its contents
-        with open(str(config_file_path), 'r') as file:
-            all_lines = [line.strip('\n') for line in file.readlines()]
-
-    # confirm that the startup_directory is a valid
-    startup_id = [ndx for ndx, x in enumerate(config_list) if x[:18] == 'startup_directory=']
-    # startup_id may be empty, so try...except
-    try:
-        if startup_id:
-            startup_id = startup_id[0]
-            startup_location = config_list[startup_id].split('=')[1]
-            os.chdir(startup_location) # raises exception if bad directory
+        # Having passed all tests, add user_val to config_dict
+        # for either of the two essential user_var
+        # Otherwise, delete the variable
+        print()
+        if user_var in ['startup_directory', 'last_location', 'use_last_location']:
+            # user can set use_last_location empty; this is replaced with False
+            if user_var == 'use_last_location' and user_value.upper() not in ['TRUE', 'FALSE']:
+                user_value = 'False'
+            config_dict.update({user_var: user_value})
+        elif not user_value:
+            del config_dict[user_var]
         else:
-            config_list.append('startup_directory=')
-    except:
-        config_list[startup_id] = 'startup_directory=' + previous_startup_location
+            config_dict.update({user_var: user_value})
 
     os.chdir(cwd)
 
     # before quitting, write config_list to katz.config
     with open(str(config_file_path), 'w') as file:
-        for line in config_list:
-            file.write(line + '\n')
+        for user_var, user_value in config_dict.items():
+            line = user_var + '=' + user_value + '\n'
+            file.write(line)
 
     return
 
 
 def get_start_dir():
+    """
+    Initializes current working directory from path stored in katz.config as startup_directory or last_location
 
-    # find the installation path for katz.config
+    Returns:
+        [str] -- starting path, obtained from katz.config
+    """
+   # find the installation path for katz.config
     install_path = Path(os.path.realpath(__file__)).parent
     config_file_path = Path(install_path, 'katz.config')
 
-    # if there's no config file or config file is -0- bytes,
-    # have user run setup()
-    if os.stat(str(config_file_path)).st_size == 0 \
-        or not config_file_path.exists():
-        print('katz.config not found. Run <s>etup.')
-        return os.getcwd()
-
-    # otherwise, if there is a config file,
-    # get startup_directory, if it exists
-    else:
-        # get lines, if any, of katz.config as a list
-        with open(str(config_file_path), 'r') as file:
-            config_list = [line.strip('\n') for line in file.readlines()]
-
-    # get the location of startup_directory
-    startup_id = [ndx for ndx, x in enumerate(config_list) if x[:18] == 'startup_directory=']
-
-    # if startup_directory does not exist, next line raises an exception
+    # try:except in case there is no katz.config file
     try:
-        startup_id = startup_id[0]
-        startup_location = config_list[startup_id].split('=')
-        return startup_location[1]
+        # get all non-empty lines in katz.config into a dict
+        with open(str(config_file_path), 'r') as file:
+            all_lines = file.readlines()
     except:
-        return os.getcwd()
+        all_lines = []
+
+    all_lines = [line.strip('\n') for line in all_lines if line.strip('\n')]
+    config_dict = {}
+    for line in all_lines:
+        this_line = line.split('=')
+        # try:except required for skipping junk entries
+        try:
+            if this_line:
+                config_dict.update({this_line[0]: this_line[1]})
+        except:
+            pass
+
+    # get the paths in startup_directory and last_location
+    try:
+        startup_directory = config_dict['startup_directory']
+    except:
+        startup_directory = ''
+    try:
+        last_location = config_dict['last_location']
+    except:
+        last_location = ''
+
+    try:
+        use_last_location = config_dict['use_last_location']
+    except:
+        use_last_location = False
+
+    if use_last_location.upper() == 'TRUE':
+        if last_location:
+            os.chdir(last_location)
+    else:
+        if startup_directory:
+            os.chdir(startup_directory)
+
+    return None
 
 
 if __name__ == '__main__':
