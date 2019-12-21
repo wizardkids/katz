@@ -29,7 +29,11 @@ If you have python 3 installed, you can download `katz.py` and, assuming python.
 
 
 ## **Configuration**
-- Configuration is limited to setting a default startup directory.
+- Access setup after starting `katz` by typing `s` or `setup` at the command prompt.
+- Configuration is limited to editing the following setting(s):
+    - startup_directory=[path of your choice] ***NOTE***: do not use quotes around a path with spaces
+
+    - use_last_location=[True or False] ***NOTE***: If set to `True`, then when `katz` restarts, the current working directory will be the one in use the last time the program exited (normally).
 
 
 ## **Recommended setup**
@@ -39,10 +43,7 @@ If you want to run `katz` from your desktop, here is what you need to do:
 - Start `katz` using...
 
 `python katz.py`
-- At the command prompt, enter 's' or 'setup'.
-- Create the following setting:
-    - startup_directory=[path of your choice]
-    - NOTE: quotes around a path with spaces are NOT required
+- Optionally, at the command prompt, enter 's' or 'setup'. See ***Configuration***, above.
 
 
 ## **Required python modules:**
