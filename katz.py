@@ -920,11 +920,13 @@ def katzHelp():
     msg = '/'*23 + ' HELP ' + '/'*23
     print('\n', dsh*52, '\n', msg, '\n', dsh*52, sep='')
     print('For help: cmd /? (example:  d /?)')
-    print('\n', 'AVAILABLE SHELL COMMANDS:', sep='')
+    print('\n', 'AVAILABLE SHELL COMMANDS:\n', sep='')
     for k, v in shell_cmds.items():
         if k == 'O' or k == 'N' or k == 'M':
             pass
         else:
+            if k in ['OPEN', 'MENU']:
+                print('='*8)
             if k in ['QUIT', 'Q']:
                 pass
             else:
