@@ -3,7 +3,8 @@ a command-line archiving utility
 
 Most GUI archiving utilities have many wonderful features that I never use and a plethora of settings that I never change. `katz` eliminates all this hassle and delivers a minimalist archiving utility that will meet the needs of 99% of users. From the command-line!
 
-#
+---
+
 
 ## **Features**
 
@@ -33,7 +34,7 @@ If you have python 3 installed, you can download `katz.py` and, assuming python.
 - Configuration is limited to editing the following setting(s):
     - startup_directory=[path of your choice] ***NOTE***: do not use quotes around a path with spaces
 
-    - use_last_location=[True or False] ***NOTE***: If set to `True`, then when `katz` restarts, the current working directory will be the one in use the last time the program exited (normally).
+    - use_last_location=[True or False] _**NOTE**_: If set to `True`, then when `katz` restarts, the current working directory will be the one in use the last time the program exited (normally).
 
 
 ## **Recommended setup**
@@ -42,7 +43,8 @@ If you want to run `katz` from your desktop, here is what you need to do:
 - Navigate to that directory, and from within a terminal (Windows shell)...
 - Start `katz` using...
 
-`python katz.py`
+>`python katz.py`
+
 - Optionally, at the command prompt, enter 's' or 'setup'. See ***Configuration***, above.
 
 
