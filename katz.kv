@@ -4,6 +4,7 @@
 #: set teal_light (148/255, 255/255, 255/255, 1)
 #: set mint (235/255, 255/255, 241/255, 1)
 #: set file_chooser '.'
+#: set text_input ''
 
 <MyButton@Button>
     color: (1, 1, 1, 1)
@@ -48,6 +49,8 @@
 
 
 <KatzWindow>:
+    text_input: text_input
+
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:
@@ -59,7 +62,7 @@
             MyButton:
                 id: newbutton
                 text: 'New'
-                on_release: pass
+                on_release: root.show_save()
             MyButton:
                 id: openbutton
                 text: 'Open'
@@ -256,8 +259,11 @@
                 on_release: root.cancel()
 
             Button:
+                id: save_button
                 text: "Save"
                 on_release: root.save(filechooser.path, text_input.text)
+
+                # on_release: root.openFile(filechooser.path, filechooser.selection) if filechooser.selection else root.openFile("", "")
 
 <Popups>:
     Label:

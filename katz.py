@@ -18,6 +18,7 @@ from kivy.app import App
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.factory import Factory
 from kivy.graphics import Line, Color, Rectangle
 from kivy.graphics.vertex_instructions import Ellipse
 from kivy.clock import Clock
@@ -72,6 +73,10 @@ class KatzWindow(FloatLayout):
     def __init__(self, **kwargs):
         super(KatzWindow, self).__init__(**kwargs)
 
+        savefile = ObjectProperty(None)
+        text_input = ObjectProperty(None)
+        self.text_input = text_input
+
     def dismiss_popup(self):
         self._popup.dismiss()
 
@@ -87,8 +92,18 @@ class KatzWindow(FloatLayout):
                             size_hint=(0.75, 0.75))
         self._popup.open()
 
-    def new_file(self):
-        pass
+    def show_save(self):
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Save file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def save(self, path, filename):
+
+        with open(os.path.join(path, filename), 'w') as stream:
+            pass
+
+        self._popup.dismiss()
 
 
     def cancel_listFiles(self):
@@ -466,6 +481,9 @@ class KatzApp(App):
         # widget you return from App.build() or
         # the root widget in your app kv file
 
+Factory.register('KatzWindow', cls=KatzWindow)
+Factory.register('KatzApp', cls=KatzApp)
+Factory.register('SaveDialog', cls=SaveDialog)
 
 if __name__ == '__main__':
     my_app = KatzApp()
