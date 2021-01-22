@@ -1,0 +1,308 @@
+
+#: set teal1 (0/255, 128/255, 128/255, 1)
+#: set teal_green (23/255, 88/255, 115/255, 1)
+#: set teal_light (148/255, 255/255, 255/255, 1)
+#: set mint (235/255, 255/255, 241/255, 1)
+#: set file_chooser '.'
+
+<MyButton@Button>
+    color: (1, 1, 1, 1)
+    bold: True
+    font_size: 20
+    size_hint_y: 1
+    background_normal: ''
+    background_color: teal1
+
+[FileListEntry@FloatLayout+TreeViewNode]:
+    locked: False
+    entries: []
+    path: ctx.path
+    is_selected: self.path in ctx.controller().selection
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: '48dp' if dp(1) > 1 else '24dp'
+    # Don't allow expansion of the ../ node
+    is_leaf: not ctx.isdir or ctx.name.endswith('..' + ctx.sep) or self.locked
+    on_touch_down: self.collide_point(*args[1].pos) and ctx.controller().entry_touched(self, args[1])
+    on_touch_up: self.collide_point(*args[1].pos) and ctx.controller().entry_released(self, args[1])
+    # Color of the background when a file/dir is selected.
+    color_selected: (0.1, 0.1, 0.1, 0.2)
+    BoxLayout:
+        pos: root.pos
+        size_hint_x: None
+        width: root.width - dp(10)
+        Label:
+            id: filename
+            color: (0, 0, 0, 1)
+            text_size: self.width, None
+            halign: 'left'
+            shorten: True
+            text: ctx.name
+        Label:
+            id: filesize
+            color: (0, 0, 0, 1)
+            text_size: self.width, None
+            size_hint_x: None
+            halign: 'right'
+            text: '{}'.format(ctx.get_nice_size())
+
+
+<KatzWindow>:
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            spacing: 1
+            padding: 1
+            size_hint: (1, 0.15)
+            # height: 90
+            MyButton:
+                id: newbutton
+                text: 'New'
+                on_release: pass
+            MyButton:
+                id: openbutton
+                text: 'Open'
+                on_release: root.show_open()
+            MyButton:
+                id: listbutton
+                text: 'List'
+                on_release: root.show_files()
+            MyButton:
+                id: addbutton
+                text: 'Add'
+                on_release: root.show_add()
+            MyButton:
+                id: extractbutton
+                text: 'Extract'
+                on_release: root.extract()
+            MyButton:
+                id: removebutton
+                text: 'Remove'
+                on_release: root.removeFiles()
+            MyButton:
+                id: testbutton
+                text: 'Test'
+                on_release: root.testFiles()
+            MyButton:
+                id: optionsbutton
+                text: 'Options'
+                on_release: pass
+            MyButton:
+                id: exitbutton
+                text: 'Exit'
+                on_press: root.remove_tmp()
+                on_release: exit()
+
+        BoxLayout:
+            orientation: 'vertical'
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1)
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+            Label:
+                id: info
+                text: ''
+                font_size: 28
+                size_hint: (0.25, 0.15)
+                color: (0, 0, 0, 1)
+                halign: 'left'
+            Label:
+                id: sp2
+                text: ''
+
+            # RstDocument:
+            #     text: text_input.text
+            #     show_errors: True
+
+<ListFiles>
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        # Set color of background of filechooser.
+        canvas:
+            Color:
+                rgba: (1, 1, 1, 1)
+            Rectangle:
+                size: self.size
+                pos: self.pos
+        file_chooser: file_chooser
+        FileChooserListView:
+            id: file_chooser
+            path: file_chooser
+            multiselect: True
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            spacing: 5
+            Button:
+                text: "Close"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                on_release: root.cancel()
+
+            Button:
+                id: select_files
+                text: "Select"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                # on_release statement accounts for the possibility that the user selects no file.
+                on_release: root.listFiles(file_chooser.path, file_chooser.selection) if file_chooser.selection else root.listFiles("", "")
+
+<OpenDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        # Set color of background of filechooser.
+        canvas:
+            Color:
+                rgba: (1, 1, 1, 1)
+            Rectangle:
+                size: self.size
+                pos: self.pos
+        FileChooserListView:
+            id: filechooser
+            path: app.default_path
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            spacing: 5
+            Button:
+                text: "Cancel"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                on_release: root.cancel()
+
+            Button:
+                text: "Open"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                # on_release statement accounts for the possibility that the user selects no file.
+                on_release: root.openFile(filechooser.path, filechooser.selection) if filechooser.selection else root.openFile("", "")
+
+<AddDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        # Set color of background of filechooser.
+        canvas:
+            Color:
+                rgba: (1, 1, 1, 1)
+            Rectangle:
+                size: self.size
+                pos: self.pos
+        FileChooserListView:
+            id: filechooser
+            path: app.default_path
+            multiselect: True
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            spacing: 5
+            Button:
+                text: "Cancel"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                on_release: root.cancel()
+
+            Button:
+                text: "Select"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                # on_release statement accounts for the possibility that the user selects no file.
+                on_release: root.addFiles(filechooser.path, filechooser.selection) if filechooser.selection else root.addFiles("", "")
+
+<SaveDialog>:
+    text_input: text_input
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            on_selection: text_input.text = self.selection and self.selection[0] or ''
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, text_input.text)
+
+<Popups>:
+    Label:
+        id: theme_listing
+        text: ''
+        color: (0, 0, 0, 1)
+        font_size: 20
+        size_hint: (1, .4)
+        pos_hint: {'x': 0, 'y': .6}
+        halign: 'left'
+
+    Label:
+        id: theme_instruction
+        text: 'Enter a theme name:\n'
+        color: (0, 0, 0, 1)
+        font_size: 20
+        size_hint: (0.3, 0.1)
+        pos_hint: {'x': 0.1, 'y':0.35}
+
+    TextInput:
+        id: which_theme
+        background_color: (1, 1, 0, 1)  # transparent, so background = window background
+        size_hint: (None, None)
+        width: 150
+        height: 40
+        pos_hint: {'x':0, 'y':.2}
+        focus: True
+        multiline: False
+        font_size: 20
+        hint_text: 'default_theme'
+        hint_text_color: [0.5, 0.5, 0.5, 1.0]       # a light grey
+        cursor_width: 3
+        cursor_color: (179/255, 27/255, 27/255, 1)  # a shade of deep red
+
+    Label:
+        id: error_label
+        text: 'Theme does not exist.'
+        pos_hint: {'x': .5, 'y': .2}
+        font_size: 20
+        size_hint: (0.35, 0.1)
+        bold: True
+        color: (0, 0, 0, 0)
+
+    Button:
+        id: closeSettings
+        text: "Dismiss"
+        size_hint: (.2, .1)
+        pos_hint: {'x': 0, 'y': 0}
