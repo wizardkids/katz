@@ -39,11 +39,21 @@ kivy.require('1.11.1')
 
 # TODO -- Fix show_add/addFiles() so that it doesn't open a filechooser to choose a zip file. This should only be done via the Open menu item.
 
+# TODO -- Change filechooser popups so they have a larger font size and better color in the title area.
+
 # TODO -- Add function to set the default directory via "Options"
 
-# TODO -- When a file is open, display the name of the file in the white screen.
+# TODO -- Currently, you can only add files; change addFiles() so it will add folders with files.
+
+# TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar.
+
+# TODO -- After opening a file, I extracted it; them clicked "Remove" which told me there was no zip file open.
+
+# TODO -- Rearrange functions and document everything.
 
 # feature ============================================================
+
+
 class ListFiles(FloatLayout):
     listFiles = ObjectProperty(None)
     show_files = ObjectProperty(None)
@@ -57,8 +67,8 @@ class AddDialog(FloatLayout):
     addFiles = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
-class SaveDialog(FloatLayout):
-    save = ObjectProperty(None)
+class NewFileDialog(FloatLayout):
+    newFile = ObjectProperty(None)
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
@@ -79,30 +89,60 @@ class KatzWindow(FloatLayout):
 
     def show_open(self):
         content = OpenDialog(openFile=self.openFile, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Open file", content=content,
-                            size_hint=(0.75, 0.75))
+        self._popup = Popup(title="Open file",
+                            content=content,
+                            title_color=(1, 1, 1, 1),
+                            title_size=28,
+                            background='',
+                            background_color=(0/255, 128/255, 128/255, 1),
+                            size_hint=(0.75, 0.75)
+                        )
+
         self._popup.open()
 
     def show_add(self):
         content = AddDialog(addFiles=self.addFiles, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Add file", content=content,
-                            size_hint=(0.75, 0.75))
+        self._popup = Popup(title="Add files",
+                            content=content,
+                            title_color=(1, 1, 1, 1),
+                            title_size=28,
+                            background='',
+                            background_color=(0/255, 128/255, 128/255, 1),
+                            size_hint=(0.75, 0.75)
+                        )
+
         self._popup.open()
 
     def show_save(self):
-        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Save file", content=content,
-                            size_hint=(0.9, 0.9))
+        content = NewFileDialog(newFile=self.newFile, cancel=self.dismiss_popup)
+        self._popup = Popup(title="New zip file",
+                            content=content,
+                            title_color=(1, 1, 1, 1),
+                            title_size=28,
+                            background='',
+                            background_color=(0/255, 128/255, 128/255, 1),
+                            size_hint=(0.75, 0.75)
+                        )
+
         self._popup.open()
 
-    def save(self, path, filename):
+    def newFile(self, path, filename):
 
-        if filename[-4:] == '.zip':
-            self.zip_filename = os.path.join(path, filename)
-            with ZipFile(self.zip_filename, 'w') as file:
-                pass
-        else:
-            msg = 'Can only create zip file with ".zip" extension.'
+        # Try...except in case user enters a filename that is invalid for the OS.
+        try:
+            if filename[-4:] == '.zip':
+                with ZipFile(os.path.join(path, filename), 'w') as file:
+                    pass
+
+                # Open the newly created file...
+                # openFile is expecting zip_file as an item in a list:
+                filename = [os.path.join(path, filename)]
+                self.openFile(path, filename)
+            else:
+                msg = 'Can only create zip file with ".zip" extension.'
+                self.show_msg(msg)
+        except:
+            msg = 'Filename that is invalid\nfor this operating system.'
             self.show_msg(msg)
 
         self._popup.dismiss()
@@ -255,9 +295,10 @@ class KatzWindow(FloatLayout):
         self.current_directory = self.path
         os.chdir(self.current_directory)
 
-        self.dismiss_popup()
+        # Show filename in status bar:
+        self.ids.open_filename.text = self.zip_filename
 
-        # self.show_files()
+        self.dismiss_popup()
 
 
     def addFiles(self, path, filename):
@@ -460,13 +501,11 @@ class KatzApp(App):
 
         return KatzWindow()
 
+
     def on_stop(self):
         """
         This function runs when the user clicks the "close" button on the kivy
         """
-        # do what you need to here
-        # exit_fxn = KatzWindow()
-        # exit_fxn.remove_tmp()
         print('Running on_stop()...')
 
         # Remove temporary directory from the last zip file whose files were listed.
@@ -479,9 +518,6 @@ class KatzApp(App):
                 shutil.rmtree(path)
         except:
             pass
-        # self.root is your root widget - either the
-        # widget you return from App.build() or
-        # the root widget in your app kv file
 
 
 if __name__ == '__main__':

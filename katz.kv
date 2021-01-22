@@ -35,12 +35,14 @@
         Label:
             id: filename
             color: (0, 0, 0, 1)
+            font_size: 20
             text_size: self.width, None
             halign: 'left'
             shorten: True
             text: ctx.name
         Label:
             id: filesize
+            font_size: 20
             color: (0, 0, 0, 1)
             text_size: self.width, None
             size_hint_x: None
@@ -115,6 +117,30 @@
             Label:
                 id: sp2
                 text: ''
+
+        BoxLayout:
+            id: status_bar
+            orientation: 'horizontal'
+            size_hint_y: 0.05
+            canvas:
+                Color:
+                    rgba: teal1
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+            Label:
+                id: open_filename
+                text: ''
+                font_size: 20
+                color: (1, 1, 1, 1)
+                pos_hint: {'x': 0, 'y':0}
+                text_size: self.width, None
+                # canvas:
+                #     Color:
+                #         rgba: teal1
+                #     Rectangle:
+                #         size: self.size
+                #         pos: (.5, .5)
 
             # RstDocument:
             #     text: text_input.text
@@ -235,12 +261,19 @@
                 # on_release statement accounts for the possibility that the user selects no file.
                 on_release: root.addFiles(filechooser.path, filechooser.selection) if filechooser.selection else root.addFiles("", "")
 
-<SaveDialog>:
+<NewFileDialog>:
     text_input: text_input
     BoxLayout:
         size: root.size
         pos: root.pos
         orientation: "vertical"
+        # Set color of background of filechooser.
+        canvas:
+            Color:
+                rgba: (1, 1, 1, 1)
+            Rectangle:
+                size: self.size
+                pos: self.pos
         FileChooserListView:
             id: filechooser
             on_selection: text_input.text = self.selection and self.selection[0] or ''
@@ -261,7 +294,7 @@
             Button:
                 id: save_button
                 text: "Save"
-                on_release: root.save(filechooser.path, text_input.text)
+                on_release: root.newFile(filechooser.path, text_input.text)
 
                 # on_release: root.openFile(filechooser.path, filechooser.selection) if filechooser.selection else root.openFile("", "")
 
