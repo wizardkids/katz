@@ -1,6 +1,8 @@
 echo off
 cls
 
-cd "REPLACE THIS TEXT WITH THE FULL PATH TO THE DIRECTORY WHERE katz IS INSTALLED"
+cd "C:\Users\rer1\OneDrive\Python on OneDrive\Python Projects\Katz"
+
+call conda activate python_projects
 
 call python katz.py

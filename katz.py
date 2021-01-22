@@ -37,15 +37,15 @@ kivy.require('1.11.1')
 
 # feature ============================================================
 
-# TODO -- Fix show_add/addFiles() so that it doesn't open a filechooser to choose a zip file. This should only be done via the Open menu item.
+# TODO -- Need to be able to changed "default_directory" to the directory of the current zip file that is open.
 
-# TODO -- Change filechooser popups so they have a larger font size and better color in the title area.
+# TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
 
-# TODO -- Add function to set the default directory via "Options"
+# TODO -- remove_tmp() and on_stop() don't seem to ALWAYS remove the temporary directory.
 
 # TODO -- Currently, you can only add files; change addFiles() so it will add folders with files.
 
-# TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar.
+# TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
 
 # TODO -- After opening a file, I extracted it; them clicked "Remove" which told me there was no zip file open.
 
@@ -175,7 +175,8 @@ class KatzWindow(FloatLayout):
             with ZipFile(self.zip_filename, 'r') as f:
                 f.extractall(path=self.tmp_directory)
 
-            content = ListFiles(listFiles=self.listFiles, cancel=self.cancel_listFiles)
+            content = ListFiles(listFiles=self.listFiles, cancel=self.dismiss_popup)
+            # content = ListFiles(listFiles=self.listFiles, cancel=self.cancel_listFiles)
             self._popup = Popup(title="Archive contents",
                                 title_color=(0, 0, 0, 1),
                                 title_size=28,
@@ -268,6 +269,8 @@ class KatzWindow(FloatLayout):
         # filename argument is a list. In this case, it is a list with only one item: the zip filename. An exception is raised if no filename was selected.
         try:
             self.zip_filename = filename[0]
+            self.default_path = path
+            os.chdir(Path(self.default_path))
         except:
             self.show_msg('No file was selected to open.')
             self.dismiss_popup()
@@ -455,15 +458,14 @@ class KatzWindow(FloatLayout):
 
 
     def remove_tmp(self):
-        # Remove temporary directory from the last zip file whose files were listed.
-        try:
-            if self.zip_filename:
-                path = os.path.dirname(self.zip_filename)
-                path = path + '\\_tmp_zip_\\'
-                print(path)
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-        except:
+        # Remove temporary directory '\\_tmp_zip_\\' if it exists.
+        current_path = os.getcwd()
+        if current_path[-9:] == '_tmp_zip_':
+            os.chdir(Path(self.default_path))
+            shutil.rmtree(Path(current_path))
+        elif os.path.isdir(Path(self.default_path + '\\_tmp_zip_\\')):
+            shutil.rmtree(Path(self.default_path + '\\_tmp_zip_\\'))
+        else:
             pass
 
 
@@ -508,15 +510,14 @@ class KatzApp(App):
         """
         print('Running on_stop()...')
 
-        # Remove temporary directory from the last zip file whose files were listed.
-        try:
-            path = os.getcwd()
-            if path[-11:] != '\\_tmp_zip_\\':
-                path = path + '\\_tmp_zip_\\'
-            print(path)
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-        except:
+        # Remove temporary directory '\\_tmp_zip_\\' if it exists.
+        current_path = os.getcwd()
+        if current_path[-9:] == '_tmp_zip_':
+            os.chdir(Path(self.default_path))
+            shutil.rmtree(Path(current_path))
+        elif os.path.isdir(Path(self.default_path + '\\_tmp_zip_\\')):
+            shutil.rmtree(Path(self.default_path + '\\_tmp_zip_\\'))
+        else:
             pass
 
 
