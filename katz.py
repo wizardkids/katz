@@ -37,11 +37,11 @@ kivy.require('1.11.1')
 
 # feature ============================================================
 
-# TODO -- Need to be able to changed "default_directory" to the directory of the current zip file that is open.
+# // TODO -- Need to be able to change "default_directory" to the directory of the current zip file that is open.
 
 # TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
 
-# TODO -- remove_tmp() and on_stop() don't seem to ALWAYS remove the temporary directory.
+# // TODO -- remove_tmp() and on_stop() don't seem to ALWAYS remove the temporary directory.
 
 # TODO -- Currently, you can only add files; change addFiles() so it will add folders with files.
 
@@ -319,6 +319,20 @@ class KatzWindow(FloatLayout):
         To prevent duplicate files, get a list of all the files in the zip file already. Replace '/' with '\' so we can compare filenames accurately.
         """
 
+        print('path:', path)
+        print('filename:', filename)
+
+        current_path = os.getcwd()
+
+        selected_files = []
+        if os.path.isdir(filename[0]):
+            for root, dirs, files in os.walk(os.path.dirname(self.zip_filename), topdown=False):
+                for name in files:
+                    if root.lower() == filename[0].lower():
+                        print('root, name:', root, ';', name)
+                        selected_files.append(os.path.join(root, name))
+
+
         # Clear any messages off the large screen.
         Clock.schedule_once(self.clear_screen, 0)
 
@@ -338,7 +352,7 @@ class KatzWindow(FloatLayout):
         # Add the selected files to the archive, respecting relative paths.
         cnt_files = 0
         with ZipFile(self.zip_filename, 'a') as this_zip:
-            for file in filename:
+            for file in selected_files:
                 """
                   absolute path to the zip file: c:\foo
                 absolute path to the added file: c:\foo\foobar\newfile.txt
@@ -348,10 +362,9 @@ class KatzWindow(FloatLayout):
                 """
                 relative_path = os.path.relpath(os.path.dirname(file), os.path.dirname(self.zip_filename))
                 add_this_file = os.path.join(relative_path, os.path.basename(file))
-                if add_this_file not in these_files:
-                    print('add_this_file:', add_this_file)
-                    this_zip.write(add_this_file)
-                    cnt_files += 1
+                print('add_this_file:', add_this_file)
+                this_zip.write(add_this_file)
+                cnt_files += 1
 
         # If no files were added (because the file(s) already exist in the zip file), alert the user.
         if len(filename) > 0 and cnt_files == 0:
@@ -458,7 +471,7 @@ class KatzWindow(FloatLayout):
 
 
     def remove_tmp(self):
-        # Remove temporary directory '\\_tmp_zip_\\' if it exists.
+        # Remove temporary directory '\\_tmp_zip_\\', if it exists.
         current_path = os.getcwd()
         if current_path[-9:] == '_tmp_zip_':
             os.chdir(Path(self.default_path))
