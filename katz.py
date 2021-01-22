@@ -15,26 +15,23 @@ change log:
 
 import kivy
 from kivy.app import App
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
-from kivy.factory import Factory
+from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.graphics import Line, Color, Rectangle
 from kivy.graphics.vertex_instructions import Ellipse
-from kivy.clock import Clock
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
-from kivy.core.window import Window
-from kivy.uix.popup import Popup
 from kivy.properties import ObjectProperty
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 
 import os
 from pathlib import Path
 from pprint import pprint
 import shutil
 from zipfile import ZipFile
-from time import sleep
 
 kivy.require('1.11.1')
 
@@ -42,9 +39,9 @@ kivy.require('1.11.1')
 
 # TODO -- Fix show_add/addFiles() so that it doesn't open a filechooser to choose a zip file. This should only be done via the Open menu item.
 
-# TODO -- Add function to open a NEW file.
-
 # TODO -- Add function to set the default directory via "Options"
+
+# TODO -- When a file is open, display the name of the file in the white screen.
 
 # feature ============================================================
 class ListFiles(FloatLayout):
@@ -100,8 +97,13 @@ class KatzWindow(FloatLayout):
 
     def save(self, path, filename):
 
-        with open(os.path.join(path, filename), 'w') as stream:
-            pass
+        if filename[-4:] == '.zip':
+            self.zip_filename = os.path.join(path, filename)
+            with ZipFile(self.zip_filename, 'w') as file:
+                pass
+        else:
+            msg = 'Can only create zip file with ".zip" extension.'
+            self.show_msg(msg)
 
         self._popup.dismiss()
 
@@ -481,9 +483,6 @@ class KatzApp(App):
         # widget you return from App.build() or
         # the root widget in your app kv file
 
-Factory.register('KatzWindow', cls=KatzWindow)
-Factory.register('KatzApp', cls=KatzApp)
-Factory.register('SaveDialog', cls=SaveDialog)
 
 if __name__ == '__main__':
     my_app = KatzApp()
