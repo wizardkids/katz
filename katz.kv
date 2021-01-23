@@ -6,6 +6,8 @@
 #: set file_chooser '.'
 #: set text_input ''
 
+#:import os os
+
 <MyButton@Button>
     color: (1, 1, 1, 1)
     bold: True
@@ -84,7 +86,7 @@
             MyButton:
                 id: removebutton
                 text: 'Remove'
-                on_release: root.removeFiles()
+                on_release: root.show_remove()
             MyButton:
                 id: testbutton
                 text: 'Test'
@@ -162,7 +164,7 @@
         FileChooserListView:
             id: file_chooser
             path: file_chooser
-            multiselect: True
+            multiselect: False
 
         BoxLayout:
             size_hint_y: None
@@ -176,15 +178,16 @@
                 # background_down: ()
                 on_release: root.cancel()
 
-            Button:
-                id: select_files
-                text: "Select"
-                color: (0, 0, 0, 1)
-                background_normal: ''
-                background_color: (0.9, 0.9, 0.9, 1)
-                # background_down: ()
-                # on_release statement accounts for the possibility that the user selects no file.
-                on_release: root.listFiles(file_chooser.path, file_chooser.selection) if file_chooser.selection else root.listFiles("", "")
+            # Button:
+            #     id: select_files
+            #     text: "Select"
+            #     color: (0, 0, 0, 1)
+            #     background_normal: ''
+            #     background_color: (0.9, 0.9, 0.9, 1)
+            #     # background_down: ()
+            #     # on_release statement accounts for the possibility that the user selects no file.
+            #     on_release: root.listFiles("", "")
+            #     # on_release: root.listFiles(file_chooser.path, file_chooser.selection) if file_chooser.selection else root.listFiles("", "")
 
 <OpenDialog>:
     BoxLayout:
@@ -261,6 +264,45 @@
                 # background_down: ()
                 # on_release statement accounts for the possibility that the user selects no file.
                 on_release: root.addFiles(filechooser.path, filechooser.selection) if filechooser.selection else root.addFiles("", "")
+
+<RemoveDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        # Set color of background of filechooser.
+        canvas:
+            Color:
+                rgba: (1, 1, 1, 1)
+            Rectangle:
+                size: self.size
+                pos: self.pos
+        file_chooser: file_chooser
+        FileChooserListView:
+            id: file_chooser
+            path: file_chooser
+            multiselect: True
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            spacing: 5
+            Button:
+                text: "Cancel"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                on_release: root.cancel()
+
+            Button:
+                text: "Select"
+                color: (0, 0, 0, 1)
+                background_normal: ''
+                background_color: (0.9, 0.9, 0.9, 1)
+                # background_down: ()
+                # on_release statement accounts for the possibility that the user selects no file.
+                on_release: root.removeFiles(file_chooser.path, file_chooser.selection) if file_chooser.selection else root.removeFiles("", "")
 
 <NewFileDialog>:
     text_input: text_input
