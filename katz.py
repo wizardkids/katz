@@ -7,12 +7,12 @@ Richard E. Rawson
 Program Description:
 GUI rendition of previously written katz.py
 
-change log:
-
+Versions:
 1.0 -- initial version
 
 """
 
+from logging import exception
 import kivy
 from kivy.app import App
 from kivy.clock import Clock
@@ -37,6 +37,8 @@ kivy.require('1.11.1')
 
 # feature ============================================================
 
+# TODO Zip files are extracted to a folder with the same name as the zip file. Make provision for the possibility that a folder with that name already exists. Windows does this by appending "(n)" as needed on the new folder name.
+
 # // TODO -- Need to be able to change "default_path" to the directory of the current zip file that is open.
 
 # TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
@@ -45,13 +47,20 @@ kivy.require('1.11.1')
 
 # // TODO -- remove_tmp() and on_stop() don't seem to ALWAYS remove the temporary directory.
 
-# TODO -- Currently, you can only add files; change addFiles() so it will add folders with files.
+# // TODO -- Currently, you can only add files; change addFiles() so it will add folders with files.
 
 # TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
 
 # // TODO -- After opening a file, I extracted it; them clicked "Remove" which told me there was no zip file open.
 
 # // TODO -- Rearrange functions and document everything.
+
+# // TODO -- Add docstrings to all functions; clean up code comments; add comments to .kv file
+
+# TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
+
+# TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list.
+
 
 # feature ============================================================
 
@@ -80,7 +89,7 @@ class RemoveDialog(FloatLayout):
 
 class KatzWindow(FloatLayout):
     """
-
+    Main application window for the Katz app, housing the menu buttons and popups displaying archive contents, file choosers, etc.
     """
 
     def __init__(self, **kwargs):
@@ -90,8 +99,13 @@ class KatzWindow(FloatLayout):
         self.text_input = text_input
 
     # ========================================================================
-    # NEW FILE
+    # ==== NEW FILE
     # ========================================================================
+    """
+    show_save() -- Activated by the "New" button. It displays a popup that contains a file chooser, where the user picks a folder, and a TextInput widget that gets the new filename.
+
+    newFile() --
+    """
     def show_save(self):
         content = NewFileDialog(newFile=self.newFile, cancel=self.dismiss_popup)
         self._popup = Popup(title="New zip file",
@@ -107,15 +121,29 @@ class KatzWindow(FloatLayout):
         self._popup.open()
 
     def newFile(self, path, filename):
+        """
+        Create a new zip file with a name and location determined by the user.
 
-        # Try...except in case user enters a filename that is invalid for the OS.
+        Args:
+            path (str): Path to the file that will be created.
+            filename (str): basename (filename.ext) of the file that will be created.
+
+        NOTES:
+            -- The filename that the user enters must end with ".zip".
+            -- Filenames with characters invalid for the OS are not allowed.
+        """
+
+
+        # Try...except in case:
+            # -- the filename does not end in ".zip"
+            # -- user enters a filename that is invalid for the OS.
         try:
             if filename[-4:] == '.zip':
                 with ZipFile(os.path.join(path, filename), 'w') as file:
                     pass
 
-                # Open the newly created file...
-                # openFile is expecting zip_file as an item in a list:
+                # Since we created a new file, open it by passing "filename" to openFile().
+                # Since openFile() is expecting a [list], then pass filename as a [list].
                 filename = [os.path.join(path, filename)]
                 self.openFile(path, filename)
             else:
@@ -128,9 +156,22 @@ class KatzWindow(FloatLayout):
         self._popup.dismiss()
 
 
+    # =======================================================================
+    # ==== OPEN FILE
     # ========================================================================
-    # OPEN FILE
-    # ========================================================================
+    """
+    show_open() -- Activated by the "Open" button. It displays a popup that contains a file chooser so that the user can select a specific .zip file.
+
+    openFile() -- Besides being invoked by show_open(), this function is also called by newFile(). In both cases the selected/created file is opened.
+
+    NOTE:
+        -- "Open"ing a file means:
+                1. Check to be sure file ends in .zip and that it is actually a zip archive.
+                2. Change the default_path to the path of the zip file that is open.
+                3. Display the name of the open file in the status bar.
+                4. The subfolder, "_tmp_zip_", is deleted automatically and without warning.
+    """
+
     def show_open(self):
         content = OpenDialog(openFile=self.openFile, cancel=self.dismiss_popup)
         self._popup = Popup(title="Open file",
@@ -148,13 +189,16 @@ class KatzWindow(FloatLayout):
     def openFile(self, path, filename):
         """
         Open the archive "filename". The current directory will be changed to "path." "filename" will be checked for .zip extension.
-        """
 
+        Args:
+            path (str): Path to the file that will be opend.
+            filename ([list]): full path (path/filename.ext) of the file that will be opened.
+        """
 
         # Clear any messages off the large screen.
         Clock.schedule_once(self.clear_screen, 0)
 
-        # filename argument is a list. In this case, it is a list with only one item: the zip filename. An exception is raised if no filename was selected.
+        # The "filename" argument is a [list] with only one item: the zip filename that should be opened. An exception is raised if no filename was selected by show_open().
         try:
             self.zip_filename = filename[0]
             self.default_path = path
@@ -170,7 +214,7 @@ class KatzWindow(FloatLayout):
         # Conduct error checks before moving forward.
         try:
             # Check if user-selected file ends in .zip:
-            if self.zip_filename[-4:] != '.zip': pass
+            if self.zip_filename[-4:] != '.zip': raise exception
 
             # Check to be sure the .zip file selected is actually a zip file.
             zfile = ZipFile(self.zip_filename)
@@ -179,12 +223,11 @@ class KatzWindow(FloatLayout):
             self.dismiss_popup()
             return
 
-        # Get the path by itself.
-        self.path = os.path.dirname(self.zip_filename)
+        # Get the default path as a variable.
+        self.default_path = os.path.dirname(self.zip_filename)
 
         # Change the working directory to directory containing the zip file
-        self.current_directory = self.path
-        os.chdir(self.current_directory)
+        os.chdir(self.default_path)
 
         # Show filename in status bar:
         self.ids.open_filename.text = self.zip_filename
@@ -193,8 +236,15 @@ class KatzWindow(FloatLayout):
 
 
     # ========================================================================
-    # LIST FILES (ARCHIVE CONTENTS)
+    # ==== LIST FILES (ARCHIVE CONTENTS)
     # ========================================================================
+    """
+    List the contents of the archive. To do this, we create a sub-directory under the default directory (the directory holding the zip file) that is called "_tmp_zip_". The zip file is extracted to that temporary directory. The file chooser then displays the contents of the temporary directory.
+
+    NOTE:
+        If the directory "_tmp_zip_" already exists, it won't be overwritten. The user will be instructed to delete that directory before files can be listed.
+
+    """
     def show_files(self):
 
         # Prevent user from adding files to an archive when one isn't open.
@@ -204,26 +254,24 @@ class KatzWindow(FloatLayout):
             self.show_msg("No zip file is open.\nOpen a zip file, first.")
             return
 
-        # A zip file must be opened first. If not, then there is no path,
-        # and an exception will be raised.
-
-        print('zip_filename:', self.zip_filename)
+        # A try...except block is used just in case there is any problem with naming or creating the temporary directory.
         try:
-            self.tmp_path = self.path +  '\\_tmp_zip_'
+            self.tmp_path = self.default_path +  '\\_tmp_zip_'
+            os.mkdir(self.tmp_path)
 
-            try:
-                os.mkdir(self.tmp_path)
-            except:
-                pass
-            # self.current_directory = os.getcwd()
+            # Change the current directory to the temporary directory
             os.chdir(self.tmp_path)
+
+            # Instantiate the ListFiles() class so we can save the temporary directory path name to the path attribut of the file chooser.
             lf = ListFiles()
             lf.ids.file_chooser.path = self.tmp_path
 
+            # Extract the zip file to the temporary directory.
             with ZipFile(self.zip_filename, 'r') as f:
                 f.extractall(path=self.tmp_path)
 
-            content = ListFiles(listFiles='', cancel=self.dismiss_popup)
+            # Create a popup displaying the folders and files extracted from the archive. The filechooser that is shown uses the path established by the code 5 lines up from here.
+            content = ListFiles(listFiles='', cancel=self.cleanup_listFiles)
             self._popup = Popup(title="Archive contents",
                                 title_color=(0, 0, 0, 1),
                                 title_size=28,
@@ -238,13 +286,24 @@ class KatzWindow(FloatLayout):
             self._popup.open()
 
         except:
-            self.show_msg('Open a zip file first.\nThen list its contents.')
+            msg = 'The temporary folder, "_tmp_zip_",\nalready exists. Delete that folder\nbefore proceeding.'
+            self.show_msg(msg, 400, 300)
             return
 
+    def cleanup_listFiles(self):
+        os.chdir(self.default_path)
+        self.remove_tmp()
+        self.dismiss_popup()
+
+
 
     # ========================================================================
-    # ADD FILES (AND FOLDERS)
+    # ==== ADD FILES (AND FOLDERS)
     # ========================================================================
+    """
+    Add files and folders to an archive. Path and/or relative paths are preserved.
+    """
+
     def show_add(self):
 
         # Prevent user from adding files to an archive when one isn't open.
@@ -269,23 +328,27 @@ class KatzWindow(FloatLayout):
 
     def addFiles(self, path, added_filenames):
         """
-        Add a single file to the archive. The file will be placed in the archive relative to the location of the zip file itself. Updating a file that already exists is not supported. Remove the file first, and then add the newer version back.
+        Add files and/or folders to the archive. Files will be placed in the archive relative to the location of the zip file itself. Updating a file that already exists is not supported. Remove the file first, and then add the newer version back.
 
-        Example:
-            zip file: c:\foo\bar.zip
-            add file: c:\foo\foobar\blah.txt
+        Args:
+            path (str): Path to the file that will be opened.
+            filename ([list]): full path (path/filename.ext) of the file that will be opened.
 
-            This file will be added to the folder "foobar" in the archive.
-        """
-
-        """
-        To prevent duplicate files, get a list of all the files in the zip file already. Replace '/' with '\' so we can compare filenames accurately.
+        NOTE:
+            To prevent duplicate files, we get a list of all the files in the zip file already. Replace '/' with '\' so we can compare filenames accurately.
         """
 
         print('path:', path)
         print('added_filenames:', added_filenames)
 
         os.chdir(self.default_path)
+
+        # Prevent user from adding files to an archive when one isn't open.
+        try:
+            if self.zip_filename: pass
+        except:
+            self.show_msg("No zip file is open.\nOpen a zip file, first.")
+            return
 
         selected_files = []
         for item in added_filenames:
@@ -297,62 +360,77 @@ class KatzWindow(FloatLayout):
                             print('root, name:', root, ';', name)
                             selected_files.append(os.path.join(root, name))
             else:
-                relative_path = os.path.relpath(os.path.dirname(item), os.path.dirname(self.zip_filename))
-                add_this_file = os.path.join(relative_path, os.path.basename(item))
-                selected_files.append(add_this_file)
+                if item != 'c:\\':
+                    selected_files.append(item)
 
+        """
+        Add the selected files to the archive, respecting relative paths. If a file is chosen in a folder that is not a subfolder of the archive, the relative path is still used.
 
-        # TODO Edit the following so it works for files AND folders.
-        # Add the selected files to the archive, respecting relative paths.
+        Example of the latter:
+                        zip file: c:\\foo\\my_zip.zip
+              adding a file from: c:\\bar\\foobar.txt
+            the path in zip file: ..\\bar\\foobar.txt
+        """
+
+        # Create a list of all archive files, so we don't add a file already present.
+        zfile = ZipFile(self.zip_filename)
+        archive_files = zfile.namelist()
+        for ndx, file in enumerate(archive_files):
+            file = file.replace('/', '\\')
+            archive_files[ndx] = file
+
+        # Iterate through "selected_file" and add each file to the archive, using relative paths.
         cnt_files = 0
         with ZipFile(self.zip_filename, 'a') as this_zip:
             for file in selected_files:
-                """
-                absolute path to the zip file: c:\foo
-                absolute path to the added file: c:\foo\foobar\newfile.txt
 
-                relative_path: foobar
-                add_this_file: foobar\newfile.txt
+                """
+                  absolute path to the zip file: c:\\foo\\my_zip.zip
+                absolute path to the added file: c:\foo\foobar\newfile.txt
+                                  add_this_file: foobar\newfile.txt
                 """
                 relative_path = os.path.relpath(os.path.dirname(file), os.path.dirname(self.zip_filename))
                 add_this_file = os.path.join(relative_path, os.path.basename(file))
-                print('add_this_file:', add_this_file)
-                this_zip.write(add_this_file)
-                cnt_files += 1
+
+                if add_this_file not in archive_files:
+                    this_zip.write(add_this_file)
+                    cnt_files += 1
 
         # Clear any messages off the large screen.
         Clock.schedule_once(self.clear_screen, 0)
 
-        # TODO What does this do????
-        zfile = ZipFile(self.zip_filename)
-        these_files = zfile.namelist()
-        for ndx, file in enumerate(these_files):
-            file = file.replace('/', '\\')
-            these_files[ndx] = file
+        # Provide feedback to user on what just happened:
+        # if len(added_filenames) == 1:
+        #     msg = str(len(added_filenames)) + ' files was selected.\n'
+        # else:
+        #     msg = str(len(added_filenames)) + ' files were selected.\n'
 
-        # Prevent user from adding files to an archive when one isn't open.
-        try:
-            if self.zip_filename: pass
-        except:
-            self.show_msg("No zip file is open.\nOpen a zip file, first.")
-            return
+        # if cnt_files == 1:
+        #     msg += str(cnt_files) + ' was added.\n'
+        # else:
+        #     msg += str(cnt_files) + ' were added.\n'
 
-        # If no files were added (because the file(s) already exist in the zip file), alert the user.
-        if len(added_filenames) > 0 and cnt_files == 0:
-            msg = "No files were added.\nYou may have selected duplicate files."
-            msg += "\n\nTo update a file, remove it first,\nthen add it."
-            self.show_msg(msg, 400, 300)
+        # if len(added_filenames) != cnt_files:
+        #     msg += "\nDiscrepancy likely due to attempting to add\nfiles already present in the archive."
+        #     msg += "\n\nIf you want to update a file,\nremove it first, then add it."
+        all_files = str(added_filenames)
+        msg = 'Added files:\n'
+        for i in range(0, 90, 30):
+            msg += all_files[i:31] + '\n'
+
+        self.show_msg(msg, 400, 400)
 
         self.dismiss_popup()
 
 
     # ========================================================================
-    # EXTRACT ARCHIVE
+    # ==== EXTRACT ARCHIVE
     # ========================================================================
     def extract(self):
         """
-        Extract all files from an archive. Destination of unzipped files is not configurable at this time.
+        Extract all files from an archive into a folder with the same name as the zip file. Destination of unzipped files is not configurable at this time.
         """
+
         # Clear any messages off the large screen.
         Clock.schedule_once(self.clear_screen, 0)
 
@@ -372,8 +450,14 @@ class KatzWindow(FloatLayout):
 
 
     # ========================================================================
-    # REMOVE FILES (AND FOLDERS)
+    # ==== REMOVE FILES (AND FOLDERS)
     # ========================================================================
+    """
+    show_remove() -- Displays a popup with a filechooser showing the files that are presently in the archive file.
+
+    removeFiles() -- Removes files and/or folders from the archive. This cannot be undone.
+    """
+
     def show_remove(self):
 
         # Prevent user from adding files to an archive when one isn't open.
@@ -384,12 +468,9 @@ class KatzWindow(FloatLayout):
             return
 
         try:
-            self.tmp_path = self.path +  '\\_tmp_zip_'
+            self.tmp_path = self.default_path +  '\\_tmp_zip_'
+            os.mkdir(self.tmp_path)
 
-            try:
-                os.mkdir(self.tmp_path)
-            except:
-                pass
             # self.current_directory = os.getcwd()
             os.chdir(self.tmp_path)
 
@@ -410,21 +491,18 @@ class KatzWindow(FloatLayout):
 
             self._popup.open()
         except:
-            pass
+            msg = 'The temporary folder, "_tmp_zip_",\nalready exists. Delete that folder\nbefore proceeding.'
+            self.show_msg(msg, 400, 300)
+            return
 
     def removeFiles(self, path, remove_these):
+        """
+        Remove one or more files and/or folders from an archive.
 
-        # TODO -- Make this so you can only remove files, not folders.
-
-        # TODO -- Filter "remove_these" so you only process files in the "_tmp_zip_" folder.
-        print('path:', path)
-        tmp_path = path
-        print('tmp_path:', tmp_path)
-        print('remove_these:', remove_these)
-        print('current folder:', os.getcwd())
-        print('default_path:', self.default_path)
-
-
+        Args:
+            path (str): Path to the file that will be opened.
+            remove_these ([list]): full path (path/filename.ext) to the files/folders to be removed.
+        """
         # Clear any messages off the large screen.
         Clock.schedule_once(self.clear_screen, 0)
 
@@ -437,6 +515,8 @@ class KatzWindow(FloatLayout):
             self.show_msg(msg)
             return
 
+        # Change the cwd to the temporary directory: _tmp_zip_
+        tmp_path = path
         os.chdir(tmp_path)
 
         # Convert all paths in "remove_these" to relative paths:
@@ -446,27 +526,36 @@ class KatzWindow(FloatLayout):
 
         # Recreate the zip file from the files in the "tmp_path"
 
-        # 1. Add all the files in the "current directory", respecting relative paths,
-        #    skipping the files that are listed in "selected_files".
-        with ZipFile(os.path.basename(self.zip_filename), 'w') as this_zip:
+        # 1. If remove_these contains a directory, replace the directory name with all the file names in that directory.
+        add_these = []
+        for ndx, item in enumerate(remove_these):
+            if os.path.isdir(item):
+                for root, dirs, files in os.walk(item, topdown=False):
+                    for name in files:
+                        add_these.append(os.path.join(root, name)[2:])
+                remove_these.remove(item)
+        remove_these.extend(add_these)
+
+        # 2. Find each of the files in "remove_these" and delete each one.
+        zfile =  os.path.basename(self.zip_filename)
+        with ZipFile(zfile, 'w') as this_zip:
             for root, dirs, files in os.walk(".", topdown=False):
                 for name in files:
                     file_name = os.path.join(root, name)
                     file_name = file_name[2:]
-                    zfile = os.path.basename(self.zip_filename)
                     if file_name not in remove_these and name != zfile:
-                        this_zip.write(os.path.join(root, name))
+                        this_zip.write(file_name)
                     else:
                         if name != zfile:
                             os.remove(file_name)
 
-        # 2. Move the newly created zip file to the location of the original zip file.
+        # 3. Move the newly created zip file to the location of the original zip file.
         self.default_path = os.path.dirname(self.zip_filename)
         new_zip_file = os.path.join(tmp_path, os.path.basename(self.zip_filename))
         shutil.move(new_zip_file, self.zip_filename)
         os.chdir(self.default_path)
 
-        #3. Alert user of the files that were removed:
+        #4. Alert user of the files that were removed:
         msg = "Files removed:\n"
         msg += ', '.join(remove_these)
         if len(msg) > 30:
@@ -485,7 +574,7 @@ class KatzWindow(FloatLayout):
 
 
     # ========================================================================
-    # TEST ARCHIVE
+    # ==== TEST ARCHIVE
     # ========================================================================
     def testFiles(self):
         """
@@ -516,7 +605,7 @@ class KatzWindow(FloatLayout):
 
 
     # ========================================================================
-    # OPTIONS
+    # ==== OPTIONS
     # ========================================================================
     def katz_options(self):
         content = Label(text='Options dialog', font_size=28, color=(0, 0, 0, 1))
@@ -534,16 +623,29 @@ class KatzWindow(FloatLayout):
 
 
     # ========================================================================
-    # UTILITY FUNCTIONS
+    # ==== UTILITY FUNCTIONS
     # ========================================================================
     def clear_screen(self, dt):
+        """
+        Clears any messages from the large white area.
+
+        Args:
+            dt (str): delta time from Clock.schedule_once()
+        """
         self.ids.info.text = ''
         print('Clearing the screen')
 
     def dismiss_popup(self):
+        """
+        Dismisses the popup _popup.
+        """
         self._popup.dismiss()
 
     def on_size(self, *args):
+        """
+        Activated whenever the window size is changed by the user. Used to alter the size of buttons and font used in the button text.
+        """
+
         self.ids.newbutton.font_size = max(Window.width * (20 / 800), Window.height * (20 / 600))
         self.ids.openbutton.font_size = max(Window.width * (20 / 800), Window.height * (20 / 600))
         self.ids.listbutton.font_size = max(Window.width * (20 / 800), Window.height * (20 / 600))
@@ -555,13 +657,14 @@ class KatzWindow(FloatLayout):
         self.ids.exitbutton.font_size = max(Window.width * (20 / 800), Window.height * (20 / 600))
 
     def remove_tmp(self):
-        # Remove temporary directory '\\_tmp_zip_\\', if it exists.
-        current_path = os.getcwd()
-        if current_path[-9:] == '_tmp_zip_':
+        """
+        This is a "cleanup" function that removes the temporary directory '\\_tmp_zip_\\', if it exists. This function is called by openFile(), cleanup_listFiles(), the "Exit" button, and on_stop().
+        """
+        if self.default_path[-9:] == '_tmp_zip_':
             os.chdir(Path(self.default_path))
-            shutil.rmtree(Path(current_path))
-        elif os.path.isdir(Path(current_path + '\\_tmp_zip_\\')):
-            shutil.rmtree(Path(current_path + '\\_tmp_zip_\\'))
+            shutil.rmtree(Path(self.default_path))
+        elif os.path.isdir(Path(self.default_path + '\\_tmp_zip_\\')):
+            shutil.rmtree(Path(self.default_path + '\\_tmp_zip_\\'))
         else:
             pass
 
@@ -570,7 +673,9 @@ class KatzWindow(FloatLayout):
         Utility function that simply shows a popup displaying "msg".
 
         Args:
-            msg (str): Any string that is passed in, usually an error message.
+            msg (str): Any string that is passed in. (Typically, but not always, used for error messages.)
+            width (int): Width of the popup; defaults to 400
+            height (int): Height of popup; defaults to 200
         """
 
         title = 'Message Center'
