@@ -35,34 +35,19 @@ from zipfile import ZipFile
 
 kivy.require('1.11.1')
 
-# feature ============================================================
+# ============================================================
 
 # TODO Zip files are extracted to a folder with the same name as the zip file. Make provision for the possibility that a folder with that name already exists. Windows does this by appending "(n)" as needed on the new folder name.
 
-# // TODO -- Need to be able to change "default_path" to the directory of the current zip file that is open.
-
 # TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
 
-# // TODO -- Some functions use the zip file's directory and some functions move to the "_tmp_zip_" directory. You need to be sure you enter a function in the right directory and leave with the right directory.
-
-# // TODO -- remove_tmp() and on_stop() don't seem to ALWAYS remove the temporary directory.
-
-# // TODO -- Currently, you can only add files; change addFiles() so it will add folders with files.
-
 # TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
-
-# // TODO -- After opening a file, I extracted it; them clicked "Remove" which told me there was no zip file open.
-
-# // TODO -- Rearrange functions and document everything.
-
-# // TODO -- Add docstrings to all functions; clean up code comments; add comments to .kv file
 
 # TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
 
 # TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list.
 
-
-# feature ============================================================
+# ============================================================
 
 
 class NewFileDialog(FloatLayout):
