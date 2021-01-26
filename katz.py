@@ -44,7 +44,7 @@ kivy.require('1.11.1')
 
 # TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
 
-# TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
+# // TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
 
 # TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list. After a little experimentation, it seems that I will need two, rather than one, functions. IDEA: on_press... runs show_add() which runs addFiles(), which gathers the files in the correct format that are going to be added; and then on_release... runs the second function that asks for confirmation and actually does the adding, if confirmed.
 
@@ -180,9 +180,6 @@ class KatzWindow(FloatLayout):
             path (str): Path to the file that will be opend.
             filename ([list]): full path (path/filename.ext) of the file that will be opened.
         """
-
-        # Clear any messages off the large screen.
-        Clock.schedule_once(self.clear_screen, 0)
 
         # The "filename" argument is a [list] with only one item: the zip filename that should be opened. An exception is raised if no filename was selected by show_open().
         try:
@@ -372,6 +369,11 @@ class KatzWindow(FloatLayout):
         self.ids.sv_label.text = ''
         self.ids.white_screen.remove_widget(self.showfiles_OK)
         self.ids.white_screen.remove_widget(self.showfiles_cancel)
+        os.chdir(self.default_path)
+        try:
+            self.remove_tmp()
+        except:
+            pass
 
     def add_the_files(self, instance):
         """
@@ -409,9 +411,6 @@ class KatzWindow(FloatLayout):
                     this_zip.write(add_this_file)
                     cnt_files += 1
 
-        # Clear any messages off the large screen.
-        Clock.schedule_once(self.clear_screen, 0)
-
         self.cancel_scroll("")
 
 
@@ -422,9 +421,6 @@ class KatzWindow(FloatLayout):
         """
         Extract all files from an archive into a folder with the same name as the zip file. Destination of unzipped files is not configurable at this time.
         """
-
-        # Clear any messages off the large screen.
-        Clock.schedule_once(self.clear_screen, 0)
 
         # Prevent user from extracting from an archive when one isn't open.
         try:
@@ -485,6 +481,8 @@ class KatzWindow(FloatLayout):
         except:
             msg = 'The temporary folder, "_tmp_zip_",\nalready exists. Delete that folder\nbefore proceeding.'
             self.show_msg(msg, 400, 300)
+            os.chdir(self.default_path)
+            self.remove_tmp()
             return
 
     def removeFiles(self, path, remove_these):
@@ -495,38 +493,66 @@ class KatzWindow(FloatLayout):
             path (str): Path to the file that will be opened.
             remove_these ([list]): full path (path/filename.ext) to the files/folders to be removed.
         """
-        # Clear any messages off the large screen.
-        Clock.schedule_once(self.clear_screen, 0)
-
-        # User must select one or more files to remove before continuing.
+        # User must have selected one or more files to remove before continuing.
         try:
-            print('path:', path)
-            print('remove_these:', remove_these)
+            if path == '':
+                raise Exception
         except:
-            msg = 'You must open a zip file and select files\nbefore attempting to remove files.'
+            msg = 'No files were selected.\nNo files will be removed.'
             self.show_msg(msg)
+            self.dismiss_popup()
+            os.chdir(self.default_path)
+            self.remove_tmp()
             return
+
+        self.remove_these = remove_these
 
         # Change the cwd to the temporary directory: _tmp_zip_
         tmp_path = path
         os.chdir(tmp_path)
 
         # Convert all paths in "remove_these" to relative paths:
-        for ndx, f in enumerate(remove_these):
+        for ndx, f in enumerate(self.remove_these):
             relative_path = os.path.relpath(os.path.dirname(f), tmp_path)
-            remove_these[ndx] = os.path.join(relative_path, os.path.basename(f))
+            self.remove_these[ndx] = os.path.join(relative_path, os.path.basename(f))
 
         # Recreate the zip file from the files in the "tmp_path"
 
         # 1. If remove_these contains a directory, replace the directory name with all the file names in that directory.
         add_these = []
-        for ndx, item in enumerate(remove_these):
+        for ndx, item in enumerate(self.remove_these):
             if os.path.isdir(item):
                 for root, dirs, files in os.walk(item, topdown=False):
                     for name in files:
                         add_these.append(os.path.join(root, name)[2:])
                 remove_these.remove(item)
         remove_these.extend(add_these)
+
+        msg = 'Files to be removed:\n'
+        for ndx, i in enumerate(self.remove_these):
+            msg = msg + i + '\n'
+
+        self.showfiles_OK = Button(text='OK',
+                                size_hint=(0.15, 0.08),
+                                pos_hint={'x': 0.01, 'y': 0.01}
+                            )
+        self.showfiles_cancel = Button(text='Cancel',
+                                size_hint=(0.15, 0.08),
+                                pos_hint={'x': 0.2, 'y': 0.01}
+                            )
+
+        self.ids.sv_label.text = msg
+        self.ids.white_screen.add_widget(self.showfiles_OK)
+        self.ids.white_screen.add_widget(self.showfiles_cancel)
+
+        self.showfiles_OK.bind(on_release=self.remove_the_files)
+        self.showfiles_cancel.bind(on_release=self.cancel_scroll)
+
+        self.dismiss_popup()
+
+    def remove_the_files(self, instance):
+
+        tmp_path = os.getcwd()
 
         # 2. Find each of the files in "remove_these" and delete each one.
         zfile =  os.path.basename(self.zip_filename)
@@ -535,7 +561,7 @@ class KatzWindow(FloatLayout):
                 for name in files:
                     file_name = os.path.join(root, name)
                     file_name = file_name[2:]
-                    if file_name not in remove_these and name != zfile:
+                    if file_name not in self.remove_these and name != zfile:
                         this_zip.write(file_name)
                     else:
                         if name != zfile:
@@ -548,13 +574,9 @@ class KatzWindow(FloatLayout):
         os.chdir(self.default_path)
 
         #4. Alert user of the files that were removed:
-        msg = "Files removed:\n"
-        msg += ', '.join(remove_these)
-        if len(msg) > 30:
-            msg += '...'
-        if not remove_these:
+        if not self.remove_these:
             msg = 'No files selected. No files removed.'
-        self.show_msg(msg, width=450, height=250)
+            self.show_msg(msg, width=450, height=250)
 
         # Finally, remove "tmp_path"
         try:
@@ -562,7 +584,7 @@ class KatzWindow(FloatLayout):
         except:
             pass
 
-        self.dismiss_popup()
+        self.cancel_scroll("")
 
 
     # ========================================================================
@@ -572,9 +594,6 @@ class KatzWindow(FloatLayout):
         """
         Test the integrity of the archive. Does not test archived files to determine if they are corrupted. If you archive a corrupted file, testing will not identify the fact that it is corrupted! Presumably, it was archived perfectly well as a corrupted file!
         """
-
-        # Clear any messages off the large screen.
-        Clock.schedule_once(self.clear_screen, 0)
 
         # Prevent user from testing an archive when one isn't open.
         try:
@@ -617,19 +636,12 @@ class KatzWindow(FloatLayout):
     # ========================================================================
     # ==== UTILITY FUNCTIONS
     # ========================================================================
-    def clear_screen(self, dt):
-        """
-        Clears any messages from the large white area.
-
-        Args:
-            dt (str): delta time from Clock.schedule_once()
-        """
-        print('Clearing the screen')
 
     def dismiss_popup(self):
         """
         Dismisses the popup _popup.
         """
+        self.remove_tmp()
         self._popup.dismiss()
 
     def on_size(self, *args):
@@ -651,12 +663,13 @@ class KatzWindow(FloatLayout):
         """
         This is a "cleanup" function that removes the temporary directory '\\_tmp_zip_\\', if it exists. This function is called by openFile(), cleanup_listFiles(), the "Exit" button, and on_stop().
         """
-        if self.default_path[-9:] == '_tmp_zip_':
-            os.chdir(Path(self.default_path))
-            shutil.rmtree(Path(self.default_path))
-        elif os.path.isdir(Path(self.default_path + '\\_tmp_zip_\\')):
-            shutil.rmtree(Path(self.default_path + '\\_tmp_zip_\\'))
-        else:
+        os.chdir(self.default_path)
+        tmp_path = os.path.join(self.default_path, '_tmp_zip_')
+
+        try:
+            if os.path.isdir(tmp_path):
+                shutil.rmtree(Path(tmp_path))
+        except:
             pass
 
     def show_msg(self, msg, width=400, height=200):
