@@ -24,6 +24,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
@@ -45,7 +46,7 @@ kivy.require('1.11.1')
 
 # TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
 
-# TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list.
+# TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list. After a little experimentation, it seems that I will need two, rather than one, functions. IDEA: on_press... runs show_add() which runs addFiles(), which gathers the files in the correct format that are going to be added; and then on_release... runs the second function that asks for confirmation and actually does the adding, if confirmed.
 
 # ============================================================
 
@@ -285,10 +286,6 @@ class KatzWindow(FloatLayout):
     # ========================================================================
     # ==== ADD FILES (AND FOLDERS)
     # ========================================================================
-    """
-    Add files and folders to an archive. Path and/or relative paths are preserved.
-    """
-
     def show_add(self):
 
         # Prevent user from adding files to an archive when one isn't open.
@@ -335,19 +332,48 @@ class KatzWindow(FloatLayout):
             self.show_msg("No zip file is open.\nOpen a zip file, first.")
             return
 
-        selected_files = []
+        self.selected_files = []
         for item in added_filenames:
 
             if os.path.isdir(item):
                 for root, dirs, files in os.walk(item, topdown=False):
                     for name in files:
                         if root.lower() == item.lower():
-                            print('root, name:', root, ';', name)
-                            selected_files.append(os.path.join(root, name))
+                            # print('root, name:', root, ';', name)
+                            self.selected_files.append(os.path.join(root, name))
             else:
                 if item != 'c:\\':
-                    selected_files.append(item)
+                    self.selected_files.append(item)
 
+        msg = 'Added files:\n'
+        for ndx, i in enumerate(self.selected_files):
+            msg = msg + i + '\n'
+
+
+        self.showfiles_OK = Button(text='OK',
+                                size_hint=(0.15, 0.08),
+                                pos_hint={'x': 0.01, 'y': 0.01}
+                            )
+        self.showfiles_cancel = Button(text='Cancel',
+                                size_hint=(0.15, 0.08),
+                                pos_hint={'x': 0.2, 'y': 0.01}
+                            )
+
+        self.ids.sv_label.text = msg
+        self.ids.white_screen.add_widget(self.showfiles_OK)
+        self.ids.white_screen.add_widget(self.showfiles_cancel)
+
+        self.showfiles_OK.bind(on_release=self.add_the_files)
+        self.showfiles_cancel.bind(on_release=self.cancel_scroll)
+
+        self.dismiss_popup()
+
+    def cancel_scroll(self, instance):
+        self.ids.sv_label.text = ''
+        self.ids.white_screen.remove_widget(self.showfiles_OK)
+        self.ids.white_screen.remove_widget(self.showfiles_cancel)
+
+    def add_the_files(self, instance):
         """
         Add the selected files to the archive, respecting relative paths. If a file is chosen in a folder that is not a subfolder of the archive, the relative path is still used.
 
@@ -356,6 +382,8 @@ class KatzWindow(FloatLayout):
               adding a file from: c:\\bar\\foobar.txt
             the path in zip file: ..\\bar\\foobar.txt
         """
+
+        print('instance:', instance)
 
         # Create a list of all archive files, so we don't add a file already present.
         zfile = ZipFile(self.zip_filename)
@@ -367,7 +395,7 @@ class KatzWindow(FloatLayout):
         # Iterate through "selected_file" and add each file to the archive, using relative paths.
         cnt_files = 0
         with ZipFile(self.zip_filename, 'a') as this_zip:
-            for file in selected_files:
+            for file in self.selected_files:
 
                 """
                   absolute path to the zip file: c:\\foo\\my_zip.zip
@@ -384,28 +412,7 @@ class KatzWindow(FloatLayout):
         # Clear any messages off the large screen.
         Clock.schedule_once(self.clear_screen, 0)
 
-        # Provide feedback to user on what just happened:
-        # if len(added_filenames) == 1:
-        #     msg = str(len(added_filenames)) + ' files was selected.\n'
-        # else:
-        #     msg = str(len(added_filenames)) + ' files were selected.\n'
-
-        # if cnt_files == 1:
-        #     msg += str(cnt_files) + ' was added.\n'
-        # else:
-        #     msg += str(cnt_files) + ' were added.\n'
-
-        # if len(added_filenames) != cnt_files:
-        #     msg += "\nDiscrepancy likely due to attempting to add\nfiles already present in the archive."
-        #     msg += "\n\nIf you want to update a file,\nremove it first, then add it."
-        all_files = str(added_filenames)
-        msg = 'Added files:\n'
-        for i in range(0, 90, 30):
-            msg += all_files[i:31] + '\n'
-
-        self.show_msg(msg, 400, 400)
-
-        self.dismiss_popup()
+        self.cancel_scroll("")
 
 
     # ========================================================================
@@ -422,7 +429,7 @@ class KatzWindow(FloatLayout):
         # Prevent user from extracting from an archive when one isn't open.
         try:
             if self.zip_filename:
-                self.ids.info.text = 'Files extracted.'
+                pass
         except:
             self.show_msg("No zip file is open.\nOpen a zip file, first.")
             return
@@ -617,7 +624,6 @@ class KatzWindow(FloatLayout):
         Args:
             dt (str): delta time from Clock.schedule_once()
         """
-        self.ids.info.text = ''
         print('Clearing the screen')
 
     def dismiss_popup(self):
@@ -699,9 +705,6 @@ class KatzWindow(FloatLayout):
         # Bind an on_press event to the Close button.
         self.closeButton.bind(on_press=popupWindow.dismiss)
 
-
-class Popups(FloatLayout):
-    pass
 
 class KatzApp(App):
     def build(self):

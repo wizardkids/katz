@@ -56,11 +56,12 @@
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:
+            id: menu_bar
             orientation: 'horizontal'
             spacing: 1
             padding: 1
             size_hint: (1, 0.15)
-            # height: 90
+            pos_hint: {'x': 0, 'top': 1}
             MyButton:
                 id: newbutton
                 text: 'New'
@@ -99,29 +100,37 @@
                 on_press: root.remove_tmp()
                 on_release: exit()
 
-        BoxLayout:
-            orientation: 'vertical'
+        FloatLayout:
+            id: white_screen
             canvas.before:
                 Color:
                     rgba: (1, 1, 1, 1)
                 Rectangle:
                     size: self.size
                     pos: self.pos
-            Label:
-                id: info
-                text: ''
-                font_size: 28
-                size_hint: (0.25, 0.15)
-                color: (0, 0, 0, 1)
-                halign: 'left'
-            Label:
-                id: sp2
-                text: ''
+
+            ScrollView:
+                id: sv
+                size_hint: (1, 0.86)
+                pos_hint: {'x': 0.01, 'y': 0.12}
+                bar_width: 20
+                effect_cls: "ScrollEffect"
+
+                Label:
+                    id: sv_label
+                    text: ''
+                    font_size: 18
+                    color: (0, 0, 0, 1)
+                    halign: 'left'
+                    size_hint: 1, None
+                    text_size: self.width, None
+                    height: self.texture_size[1]
 
         BoxLayout:
             id: status_bar
             orientation: 'horizontal'
-            size_hint_y: 0.05
+            size_hint: (1, 0.05)
+            pos_hint: {'x': 0, 'bottom': 0}
             canvas:
                 Color:
                     rgba: teal1
@@ -132,6 +141,7 @@
                 id: open_filename
                 text: ''
                 font_size: 20
+                text_size: self.size
                 color: (1, 1, 1, 1)
                 pos_hint: {'x': 0, 'y':0}
                 text_size: self.width, None
@@ -316,51 +326,3 @@
                 id: save_button
                 text: "Save"
                 on_release: root.newFile(filechooser.path, text_input.text)
-
-<Popups>:
-    Label:
-        id: theme_listing
-        text: ''
-        color: (0, 0, 0, 1)
-        font_size: 20
-        size_hint: (1, .4)
-        pos_hint: {'x': 0, 'y': .6}
-        halign: 'left'
-
-    Label:
-        id: theme_instruction
-        text: 'Enter a theme name:\n'
-        color: (0, 0, 0, 1)
-        font_size: 20
-        size_hint: (0.3, 0.1)
-        pos_hint: {'x': 0.1, 'y':0.35}
-
-    TextInput:
-        id: which_theme
-        background_color: (1, 1, 0, 1)  # transparent, so background = window background
-        size_hint: (None, None)
-        width: 150
-        height: 40
-        pos_hint: {'x':0, 'y':.2}
-        focus: True
-        multiline: False
-        font_size: 20
-        hint_text: 'default_theme'
-        hint_text_color: [0.5, 0.5, 0.5, 1.0]       # a light grey
-        cursor_width: 3
-        cursor_color: (179/255, 27/255, 27/255, 1)  # a shade of deep red
-
-    Label:
-        id: error_label
-        text: 'Theme does not exist.'
-        pos_hint: {'x': .5, 'y': .2}
-        font_size: 20
-        size_hint: (0.35, 0.1)
-        bold: True
-        color: (0, 0, 0, 0)
-
-    Button:
-        id: closeSettings
-        text: "Dismiss"
-        size_hint: (.2, .1)
-        pos_hint: {'x': 0, 'y': 0}
