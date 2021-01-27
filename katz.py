@@ -38,13 +38,8 @@ from zipfile import ZipFile
 
 kivy.require('1.11.1')
 
-# ============================================================
+# ===== FEATURE REQUESTS AND TODO ITEMS ======================
 
-# TODO Zip files are extracted to a folder with the same name as the zip file. Make provision for the possibility that a folder with that name already exists. Windows does this by appending "(n)" as needed on the new folder name.
-
-# // TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
-
-# // TODO -- When I add root.txt in the root folder of the archive and then delete it, it gets deleted from the hard drive as well as the zip file.
 
 # ============================================================
 
@@ -188,6 +183,22 @@ class KatzWindow(FloatLayout):
             self.zip_filename = filename[0]
             self.default_path = path
             os.chdir(Path(self.default_path))
+
+            # Create the temporary folder (_tmp_zip_) so its name is established at file opening.
+            try:
+                self.tmp_path = self.default_path +  '\\_tmp_zip_'
+                for i in range(50):
+                    if not os.path.isdir(self.tmp_path):
+                        print('self.tmp_path:', self.tmp_path)
+                        break
+                    else:
+                        self.tmp_path = self.tmp_path + '(' + str(i) + ')'
+                        continue
+            except:
+                pass
+
+            os.chdir(Path(self.default_path))
+
         except:
             self.show_msg('No file was selected to open.')
             self.dismiss_popup()
@@ -241,10 +252,8 @@ class KatzWindow(FloatLayout):
 
         # A try...except block is used just in case there is any problem with naming or creating the temporary directory.
         try:
-            self.tmp_path = self.default_path +  '\\_tmp_zip_'
+            # Make the temporary folder, then change the current directory to that folder.
             os.mkdir(self.tmp_path)
-
-            # Change the current directory to the temporary directory
             os.chdir(self.tmp_path)
 
             # Instantiate the ListFiles() class so we can save the temporary directory path name to the path attribut of the file chooser.
@@ -464,7 +473,7 @@ class KatzWindow(FloatLayout):
 
         try:
             # Create a temporary folder into which archive files will be extracted.
-            self.tmp_path = self.default_path +  '\\_tmp_zip_'
+            # self.tmp_path = self.default_path +  '\\_tmp_zip_'
             os.mkdir(self.tmp_path)
 
             # Change the current working directory to that temporary folder.
@@ -521,12 +530,11 @@ class KatzWindow(FloatLayout):
         self.remove_these = remove_these
 
         # Change the cwd to the temporary directory: _tmp_zip_
-        tmp_path = path
-        os.chdir(tmp_path)
+        os.chdir(self.tmp_path)
 
         # Convert all paths in "remove_these" to relative paths:
         for ndx, f in enumerate(self.remove_these):
-            relative_path = os.path.relpath(os.path.dirname(f), tmp_path)
+            relative_path = os.path.relpath(os.path.dirname(f), self.tmp_path)
             self.remove_these[ndx] = os.path.join(relative_path, os.path.basename(f))
             # If the file is in the root directory of the zip file, delete the '.\\' prefix.
             if self.remove_these[ndx][0:2] == '.\\':
@@ -748,11 +756,11 @@ class KatzWindow(FloatLayout):
         This is a "cleanup" function that removes the temporary directory '\\_tmp_zip_\\', if it exists. This function is called by openFile(), cleanup_listFiles(), the "Exit" button, and on_stop().
         """
         os.chdir(self.default_path)
-        tmp_path = os.path.join(self.default_path, '_tmp_zip_')
+        # tmp_path = os.path.join(self.default_path, '_tmp_zip_')
 
         try:
-            if os.path.isdir(tmp_path):
-                shutil.rmtree(Path(tmp_path))
+            if os.path.isdir(self.tmp_path):
+                shutil.rmtree(Path(self.tmp_path))
         except:
             pass
 
@@ -836,11 +844,11 @@ class KatzApp(App):
 
         # Remove temporary directory '\\_tmp_zip_\\' if it exists.
         current_path = os.getcwd()
-        if current_path[-9:] == '_tmp_zip_':
+        if current_path[-9:] == '_tmp_zip_' or current_path[-12:-3]== '_tmp_zip_' or current_path[-13:-4] == '_tmp_zip_':
             os.chdir(Path(self.default_path))
             shutil.rmtree(Path(current_path))
-        elif os.path.isdir(Path(self.default_path + '\\_tmp_zip_\\')):
-            shutil.rmtree(Path(self.default_path + '\\_tmp_zip_\\'))
+        elif os.path.isdir(Path(self.tmp_path)):
+            shutil.rmtree(Path(self.tmp_path))
         else:
             pass
 
