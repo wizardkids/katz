@@ -42,11 +42,7 @@ kivy.require('1.11.1')
 
 # TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
 
-# // TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
-
-# // TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
-
-# // TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list. After a little experimentation, it seems that I will need two, rather than one, functions. IDEA: on_press... runs show_add() which runs addFiles(), which gathers the files in the correct format that are going to be added; and then on_release... runs the second function that asks for confirmation and actually does the adding, if confirmed.
+# // TODO -- When I add root.txt in the root folder of the archive and then delete it, it gets deleted from the hard drive as well as the zip file.
 
 # ============================================================
 
@@ -284,6 +280,9 @@ class KatzWindow(FloatLayout):
     # ==== ADD FILES (AND FOLDERS)
     # ========================================================================
     def show_add(self):
+        """
+        This function is called by the "Add" button in the menu bar. Here, we display a file chooser to allow user to choose files to add to the archive. By default, the default folder when the file chooser opens is the folder containing the open archive.
+        """
 
         # Prevent user from adding files to an archive when one isn't open.
         try:
@@ -329,6 +328,8 @@ class KatzWindow(FloatLayout):
             self.show_msg("No zip file is open.\nOpen a zip file, first.")
             return
 
+        # The user's selected files are in the argument "added_filenames" with absolute paths.
+        # In the following for... loop, filenames are converted to relative paths and stored in [selected_files].
         self.selected_files = []
         for item in added_filenames:
 
@@ -342,16 +343,18 @@ class KatzWindow(FloatLayout):
                 if item != 'c:\\':
                     self.selected_files.append(item)
 
+        # Create a string, "msg", containing a list of all the selected file.
+        # "msg" is the string that will be displayed by the ScrollView in the white screen.
         msg = 'Added files:\n'
         for ndx, i in enumerate(self.selected_files):
             msg = msg + i + '\n'
 
-
-        self.showfiles_OK = Button(text='OK',
+        # Create the two buttons that the user will use to confirm or cancel adding files.
+        self.showfiles_OK = Button(text='Go!',
                                 size_hint=(0.15, 0.08),
                                 pos_hint={'x': 0.01, 'y': 0.01}
                             )
-        self.showfiles_cancel = Button(text='Cancel',
+        self.showfiles_cancel = Button(text='Forget it',
                                 size_hint=(0.15, 0.08),
                                 pos_hint={'x': 0.2, 'y': 0.01}
                             )
@@ -365,18 +368,10 @@ class KatzWindow(FloatLayout):
 
         self.dismiss_popup()
 
-    def cancel_scroll(self, instance):
-        self.ids.sv_label.text = ''
-        self.ids.white_screen.remove_widget(self.showfiles_OK)
-        self.ids.white_screen.remove_widget(self.showfiles_cancel)
-        os.chdir(self.default_path)
-        try:
-            self.remove_tmp()
-        except:
-            pass
-
     def add_the_files(self, instance):
         """
+        When the user presses the "Go!" button on the white screen, this function is run.
+
         Add the selected files to the archive, respecting relative paths. If a file is chosen in a folder that is not a subfolder of the archive, the relative path is still used.
 
         Example of the latter:
@@ -411,6 +406,7 @@ class KatzWindow(FloatLayout):
                     this_zip.write(add_this_file)
                     cnt_files += 1
 
+        # "Erase" the content being shown on the white screen, including the ScrollView and buttons.
         self.cancel_scroll("")
 
 
@@ -449,6 +445,9 @@ class KatzWindow(FloatLayout):
     """
 
     def show_remove(self):
+        """
+        This function is called by the "Remove" button in the menu bar. Here, we display a file chooser to allow user to choose files to remove from the archive.
+        """
 
         # Prevent user from adding files to an archive when one isn't open.
         try:
@@ -458,15 +457,18 @@ class KatzWindow(FloatLayout):
             return
 
         try:
+            # Create a temporary folder into which archive files will be extracted.
             self.tmp_path = self.default_path +  '\\_tmp_zip_'
             os.mkdir(self.tmp_path)
 
-            # self.current_directory = os.getcwd()
+            # Change the current working directory to that temporary folder.
             os.chdir(self.tmp_path)
 
+            # Extract the archive to the temporary folder.
             with ZipFile(self.zip_filename, 'r') as f:
                 f.extractall(path=self.tmp_path)
 
+            # Now, the file chooser displayed by self._popup will contain all the files in the archive.
             content = RemoveDialog(removeFiles=self.removeFiles, cancel=self.dismiss_popup)
 
             self._popup = Popup(title="Remove files",
@@ -480,6 +482,7 @@ class KatzWindow(FloatLayout):
                             )
 
             self._popup.open()
+
         except:
             msg = 'The temporary folder, "_tmp_zip_",\nalready exists. Delete that folder\nbefore proceeding.'
             self.show_msg(msg, 400, 300)
@@ -495,6 +498,7 @@ class KatzWindow(FloatLayout):
             path (str): Path to the file that will be opened.
             remove_these ([list]): full path (path/filename.ext) to the files/folders to be removed.
         """
+
         # User must have selected one or more files to remove before continuing.
         try:
             if path == '':
@@ -507,6 +511,7 @@ class KatzWindow(FloatLayout):
             self.remove_tmp()
             return
 
+        # "self.remove_these" contains all the files/folders the user wants to remove from the archive.
         self.remove_these = remove_these
 
         # Change the cwd to the temporary directory: _tmp_zip_
@@ -521,9 +526,7 @@ class KatzWindow(FloatLayout):
             if self.remove_these[ndx][0:2] == '.\\':
                 self.remove_these[ndx] = self.remove_these[ndx][2:]
 
-        # Recreate the zip file from the files in the "tmp_path"
-
-        # 1. If remove_these contains a directory, replace the directory name with all the file names in that directory.
+        # If [remove_these] contains a directory, replace the directory name with all the file names in that directory.
         add_these = []
         for ndx, item in enumerate(self.remove_these):
             if os.path.isdir(item):
@@ -533,6 +536,8 @@ class KatzWindow(FloatLayout):
                 self.remove_these.remove(item)
         self.remove_these.extend(add_these)
 
+        # Create a string that contains path.filename for each file to be removed.
+        # This string will be displayed in the ScrollView Label.
         msg = 'Files to be removed:\n'
         for ndx, i in enumerate(self.remove_these):
             msg = msg + i + '\n'
@@ -556,10 +561,14 @@ class KatzWindow(FloatLayout):
         self.dismiss_popup()
 
     def remove_the_files(self, instance):
+        """
+        When the user presses the "Go!" button on the white screen, files that have been selected by the user will be removed from the temporary folder. The archive is recreated in the temporary folder, but this time without the deleted file(s). The newly recreated archive in the temporary folder has the same name as the original. It is moved to the same folder as the original archive, overwriting the original archive.
+        """
 
-        tmp_path = os.getcwd()
+        # tmp_path = os.getcwd()
+        os.chdir(self.tmp_path)
 
-        # 2. Find each of the files in "remove_these" and delete each one.
+        # Find each of the files in "remove_these" and delete each one.
         zfile =  os.path.basename(self.zip_filename)
         with ZipFile(zfile, 'w') as this_zip:
             for root, dirs, files in os.walk(".", topdown=False):
@@ -572,13 +581,13 @@ class KatzWindow(FloatLayout):
                         if name != zfile:
                             os.remove(file_name)
 
-        # 3. Move the newly created zip file to the location of the original zip file.
+        # Move the newly created zip file to the location of the original zip file.
         self.default_path = os.path.dirname(self.zip_filename)
-        new_zip_file = os.path.join(tmp_path, os.path.basename(self.zip_filename))
+        new_zip_file = os.path.join(self.tmp_path, os.path.basename(self.zip_filename))
         shutil.move(new_zip_file, self.zip_filename)
         os.chdir(self.default_path)
 
-        #4. Alert user of the files that were removed:
+        # Alert user if no files were removed.
         if not self.remove_these:
             msg = 'No files selected. No files removed.'
             self.show_msg(msg, width=450, height=250)
@@ -642,11 +651,24 @@ class KatzWindow(FloatLayout):
     # ==== UTILITY FUNCTIONS
     # ========================================================================
 
+    def cancel_scroll(self, instance):
+        """
+        In removeFiles() and addFiles(), a ScrollView is displayed in the white screen to show files that the program intends to add or remove. The user is given the option to cancel or confirm the action. Once completed this function clears the ScrollView and related buttons from the white screen.
+        """
+        self.ids.sv_label.text = ''
+        self.ids.white_screen.remove_widget(self.showfiles_OK)
+        self.ids.white_screen.remove_widget(self.showfiles_cancel)
+        os.chdir(self.default_path)
+        try:
+            self.remove_tmp()
+        except:
+            pass
+
     def dismiss_popup(self):
         """
         Dismisses the popup _popup.
         """
-        self.remove_tmp()
+        # self.remove_tmp()
         self._popup.dismiss()
 
     def on_size(self, *args):
