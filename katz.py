@@ -12,6 +12,7 @@ Versions:
 
 """
 
+from ctypes import sizeof
 from logging import exception
 import kivy
 from kivy.app import App
@@ -22,6 +23,7 @@ from kivy.graphics.vertex_instructions import Ellipse
 from kivy.properties import ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
@@ -40,7 +42,7 @@ kivy.require('1.11.1')
 
 # TODO Zip files are extracted to a folder with the same name as the zip file. Make provision for the possibility that a folder with that name already exists. Windows does this by appending "(n)" as needed on the new folder name.
 
-# TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
+# // TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
 
 # // TODO -- When I add root.txt in the root folder of the archive and then delete it, it gets deleted from the hard drive as well as the zip file.
 
@@ -79,6 +81,10 @@ class KatzWindow(FloatLayout):
 
         text_input = ObjectProperty(None)
         self.text_input = text_input
+
+        # The startup path (default_path) is read from katz.config in KatzApp() or defaults to the app's home folder.
+        kw = KatzApp()
+        self.default_path = kw.default_path
 
     # ========================================================================
     # ==== NEW FILE
@@ -633,7 +639,38 @@ class KatzWindow(FloatLayout):
     # ==== OPTIONS
     # ========================================================================
     def katz_options(self):
-        content = Label(text='Options dialog', font_size=28, color=(0, 0, 0, 1))
+        """
+        Provide a means for getting, and saving, a default start-up folder for the user.
+        """
+
+
+        text_label = Label(text='Enter a startup folder:',
+                            font_size=20,
+                            color=(0, 0, 0, 1),
+                            text_size=self.size,
+                            pos_hint={'x': 0.2, 'y': 1},
+                            halign='left'
+                        )
+
+        get_startup = TextInput(
+                                background_color=(1, 1, 1, 1),
+                                size_hint=(.95, 0.1),
+                                pos_hint={'x': 0, 'y': 0.5},
+                                focus=False,
+                                multiline=False,
+                                font_size=20,
+                                hint_text='path',
+                                hint_text_color=[0.5, 0.5, 0.5, 1.0],       # a light grey
+                                cursor_width=4,
+                                cursor_color=(179/255, 27/255, 27/255, 1),  # a shade of deep red
+                            )
+
+        content = FloatLayout()
+
+        content.add_widget(text_label)
+        content.add_widget(get_startup)
+
+        # content = Label(text='Options dialog', font_size=28, color=(0, 0, 0, 1))
         self._popup = Popup(title="Katz options",
                             content=content,
                             title_color=(0/255, 128/255, 128/255, 1),
@@ -644,7 +681,27 @@ class KatzWindow(FloatLayout):
                             size_hint=(0.75, 0.75)
                         )
 
+        get_startup.bind(on_text_validate=self.set_default_path)
+
         self._popup.open()
+
+    def set_default_path(self, instance):
+
+        print('setting path...', instance.text)
+
+        self.default_path = instance.text
+        kw = KatzApp()
+        self.app_folder_name = kw.app_folder_name
+
+        self.current_path = os.getcwd()
+        os.chdir(self.app_folder_name)
+
+        with open('katz.config', 'w') as f:
+            f.write(self.default_path)
+
+        os.chdir(self.current_path)
+
+        self.dismiss_popup()
 
 
     # ========================================================================
@@ -747,13 +804,22 @@ class KatzWindow(FloatLayout):
 
 
 class KatzApp(App):
+
+    # Read the startup folder from katz.config in the app folder.
+    app_folder_name = os.path.abspath(os.path.dirname(__file__))
+    os.chdir(app_folder_name)
+    try:
+        with open('katz.config', 'r') as f:
+            default_path = f.readline()
+    except:
+        default_path = app_folder_name
+
     def build(self):
 
         # Set the title that displays in the window title bar.
         self.title = "Katz - for zip files"
 
-        # Here is where you can set a default path for openFile()
-        self.default_path = "C:\\Users\\rer1\\Downloads"
+        # Change the startup path to default path read from katz.config, if it exists.
         os.chdir(self.default_path)
 
         # Default size the window at program launch. This can be changed by the user, dragging a window corner.
