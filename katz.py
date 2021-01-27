@@ -753,7 +753,7 @@ class KatzApp(App):
         self.title = "Katz - for zip files"
 
         # Here is where you can set a default path for openFile()
-        self.default_path = "c:\\temp"
+        self.default_path = "C:\\Users\\rer1\\Downloads"
         os.chdir(self.default_path)
 
         # Default size the window at program launch. This can be changed by the user, dragging a window corner.
