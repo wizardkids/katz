@@ -42,11 +42,11 @@ kivy.require('1.11.1')
 
 # TODO -- Add function to set the default directory via "Options" and save that folder in a config file. Add another function/command to read the config file at startup.
 
-# TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
+# // TODO -- Instead of printing messages on the white screen (like "File extracted."), display messages in the status bar. You will have to add a second Label.
 
 # // TODO -- Need a better reporting function at the end of addFiles() and removeFiles().
 
-# TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list. After a little experimentation, it seems that I will need two, rather than one, functions. IDEA: on_press... runs show_add() which runs addFiles(), which gathers the files in the correct format that are going to be added; and then on_release... runs the second function that asks for confirmation and actually does the adding, if confirmed.
+# // TODO -- Add a popup to addFiles() and removeFiles() to warn user which files are going to be added or removed. This may require a scrollview because I want to give the user a complete list. After a little experimentation, it seems that I will need two, rather than one, functions. IDEA: on_press... runs show_add() which runs addFiles(), which gathers the files in the correct format that are going to be added; and then on_release... runs the second function that asks for confirmation and actually does the adding, if confirmed.
 
 # ============================================================
 
@@ -424,8 +424,7 @@ class KatzWindow(FloatLayout):
 
         # Prevent user from extracting from an archive when one isn't open.
         try:
-            if self.zip_filename:
-                pass
+            if self.zip_filename: pass
         except:
             self.show_msg("No zip file is open.\nOpen a zip file, first.")
             return
@@ -433,8 +432,11 @@ class KatzWindow(FloatLayout):
         # Extract all the files in the zipfile to a subfolder of the same name as the zipfile.
         with ZipFile(self.zip_filename, 'r') as f:
             print('\nExtracting...')
-            extract_location = str(Path(self.path, self.zip_filename[:-4]))
+            extract_location = str(Path(self.default_path, self.zip_filename[:-4]))
             f.extractall(path=extract_location)
+
+        msg = 'Extracting finished.'
+        self.show_msg(msg)
 
 
     # ========================================================================
@@ -515,6 +517,9 @@ class KatzWindow(FloatLayout):
         for ndx, f in enumerate(self.remove_these):
             relative_path = os.path.relpath(os.path.dirname(f), tmp_path)
             self.remove_these[ndx] = os.path.join(relative_path, os.path.basename(f))
+            # If the file is in the root directory of the zip file, delete the '.\\' prefix.
+            if self.remove_these[ndx][0:2] == '.\\':
+                self.remove_these[ndx] = self.remove_these[ndx][2:]
 
         # Recreate the zip file from the files in the "tmp_path"
 
@@ -524,9 +529,9 @@ class KatzWindow(FloatLayout):
             if os.path.isdir(item):
                 for root, dirs, files in os.walk(item, topdown=False):
                     for name in files:
-                        add_these.append(os.path.join(root, name)[2:])
-                remove_these.remove(item)
-        remove_these.extend(add_these)
+                        add_these.append(os.path.join(root, name))
+                self.remove_these.remove(item)
+        self.remove_these.extend(add_these)
 
         msg = 'Files to be removed:\n'
         for ndx, i in enumerate(self.remove_these):
