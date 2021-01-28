@@ -556,7 +556,7 @@ class KatzWindow(FloatLayout):
         for ndx, i in enumerate(self.remove_these):
             msg = msg + i + '\n'
 
-        self.showfiles_OK = Button(text='OK',
+        self.showfiles_OK = Button(text='Toss \'em',
                                 size_hint=(0.15, 0.08),
                                 pos_hint={'x': 0.01, 'y': 0.01}
                             )
@@ -651,8 +651,27 @@ class KatzWindow(FloatLayout):
         Provide a means for getting, and saving, a default start-up folder for the user.
         """
 
+        try:
+            current_path = os.getcwd()
+            # Get the folder housing the katz.py app.
+            kw = KatzApp()
+            self.app_folder_name = kw.app_folder_name
+            os.chdir(self.app_folder_name)
+            with open('katz.config', 'r') as f:
+                current_default_path = f.readline()
+            os.chdir(current_path)
+        except:
+            current_default_path = ''
 
-        text_label = Label(text='Enter a startup folder:',
+        msg = ''
+        if current_default_path:
+            if len(current_default_path) > 35:
+                current_default_path = current_default_path[0:33] + '...'
+
+            msg = 'Current startup folder: ' + current_default_path
+        msg += '\n\nEnter a startup folder:'
+
+        text_label = Label(text=msg,
                             font_size=20,
                             color=(0, 0, 0, 1),
                             text_size=self.size,
@@ -667,16 +686,25 @@ class KatzWindow(FloatLayout):
                                 focus=False,
                                 multiline=False,
                                 font_size=20,
-                                hint_text='path',
+                                hint_text='startup path',
                                 hint_text_color=[0.5, 0.5, 0.5, 1.0],       # a light grey
                                 cursor_width=4,
                                 cursor_color=(179/255, 27/255, 27/255, 1),  # a shade of deep red
                             )
 
+        note_label = Label(text='Note: Setting a path does not change the\ncurrent working folder accessed via "Open".',
+                            font_size=15,
+                            color=(0, 0, 0, 1),
+                            text_size=self.size,
+                            pos_hint={'x': 0.2, 'y': .6},
+                            halign='left'
+                        )
+
         content = FloatLayout()
 
         content.add_widget(text_label)
         content.add_widget(get_startup)
+        content.add_widget(note_label)
 
         # content = Label(text='Options dialog', font_size=28, color=(0, 0, 0, 1))
         self._popup = Popup(title="Katz options",
@@ -697,17 +725,28 @@ class KatzWindow(FloatLayout):
 
         print('setting path...', instance.text)
 
-        self.default_path = instance.text
-        kw = KatzApp()
-        self.app_folder_name = kw.app_folder_name
+        # Make sure the intended path actually exists.
 
-        self.current_path = os.getcwd()
-        os.chdir(self.app_folder_name)
+        if os.path.isdir(instance.text):
+            # Get the folder housing the katz.py app.
+            kw = KatzApp()
+            self.app_folder_name = kw.app_folder_name
 
-        with open('katz.config', 'w') as f:
-            f.write(self.default_path)
+            # Preserve whatever directory is now current. Then change directories to the app directory so we can save katz.config file there.
+            self.current_path = os.getcwd()
+            os.chdir(self.app_folder_name)
 
-        os.chdir(self.current_path)
+            with open('katz.config', 'w') as f:
+                f.write(instance.text)
+
+            # Change back to the original path.
+            os.chdir(self.current_path)
+
+        else:
+            # Only print this message if the user actually entered a path.
+            if instance.text:
+                msg = 'The path you entered:\n\n' + instance.text + '\n\ndoes not exist or is invalid.'
+                self.show_msg(msg, 400, 400)
 
         self.dismiss_popup()
 
@@ -828,7 +867,10 @@ class KatzApp(App):
         self.title = "Katz - for zip files"
 
         # Change the startup path to default path read from katz.config, if it exists.
-        os.chdir(self.default_path)
+        if os.path.isdir(self.default_path):
+            os.chdir(self.default_path)
+        else:
+            pass
 
         # Default size the window at program launch. This can be changed by the user, dragging a window corner.
         # Window.size = (586, 660)
@@ -847,8 +889,6 @@ class KatzApp(App):
         if current_path[-9:] == '_tmp_zip_' or current_path[-12:-3]== '_tmp_zip_' or current_path[-13:-4] == '_tmp_zip_':
             os.chdir(Path(self.default_path))
             shutil.rmtree(Path(current_path))
-        elif os.path.isdir(Path(self.tmp_path)):
-            shutil.rmtree(Path(self.tmp_path))
         else:
             pass
 
